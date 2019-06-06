@@ -1,37 +1,41 @@
 import { SyncableEntity } from '@akolos/ts-client-server-game-synchronization';
 
-interface PaddleInput {
-  x: number;
-  y: number;
-  z: number;
+export interface PaddleInput {
+  dx: number;
+  dy: number;
+  dzRot: number;
 }
 
-interface PaddleState {
+export interface PaddleState {
   x: number;
   y: number;
-  z: number;
+  zRot: number;
 }
 
 export class PaddleEntity extends SyncableEntity<PaddleInput, PaddleState> {
-  public calcNextStateFromInput(_currentState: PaddleState, input: PaddleInput) {
-    return input;
+  public calcNextStateFromInput(currentState: PaddleState, input: PaddleInput) {
+    return {
+      x: currentState.x + input.dx,
+      y: currentState.y + input.dy,
+      zRot: currentState.zRot + input.dzRot
+    }
   }
 
   public interpolate(state1: PaddleState, state2: PaddleState, timeRatio: number) {
     return {
       x: (state2.x - state1.x) * timeRatio,
       y: (state2.y - state1.y) * timeRatio,
-      z: (state2.z - state2.z) * timeRatio
+      zRot: (state2.zRot - state2.zRot) * timeRatio
     }
   }
 }
 
-interface BallInput {
+export interface BallInput {
   x: number;
   y: number;
 }
 
-interface BallState {
+export interface BallState {
   x: number;
   y: number;
 }

@@ -1,5 +1,6 @@
-import { GameEngine } from '@akolos/ts-client-server-game-synchronization';
+import { GameLoop } from '@akolos/ts-client-server-game-synchronization';
 import Three from 'three';
+import { DeepReadonly } from './util';
 
 class PongBall {
   public object: Three.Group;
@@ -25,7 +26,7 @@ enum Player {
   Player2
 }
 
-export class Pong3dEngine extends GameEngine {
+export class Pong3dGameEngine {
 
   public eastWall: Three.Mesh;
   public westWall: Three.Mesh;
@@ -33,15 +34,16 @@ export class Pong3dEngine extends GameEngine {
   public player2Paddle: Three.Mesh;
   public ball: PongBall;
 
-  private config: Pong3dConfig;
+  public config: Readonly<Pong3dConfig>;
 
   private timeUntilServeSec: number;
   private ballIsInPlay: boolean;
 
   private server: Player;
 
-  constructor(config: Pong3dConfig) {
-    super();
+  private gameLoop = new GameLoop(this.tick.bind(this));
+
+  public constructor(config: Pong3dConfig) {
     const createWalls = () => {
       const width = config.walls.width;
       const depth = config.walls.depth;
@@ -75,7 +77,7 @@ export class Pong3dEngine extends GameEngine {
         player1Paddle: createPaddle(player1YPosOffset),
         player2Paddle: createPaddle(player2YPosOffset)
       }
-    }
+    };
     const createBall = () => {
       const { radius, segmentCount } = config.ball;
       const geometry = new Three.SphereGeometry(radius, segmentCount, segmentCount);
@@ -104,11 +106,17 @@ export class Pong3dEngine extends GameEngine {
     this.config = config;
   }
 
-  protected step(): void {
-    const updateRate = this.stepRateHz;
-    this.moveBall(updateRate);
+  public start() {
+    this.gameLoop.start(this.config.game.tickRate);
   }
 
+  public stop() {
+    this.gameLoop.stop();
+  }
+
+  private tick() {
+    this.moveBall(this.config.game.tickRate);
+  };
 
   /**
    * Moves the ball.
@@ -176,9 +184,13 @@ export class Pong3dEngine extends GameEngine {
 }
 
 interface Pong3dConfig {
+  game: {
+    tickRate: number;
+  }
   playField: {
     width: number;
     height: number;
+    centerlineWidth: number;
   },
   walls: {
     width: number;
