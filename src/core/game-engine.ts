@@ -20,7 +20,7 @@ class Ball {
   }
 }
 
-interface Paddle {
+export interface Paddle {
   object: Three.Mesh;
   speed: Three.Vector2;
 }
@@ -194,13 +194,10 @@ export class Pong3dGameEngine {
       };
 
       const isCollidingWithPaddle = (paddle: Paddle) => {
-        const { object, speed } = paddle;
 
         const origin = new Three.Vector2(0, 0);
-        const relXPos = ball.position.x - object.position.x;
-        const relYPos = ball.position.y
-        const ballRelPos = getRelativePosition(ball, object);
-        const ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -object.rotation.z);
+        const ballRelPos = getRelativePosition(ball, paddle.object);
+        const ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.object.rotation.z);
 
         return (Math.abs(ballRelPosDisregardingRotation.x) - ballRadius < paddleWidth / 2 &&
           Math.abs(ballRelPosDisregardingRotation.y) - ballRadius < paddleHeight);
