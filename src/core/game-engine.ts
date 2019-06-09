@@ -1,5 +1,6 @@
 import { GameLoop, TypedEventEmitter } from '@akolos/ts-client-server-game-synchronization';
 import Three, { Vector2 } from 'three';
+import { Player } from './enum/player';
 
 class Ball {
   public object: Three.Group;
@@ -23,11 +24,6 @@ class Ball {
 export interface Paddle {
   object: Three.Mesh;
   speed: Three.Vector2;
-}
-
-enum Player {
-  Player1,
-  Player2
 }
 
 export interface Pong3dGameEngineEvents {
