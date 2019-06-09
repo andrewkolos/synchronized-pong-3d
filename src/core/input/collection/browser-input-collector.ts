@@ -9,7 +9,6 @@ import { Pong3dInputCollector } from './input-collector';
 export interface Pong3DBrowserInputCollectorContext {
   keyMappings: Pong3DKeyMappings;
   game: Pong3dGameEngine;
-  playerEntityId: string;
   playerPaddle: Three.Mesh;
 }
 

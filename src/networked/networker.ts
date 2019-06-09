@@ -2,7 +2,6 @@ import { ClientEntitySynchronizer, ClientEntitySynchronizerContext, InputCollect
 import { Pong3dGameEngine, Paddle } from '../core/game-engine';
 import { Pong3dLocalServerConnection } from './local/local-server-connection';
 import { Pong3dEntityFactory } from './client/entity-factory';
-import { Pong3DBrowserInputCollectionStrategy } from './client/browser-input-collector';
 import { PaddleEntity, BallEntity } from './entities';
 
 export interface Pong3dNetworkAdapterContext {
