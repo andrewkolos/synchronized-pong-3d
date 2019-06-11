@@ -1,21 +1,20 @@
 import Three from 'three';
 
+export interface Pong3dSpeedometerConfig {
+  size: number;
+  backColor: number;
+  numberOfSegments: number;
+  speedSegmentColors: number[];
+  minSpeedValue: number;
+  maxSpeedValue: number;
+}
+
 export interface Pong3dScoreboardConfig {
-  position: Three.Vector3;
-  size: {
-    width: number;
-    height: number;
-    depth: number;
-  };
+  size: number;
   color: number;
   player1TextColor: number;
   player2TextColor: number;
-  padding: number;
-  speedometer: {
-    backColor: number;
-    speedColors: number[];
-    serveColors: number[];
-  }
+  speedometer: Pong3dSpeedometerConfig;
 }
 
 export interface Pong3dThreeRendererConfig {
@@ -38,7 +37,10 @@ export interface Pong3dThreeRendererConfig {
     player1Color: number;
     player2Color: number;
   }
-  scoreboard: Pong3dScoreboardConfig;
+  scoreboard: {
+    position: Three.Vector3;
+    config: Pong3dScoreboardConfig;
+  }
   screenShake: {
     minSpeed: number;
     maxSpeed: number;
