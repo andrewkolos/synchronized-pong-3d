@@ -1,36 +1,10 @@
 import { GameLoop, TypedEventEmitter } from '@akolos/ts-client-server-game-synchronization';
 import Three, { Vector2 } from 'three';
-import { Player } from './enum/player';
-
-class Ball {
-  public object: Three.Group;
-  public innerObject: Three.Mesh;
-  public dx: number;
-  public dy: number;
-  public collidingWithPaddle: boolean;
-  public collidingWithWall: boolean;
-
-  public constructor(object: Three.Group, innerObject: Three.Mesh, initDx: number, initDy: number) {
-    this.object = object;
-    this.innerObject = innerObject;
-    this.dx = initDx;
-    this.dy = initDy;
-
-    this.collidingWithPaddle = false;
-    this.collidingWithWall = false;
-  }
-}
-
-export interface Paddle {
-  object: Three.Mesh;
-  speed: Three.Vector2;
-}
-
-export interface Pong3dGameEngineEvents {
-  ballHitPaddle: void;
-  ballHitWall: void;
-  playerScored: Player;
-}
+import { Player } from '../enum/player';
+import { Ball } from './ball';
+import { Paddle } from './paddle';
+import { Pong3dGameEngineEvents } from './Pong3dGameEngineEvents';
+import { Pong3dConfig } from './Pong3dConfig';
 
 export class Pong3dGameEngine {
 
@@ -325,106 +299,4 @@ export class Pong3dGameEngine {
     return this.timeUntilServeSec > 0;
   }
 
-}
-
-interface Pong3dConfig {
-  game: {
-    tickRate: number;
-  }
-  playField: {
-    width: number;
-    height: number;
-    neutralZoneHeight: number;
-  },
-  walls: {
-    width: number;
-    depth: number;
-  }
-  paddles: {
-    width: number;
-    height: number;
-    depth: number;
-    baseMoveSpeed: number;
-    computerMoveSpeed: number;
-  },
-  ball: {
-    radius: number;
-    segmentCount: number;
-    iFrames: number;
-    speedLimit: number;
-    speedIncreaseOnPaddleHit: number;
-    maxDx: number;
-    minDx: number;
-    initDx: number;
-    initDy: number;
-  },
-  pauseAfterScoreSec: number;
-}
-
-interface Pong3dThreeRendererConfig {
-  window: {
-    width: number;
-    height: number;
-  }
-  camera: {
-    viewAngle: number;
-    aspectRatio: number;
-    nearClippingPlane: number;
-    farClippingPlane: number;
-    position: {
-      x: number;
-      y: number;
-      z: number;
-    }
-  }
-  playField: {
-    color: number;
-    centerlineWidth: number;
-  }
-  wallColor: number;
-  paddles: {
-    player1Color: number;
-    player2Color: number;
-  }
-  scoreboard: {
-    width: number;
-    height: number;
-    depth: number;
-    position: {
-      x: number;
-      y: number;
-      z: number;
-    }
-    color: number;
-  }
-  ballSpeedMeter: {
-    width: number;
-    height: number;
-    position: {
-      x: number;
-      y: number;
-      z: number;
-    }
-    color: number;
-    speedMeterPartColors: number[];
-    windupMeterPartColors: number[];
-    separatorSize: number;
-    minSpeed: number;
-    maxSpeed: number;
-  },
-  screenShake: {
-    minSpeed: number;
-    maxSpeed: number;
-    maximums: {
-      x: number;
-      y: number;
-      z: number;
-    }
-  },
-  brightness: {
-    directional: number;
-    scoreboard: number;
-    hemi: number;
-    ambient: number;
-  }
 }
