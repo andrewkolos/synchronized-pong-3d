@@ -1,26 +1,25 @@
 import Three from 'three';
 
-export interface Pong3dSpeedometerConfig {
-  size: number;
+export interface Pong3dMeterConfig {
+  scale: number;
   backColor: number;
   numberOfSegments: number;
   speedSegmentColors: number[];
-  minSpeedValue: number;
-  maxSpeedValue: number;
+  maxValue: number;
 }
 
 export interface Pong3dScoreboardConfig {
-  size: number;
+  scale: number;
   color: number;
   player1TextColor: number;
   player2TextColor: number;
-  speedometer: Pong3dSpeedometerConfig;
+  speedometer: Pong3dMeterConfig;
+  serveMeter: Pong3dMeterConfig;
 }
 
 export interface Pong3dThreeRendererConfig {
   camera: {
-    viewAngle: number;
-    aspectRatio: number;
+    fov: number;
     clippingPlane: {
       near: number;
       far: number;
@@ -52,5 +51,6 @@ export interface Pong3dThreeRendererConfig {
     hemisphericalLightBrightness: number;
     ambientLightBrightness: number;
   },
+  wallColor: number;
   clearColor: number;
 }
