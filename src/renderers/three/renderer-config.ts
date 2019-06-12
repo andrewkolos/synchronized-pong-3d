@@ -4,7 +4,7 @@ export interface Pong3dMeterConfig {
   scale: number;
   backColor: number;
   numberOfSegments: number;
-  speedSegmentColors: number[];
+  segmentColors: number[];
   maxValue: number;
 }
 

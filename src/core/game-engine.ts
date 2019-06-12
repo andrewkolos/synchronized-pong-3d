@@ -1,10 +1,10 @@
 import { GameLoop, TypedEventEmitter } from '@akolos/ts-client-server-game-synchronization';
 import Three, { Vector2 } from 'three';
-import { Player } from '../enum/player';
+import { Player } from './enum/player';
 import { Ball } from './ball';
 import { Paddle } from './paddle';
-import { Pong3dGameEngineEvents } from './Pong3dGameEngineEvents';
-import { Pong3dConfig } from './Pong3dConfig';
+import { Pong3dGameEngineEvents } from './game-engine-events';
+import { Pong3dConfig } from './config';
 
 export class Pong3dGameEngine {
 
