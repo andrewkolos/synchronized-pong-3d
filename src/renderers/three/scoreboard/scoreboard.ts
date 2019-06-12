@@ -61,7 +61,7 @@ export class Pong3dThreeScoreboard {
     this.serverMeter = serveMeter;
     this.object.add(serveMeter.getObject());
     
-    const player1ScoreDisplay = new SevenSegmentDisplay(config.size, 2);
+    const player1ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
     const player1ScoreDisplayObj = player1ScoreDisplay.getObject();
     player1ScoreDisplayObj.position.x = - getWidthOfObj(player1ScoreDisplayObj) / 2 - scale(0.5) / 2;
     player1ScoreDisplayObj.position.y = scale(-1);
@@ -69,7 +69,7 @@ export class Pong3dThreeScoreboard {
     this.player1ScoreDisplay = player1ScoreDisplay;
     this.object.add(player1ScoreDisplayObj);
 
-    const player2ScoreDisplay = new SevenSegmentDisplay(config.size, 2);
+    const player2ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
     const player2ScoreDisplayObj = player2ScoreDisplay.getObject();
     player2ScoreDisplayObj.position.x = getWidthOfObj(speedometer.getObject()) / 2 - getWidthOfObj(player2ScoreDisplayObj) / 2;
     player2ScoreDisplayObj.position.y = scale(-1);
@@ -96,13 +96,13 @@ export class Pong3dThreeScoreboard {
   }
 
   private scale(x: number) {
-    return this.config.size * x;
+    return this.config.scale * x;
   }
 
   private generatePlayerTextMesh(text: string, color: number) {
     const playerTextGeometry = new Three.TextGeometry(text, {
       font: this.font,
-      size: this.config.size,
+      size: this.config.scale,
       height: 0.25,
       curveSegments: 12,
       bevelEnabled: true,
