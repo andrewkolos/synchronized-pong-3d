@@ -61,6 +61,6 @@ export function generateSimpleThreeRendererConfig(width: number, height: number)
       ambientLightBrightness: 0.1,
     },
     wallColor: 0xFFFFFF,
-    clearColor: 0x000000
+    clearColor: 0x000000,
   }
 }

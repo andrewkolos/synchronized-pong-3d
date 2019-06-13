@@ -6,6 +6,11 @@ import { Player } from "./enum/player";
 import { Pong3dGameEngineEvents } from "./game-engine-events";
 import { Paddle } from "./paddle";
 
+interface Score {
+  player1: number;
+  player2: number;
+}
+
 export class Pong3dGameEngine {
 
   // Game Objects.
@@ -20,19 +25,125 @@ export class Pong3dGameEngine {
 
   public eventEmitter: TypedEventEmitter<Pong3dGameEngineEvents> = new TypedEventEmitter();
 
-  public readonly score: Readonly<{
-    player1: number;
-    player2: number;
-  }>;
+  public get score(): Readonly<Score> {
+    return this._score;
+  }
+
+  public get timeUntilServeSec(): number {
+    return this._timeUntilServeSec;
+  }
+
+  private _score: Score;
 
   // Additional game state information.
-  public readonly timeUntilServeSec: number;
+  private _timeUntilServeSec: number;
 
   private ballIsInPlay: boolean;
   private server: Player;
 
   private gameLoop = new GameLoop(this.tick.bind(this));
 
+  public constructor(config: Pong3dConfig) {
+    const createWalls = () => {
+      const width = config.walls.width;
+      const depth = config.walls.depth;
+      const playFieldHeight = config.playField.height;
+
+      const eastWallGeometry = new Three.BoxGeometry(width, playFieldHeight, depth);
+      const eastWall = new Three.Mesh(eastWallGeometry);
+
+      const westWallGeometry = new Three.BoxGeometry(width, playFieldHeight, depth);
+      const westWall = new Three.Mesh(westWallGeometry);
+
+      return { eastWall, westWall };
+    };
+    const createPaddles = () => {
+      const createPaddle = (offset: number): Paddle => {
+        const { width, height, depth } = config.paddles;
+        const geometry = new Three.BoxGeometry(width, height, depth);
+        const paddle = new Three.Mesh(geometry);
+
+        paddle.position.set(0, offset, depth / 2);
+
+        return {
+          object: paddle,
+          speed: new Three.Vector2(),
+        };
+      };
+
+      const paddleHeight = config.paddles.height;
+      const playFieldHeight = config.playField.height;
+      const player1YPosOffset = playFieldHeight / 2 + paddleHeight / 2;
+      const player2YPosOffset = - player1YPosOffset;
+
+      return {
+        player1Paddle: createPaddle(player1YPosOffset),
+        player2Paddle: createPaddle(player2YPosOffset),
+      };
+    };
+    const createBall = () => {
+      const { radius, segmentCount } = config.ball;
+      const geometry = new Three.SphereGeometry(radius, segmentCount, segmentCount);
+      const innerBall = new Three.Mesh(geometry);
+      // tslint:disable-next-line: no-shadowed-variable
+      const ball = new Three.Group();
+      ball.position.set(0, 0, radius);
+      ball.add(innerBall);
+      return new Ball(ball, innerBall, config.ball.initDx, config.ball.initDy);
+    };
+
+    const walls = createWalls();
+    const paddles = createPaddles();
+    const ball = createBall();
+
+    this.eastWall = walls.eastWall;
+    this.westWall = walls.westWall;
+    this.player1Paddle = paddles.player1Paddle;
+    this.player2Paddle = paddles.player2Paddle;
+    this.ball = ball;
+
+    // Initialize game state.
+    this._timeUntilServeSec = 3;
+    this.ballIsInPlay = false;
+    this.server = Math.random() >= 0.5 ? Player.Player1 : Player.Player2;
+    this._score = {
+      player1: 0,
+      player2: 0,
+    };
+
+    this.config = config;
+  }
+
+  public start() {
+    this.gameLoop.start(this.config.game.tickRate);
+  }
+
+  public stop() {
+    this.gameLoop.stop();
+  }
+
+  private tick() {
+    this.moveBall();
+  }
+  /**
+   * Moves the ball.
+   */
+  private moveBall() {
+
+    if (this.ballIsInPlay) {
+      this.moveBallInPlay();
+      if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
+        this.movePlayer2Paddle();
+      }
+    } else if (this.isBallBeingHeldByServer()) {
+      this.moveBallPreparingToServe();
+    } else if (this.isBallServingAtCurrentInstant()) {
+      this.serveBall();
+    }
+
+  }
+
+  // tslint:disable-next-line: member-ordering
   private moveBallInPlay = (() => {
     const ballObject = this.ball.object;
 
@@ -132,12 +243,18 @@ export class Pong3dGameEngine {
         this.eventEmitter.emit("ballHitWall");
       } else if (paddleBeingCollidedWith != null) {
 
+        const aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
+
         const delta = new Three.Vector2(this.ball.dx, this.ball.dy);
         const paddle = paddleBeingCollidedWith === Player.Player1 ? this.player1Paddle : this.player2Paddle;
 
-        delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
-        delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
-        delta.rotateAround(new Vector2(0, 0), -paddle.object.rotation.z);
+        if (paddle === this.player1Paddle || !aiEnabled) {
+          delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
+          delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
+          delta.rotateAround(new Vector2(0, 0), -paddle.object.rotation.z);
+        } else if (this.config.aiPlayer != null) {
+          delta.y *= -1 * this.config.aiPlayer.speedIncreaseOnPaddleHit;
+        }
 
         // TODO: May need to advance ball away from paddle to prevent a massive number of instantaneous collisions.
 
@@ -153,114 +270,39 @@ export class Pong3dGameEngine {
         this.ball.dy = scorer === Player.Player1 ? initialYVelocityAfterServe : -initialYVelocityAfterServe;
         this.ball.dx = continuousRandom(this.config.ball.minDx, this.config.ball.maxDx);
 
-        this.timeUntilServeSec = this.config.pauseAfterScoreSec;
+        this._timeUntilServeSec = this.config.pauseAfterScoreSec;
         if (scorer === Player.Player1) {
-          this.score.player1 += 1;
+          this._score.player1 += 1;
         } else if (scorer === Player.Player2) {
-          this.score.player2 += 1;
+          this._score.player2 += 1;
         }
 
-        this.eventEmitter.emit("playerScored", scorer, this.score);
+        this.eventEmitter.emit("playerScored", scorer, this._score);
       }
     };
 
   })();
 
-  public constructor(config: Pong3dConfig) {
-    const createWalls = () => {
-      const width = config.walls.width;
-      const depth = config.walls.depth;
-      const playFieldHeight = config.playField.height;
-
-      const eastWallGeometry = new Three.BoxGeometry(width, playFieldHeight, depth);
-      const eastWall = new Three.Mesh(eastWallGeometry);
-
-      const westWallGeometry = new Three.BoxGeometry(width, playFieldHeight, depth);
-      const westWall = new Three.Mesh(westWallGeometry);
-
-      return { eastWall, westWall };
-    };
-    const createPaddles = () => {
-      const createPaddle = (offset: number): Paddle => {
-        const { width, height, depth } = config.paddles;
-        const geometry = new Three.BoxGeometry(width, height, depth);
-        const paddle = new Three.Mesh(geometry);
-
-        paddle.position.set(0, offset, depth / 2);
-
-        return {
-          object: paddle,
-          speed: new Three.Vector2(),
-        };
-      };
-
-      const paddleHeight = config.paddles.height;
-      const playFieldHeight = config.playField.height;
-      const player1YPosOffset = playFieldHeight / 2 + paddleHeight / 2;
-      const player2YPosOffset = - player1YPosOffset;
-
-      return {
-        player1Paddle: createPaddle(player1YPosOffset),
-        player2Paddle: createPaddle(player2YPosOffset),
-      };
-    };
-    const createBall = () => {
-      const { radius, segmentCount } = config.ball;
-      const geometry = new Three.SphereGeometry(radius, segmentCount, segmentCount);
-      const innerBall = new Three.Mesh(geometry);
-      // tslint:disable-next-line: no-shadowed-variable
-      const ball = new Three.Group();
-      ball.position.set(0, 0, radius);
-      ball.add(innerBall);
-      return new Ball(ball, innerBall, config.ball.initDx, config.ball.initDy);
-    };
-
-    const walls = createWalls();
-    const paddles = createPaddles();
-    const ball = createBall();
-
-    this.eastWall = walls.eastWall;
-    this.westWall = walls.westWall;
-    this.player1Paddle = paddles.player1Paddle;
-    this.player2Paddle = paddles.player2Paddle;
-    this.ball = ball;
-
-    // Initialize game state.
-    this.timeUntilServeSec = 3;
-    this.ballIsInPlay = false;
-    this.server = Math.random() >= 0.5 ? Player.Player1 : Player.Player2;
-    this.score = {
-      player1: 0,
-      player2: 0,
-    };
-
-    this.config = config;
-  }
-
-  public start() {
-    this.gameLoop.start(this.config.game.tickRate);
-  }
-
-  public stop() {
-    this.gameLoop.stop();
-  }
-
-  private tick() {
-    this.moveBall();
-  }
-  /**
-   * Moves the ball.
-   */
-  private moveBall() {
-
-    if (this.ballIsInPlay) {
-      this.moveBallInPlay();
-    } else if (this.isBallBeingHeldByServer()) {
-      this.moveBallPreparingToServe();
-    } else if (this.isBallServingAtCurrentInstant()) {
-      this.serveBall();
+  private movePlayer2Paddle() {
+    if (this.config.aiPlayer == null) {
+      throw Error("AI config is missing");
     }
 
+    // tslint:disable-next-line: no-shadowed-variable
+    const ball = this.ball.object;
+    const player2PaddleObj = this.player2Paddle.object;
+    const player2PaddleMinX = this.config.playField.width / 2 - this.config.paddles.width / 2;
+    if (ball.position.x > player2PaddleObj.position.x && player2PaddleObj.position.x < player2PaddleMinX) {
+      ball.position.x += this.config.aiPlayer.moveSpeed;
+      if (ball.position.x < player2PaddleObj.position.x) {
+        player2PaddleObj.position.x = ball.position.x;
+      }
+    } else if (ball.position.x > -player2PaddleMinX) {
+      player2PaddleObj.position.x -= this.config.aiPlayer.moveSpeed;
+      if (ball.position.x > player2PaddleObj.position.x) {
+        player2PaddleObj.position.x = ball.position.x;
+      }
+    }
   }
 
   private moveBallPreparingToServe() {
@@ -294,11 +336,11 @@ export class Pong3dGameEngine {
   }
 
   private isBallServingAtCurrentInstant() {
-    return this.timeUntilServeSec <= 0;
+    return this._timeUntilServeSec <= 0;
   }
 
   private isBallBeingHeldByServer() {
-    return this.timeUntilServeSec > 0;
+    return this._timeUntilServeSec > 0;
   }
 
 }
