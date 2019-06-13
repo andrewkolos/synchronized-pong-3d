@@ -9,12 +9,12 @@
   "author": "Andrew Kolos",
   "license": "MIT",
   "dependencies": {
-    "@akolos/ts-client-server-game-synchronization": "^0.1.12",
-    "@types/node": "^12.0.7",
+    "@akolos/ts-client-server-game-synchronization": "^0.1.14",
+    "@types/node": "^12.0.8",
     "@types/three": "^0.103.2",
     "keycode": "^2.2.0",
     "three": "^0.104.0",
     "tslint": "^5.17.0",
-    "typescript": "^3.5.1"
+    "typescript": "^3.5.2"
   }
 }
