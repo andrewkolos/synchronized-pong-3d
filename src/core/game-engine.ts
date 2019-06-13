@@ -18,18 +18,20 @@ export class Pong3dGameEngine {
   // Configuration.
   public config: Readonly<Pong3dConfig>;
 
-  // Additional game state information.
-  private timeUntilServeSec: number;
-  private ballIsInPlay: boolean;
-  private server: Player;
-  private score: {
+  public eventEmitter: TypedEventEmitter<Pong3dGameEngineEvents> = new TypedEventEmitter();
+
+  public readonly score: Readonly<{
     player1: number;
     player2: number;
-  };
+  }>;
+
+  // Additional game state information.
+  public readonly timeUntilServeSec: number;
+
+  private ballIsInPlay: boolean;
+  private server: Player;
 
   private gameLoop = new GameLoop(this.tick.bind(this));
-
-  private eventEmitter: TypedEventEmitter<Pong3dGameEngineEvents> = new TypedEventEmitter();
 
   private moveBallInPlay = (() => {
     const ballObject = this.ball.object;

@@ -1,4 +1,4 @@
-import { SyncableEntity } from '@akolos/ts-client-server-game-synchronization';
+import { SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
 
 export interface BallInput {
   x: number;

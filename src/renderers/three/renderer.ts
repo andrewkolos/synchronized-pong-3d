@@ -12,6 +12,7 @@ export class Pong3dThreeRenderer {
   private cameraParent = new Three.Group();
   private renderer: Three.WebGLRenderer;
   private config: Pong3dThreeRendererConfig;
+  private scoreboard: Pong3dThreeScoreboard;
 
   private rendering = true;
 
@@ -52,6 +53,7 @@ export class Pong3dThreeRenderer {
     const scoreboard = new Pong3dThreeScoreboard(config.scoreboard.config);
     scoreboard.getObject().position.copy(config.scoreboard.position);
     this.scene.add(scoreboard.getObject());
+    this.scoreboard = scoreboard;
   }
 
   public getRendererDomElement(): HTMLCanvasElement {
@@ -75,7 +77,7 @@ export class Pong3dThreeRenderer {
   }
 
   private render(game: Pong3dGameEngine): void {
-    this.addTexturesToGameObjects(game);
+    this.performInitialSetup(game);
 
     if (this.rendering) {
       requestAnimationFrame(() => {
@@ -84,7 +86,7 @@ export class Pong3dThreeRenderer {
     }
   }
 
-  private addTexturesToGameObjects(game: Pong3dGameEngine) {
+  private performInitialSetup(game: Pong3dGameEngine) {
     if (game.westWall.material == null) {
       game.westWall.material = new Three.MeshLambertMaterial({color: this.config.wallColor});
       game.eastWall.material = new Three.MeshLambertMaterial({color: this.config.wallColor});
@@ -99,6 +101,28 @@ export class Pong3dThreeRenderer {
       game.ball.innerObject.castShadow = true;
 
       this.scene.add(this.createPlayField(game));
+
+      game.eventEmitter.on("ballHitPaddle", () => {
+        this.scoreboard.setSpeed(Math.hypot(game.ball.dx, game.ball.dy));
+      });
+
+      game.eventEmitter.on("playerScored", () => {
+        this.scoreboard.setScore(game.score.player1, game.score.player2);
+      });
+
+      game.eventEmitter.on("startingServe", () => {
+        this.scoreboard.setSpeed(0); // Clears speed meter.
+      });
+
+      game.eventEmitter.on("tick", () => {
+        if (game.timeUntilServeSec > 0) {
+          this.scoreboard.setServeProgress(game.config.pauseAfterScoreSec / game.timeUntilServeSec);
+        }
+      });
+
+      game.eventEmitter.on("ballServed", () => {
+        this.scoreboard.setServeProgress(0); // Clears meter.
+      })
     }
   }
 
