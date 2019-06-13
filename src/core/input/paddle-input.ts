@@ -1,4 +1,3 @@
-
 /**
  * Contains data representing an intent to move a paddle a certain distance.
  */

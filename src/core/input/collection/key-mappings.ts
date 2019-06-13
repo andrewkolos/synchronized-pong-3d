@@ -1,4 +1,4 @@
-import { KeyCode } from './key-code';
+import { KeyCode } from "./key-code";
 
 export interface Pong3DKeyMappings {
   movePaddleLeft: KeyCode;

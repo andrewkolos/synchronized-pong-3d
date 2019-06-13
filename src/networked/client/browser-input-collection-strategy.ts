@@ -1,5 +1,5 @@
-import { InputCollectionStrategy, InputForEntity } from '@akolos/ts-client-server-game-synchronization';
-import { Pong3dInputCollector } from '../../core/input/collection/input-collector';
+import { InputCollectionStrategy, InputForEntity } from "@akolos/ts-client-server-game-synchronization";
+import { Pong3dInputCollector } from "../../core/input/collection/input-collector";
 
 export interface Pong3DBrowserInputCollectionStrategyContext {
   playerEntityId: string;

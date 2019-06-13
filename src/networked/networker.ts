@@ -1,15 +1,17 @@
-import { ClientEntitySynchronizer, ClientEntitySynchronizerContext, InputCollectionStrategy, SyncableEntity } from '@akolos/ts-client-server-game-synchronization';
-import { Pong3dGameEngine, Paddle } from '../core/game-engine';
-import { Pong3dLocalServerConnection } from './local/local-server-connection';
-import { Pong3dEntityFactory } from './client/entity-factory';
-import { PaddleEntity, BallEntity } from './entities';
+import { ClientEntitySynchronizer, ClientEntitySynchronizerContext,
+  InputCollectionStrategy, SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
+import { Pong3dGameEngine } from "../core/game-engine";
+import { Paddle } from "../core/paddle";
+import { Pong3dEntityFactory } from "./client/entity-factory";
+import { BallEntity } from "./entities/ball";
+import { PaddleEntity } from "./entities/paddle";
+import { Pong3dLocalServerConnection } from "./local/local-server-connection";
 
 export interface Pong3dNetworkAdapterContext {
   serverConnection: Pong3dLocalServerConnection;
   serverUpdateRate: number;
   inputCollectionStrategy: InputCollectionStrategy;
 }
-
 
 export class Pong3dNetworkAdapter {
 
@@ -20,22 +22,22 @@ export class Pong3dNetworkAdapter {
       entityFactory,
       inputCollector: context.inputCollectionStrategy,
       serverConnection: context.serverConnection,
-      serverUpdateRateInHz: context.serverUpdateRate
-    }
+      serverUpdateRateInHz: context.serverUpdateRate,
+    };
 
     const synchronizer = new ClientEntitySynchronizer(syncContext);
-    synchronizer.eventEmitter.on('synchronized', () => {
+    synchronizer.eventEmitter.on("synchronized", () => {
       synchronizer.entities.getEntities().forEach((value: SyncableEntity<any, any>) => {
         switch (value.id) {
-          case 'player1':
+          case "player1":
             const player1 = value as PaddleEntity;
             this.applySyncPaddleStateToGame(player1, gameToSync.player1Paddle);
             break;
-          case 'player2':
+          case "player2":
             const player2 = value as PaddleEntity;
             this.applySyncPaddleStateToGame(player2, gameToSync.player2Paddle);
             break;
-          case 'ball':
+          case "ball":
             const ball = value as BallEntity;
             gameToSync.ball.object.position.x = ball.state.x;
             gameToSync.ball.object.position.y = ball.state.y;
@@ -43,7 +45,7 @@ export class Pong3dNetworkAdapter {
             gameToSync.ball.dy = ball.state.dy;
             break;
         }
-      })
+      });
     });
   }
 

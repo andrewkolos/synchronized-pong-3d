@@ -16,7 +16,6 @@ export interface Pong3dConfig {
     height: number;
     depth: number;
     baseMoveSpeed: number;
-    computerMoveSpeed: number;
   };
   ball: {
     radius: number;
@@ -30,4 +29,9 @@ export interface Pong3dConfig {
     initDy: number;
   };
   pauseAfterScoreSec: number;
+  aiPlayer?: {
+    enabled: true;
+    moveSpeed: number;
+    speedIncreaseOnPaddleHit: number;
+  }
 }

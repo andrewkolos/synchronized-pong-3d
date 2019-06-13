@@ -1,7 +1,6 @@
-import keycode from 'keycode';
+import keycode from "keycode";
 
 export class KeyCode {
-  private constructor(public readonly keyCode: number) { }
 
   public static fromKeyCode(keyCode: number) {
     return new KeyCode(keyCode);
@@ -10,4 +9,6 @@ export class KeyCode {
   public static fromKeyName(keyName: string) {
     return new KeyCode(keycode(keyName));
   }
+
+  private constructor(public readonly keyCode: number) { }
 }

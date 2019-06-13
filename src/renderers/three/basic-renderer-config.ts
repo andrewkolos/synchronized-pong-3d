@@ -1,5 +1,5 @@
-import Three from 'three';
-import { Pong3dThreeRendererConfig } from './renderer-config';
+import Three from "three";
+import { Pong3dThreeRendererConfig } from "./renderer-config";
 
 const player1Color = 0x0D47A1;
 const player2Color = 0xB71c1c;

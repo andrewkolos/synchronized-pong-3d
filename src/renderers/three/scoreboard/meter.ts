@@ -1,6 +1,6 @@
-import Three from 'three';
-import { createPlane } from '../common';
-import { Pong3dMeterConfig } from '../renderer-config';
+import Three from "three";
+import { createPlane } from "../common";
+import { Pong3dMeterConfig } from "../renderer-config";
 
 export class Meter {
 
@@ -14,14 +14,14 @@ export class Meter {
     const scale = this.scale;
 
     const ballSpeedMeter = createPlane(scale(0), scale(1.5), 0);
-    ballSpeedMeter.material = new Three.MeshLambertMaterial({ color: config.backColor })
+    ballSpeedMeter.material = new Three.MeshLambertMaterial({ color: config.backColor });
     this.object.add(ballSpeedMeter);
 
     const parts = this.createProgressParts();
     parts.forEach((part: Three.Object3D) => {
       this.meterParts.push(part);
       this.object.add(part);
-    })
+    });
   }
 
   public getObject() {
@@ -36,7 +36,7 @@ export class Meter {
   }
 
   private scale(x: number) {
-    return x * this.config.size;
+    return x * this.config.scale;
   }
 
   private createProgressParts() {

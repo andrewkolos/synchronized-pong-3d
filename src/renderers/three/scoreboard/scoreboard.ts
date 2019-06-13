@@ -1,10 +1,10 @@
-import { Pong3dScoreboardConfig } from '../renderer-config';
-import Three from 'three';;
-import { Meter } from './meter';
-import { SevenSegmentDisplay } from './seven segment display/seven-segment-display';
-import { getWidthOfObject as getWidthOfObj } from '../common';
+import Three from "three"; 
+import { getWidthOfObject as getWidthOfObj } from "../common";
+import { Pong3dScoreboardConfig } from "../renderer-config";
+import { Meter } from "./meter";
+import { SevenSegmentDisplay } from "./seven segment display/seven-segment-display";
 
-const font = require('./helvetiker_regular.typeface.json');
+import font from "./helvetiker_regular.typeface.json";
 
 export class Pong3dThreeScoreboard {
 
@@ -60,7 +60,7 @@ export class Pong3dThreeScoreboard {
     const serveMeter = new Meter(config.serveMeter);
     this.serverMeter = serveMeter;
     this.object.add(serveMeter.getObject());
-    
+
     const player1ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
     const player1ScoreDisplayObj = player1ScoreDisplay.getObject();
     player1ScoreDisplayObj.position.x = - getWidthOfObj(player1ScoreDisplayObj) / 2 - scale(0.5) / 2;
@@ -71,7 +71,8 @@ export class Pong3dThreeScoreboard {
 
     const player2ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
     const player2ScoreDisplayObj = player2ScoreDisplay.getObject();
-    player2ScoreDisplayObj.position.x = getWidthOfObj(speedometer.getObject()) / 2 - getWidthOfObj(player2ScoreDisplayObj) / 2;
+    player2ScoreDisplayObj.position.x = getWidthOfObj(speedometer.getObject()) / 2 -
+                                        getWidthOfObj(player2ScoreDisplayObj) / 2;
     player2ScoreDisplayObj.position.y = scale(-1);
     player2ScoreDisplayObj.position.z = scale(1.3);
     this.player2ScoreDisplay = player2ScoreDisplay;
@@ -108,10 +109,10 @@ export class Pong3dThreeScoreboard {
       bevelEnabled: true,
       bevelThickness: 0.05,
       bevelSize: 0.05,
-      bevelSegments: 8
+      bevelSegments: 8,
     });
 
-    const playerScoreMaterial = new Three.MeshPhongMaterial({ color: color });
+    const playerScoreMaterial = new Three.MeshPhongMaterial({ color });
     const playerScoreMesh = new Three.Mesh(playerTextGeometry, playerScoreMaterial);
     playerScoreMesh.rotation.x = 90 * Math.PI / 180;
     playerScoreMesh.receiveShadow = true;
@@ -120,6 +121,3 @@ export class Pong3dThreeScoreboard {
     return playerScoreMesh;
   }
 }
-
-
-

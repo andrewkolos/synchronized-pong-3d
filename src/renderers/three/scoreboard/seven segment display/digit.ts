@@ -1,6 +1,6 @@
-import Three, { Object3D } from 'three';
-import { Segment } from './segment';
-import { segHeight, segWidth } from './constants';
+import Three, { Object3D } from "three";
+import { segHeight, segWidth } from "./constants";
+import { Segment } from "./segment";
 
 const segmentStates = [
   [false, true, true, true, true, true, true],
@@ -12,7 +12,7 @@ const segmentStates = [
   [true, true, true, false, true, true, true],
   [false, false, true, true, true, false, false],
   [true, true, true, true, true, true, true],
-  [true, true, true, true, true, true, false]
+  [true, true, true, true, true, true, false],
 ];
 
 export class Digit {
@@ -23,7 +23,7 @@ export class Digit {
     const material = new Three.MeshBasicMaterial({color: 0xff0000});
     this.object = new Three.Object3D();
     for (let i = 0; i < 7; i++) {
-      const segment = new Segment(size, material).getObject()
+      const segment = new Segment(size, material).getObject();
       this.segments.push(segment);
       this.object.add(segment);
     }

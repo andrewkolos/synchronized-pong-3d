@@ -5,10 +5,10 @@ export class KeyboardManager {
   public constructor() {
     this.keyDownStates = {};
 
-    document.body.addEventListener('keydown', (e: KeyboardEvent) => {
+    document.body.addEventListener("keydown", (e: KeyboardEvent) => {
       this.keyDownStates[e.keyCode] = true;
     });
-    document.body.addEventListener('keyup', (e: KeyboardEvent) => {
+    document.body.addEventListener("keyup", (e: KeyboardEvent) => {
       this.keyDownStates[e.keyCode] = false;
     });
   }

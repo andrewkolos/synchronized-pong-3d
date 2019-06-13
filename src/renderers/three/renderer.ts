@@ -1,9 +1,9 @@
-import Three from 'three';
-import { Pong3dThreeRendererConfig } from './renderer-config';
-import { Pong3dGameEngine } from '../../core/game-engine';
-import { Pong3dThreeScoreboard } from './scoreboard/scoreboard';
-import ballTexture from './images/ball';
-import { makeTextureFromBase64Image } from '../../util';
+import Three from "three";
+import { Pong3dGameEngine } from "../../core/game-engine";
+import { makeTextureFromBase64Image } from "../../util";
+import ballTexture from "./images/ball";
+import { Pong3dThreeRendererConfig } from "./renderer-config";
+import { Pong3dThreeScoreboard } from "./scoreboard/scoreboard";
 
 export class Pong3dThreeRenderer {
 
@@ -28,7 +28,7 @@ export class Pong3dThreeRenderer {
       camera.lookAt(new Three.Vector3(0, 0, 0));
 
       return camera;
-    }
+    };
 
     const createRenderer = (): Three.WebGLRenderer => {
       const renderer = new Three.WebGLRenderer({antialias: true});
@@ -38,7 +38,7 @@ export class Pong3dThreeRenderer {
       renderer.shadowMap.type = Three.PCFSoftShadowMap;
 
       return renderer;
-    }
+    };
 
     this.scene = new Three.Scene();
     this.camera = createCamera();
@@ -59,7 +59,7 @@ export class Pong3dThreeRenderer {
   }
 
   public startRendering(game: Pong3dGameEngine): void {
-    window.addEventListener('resize', this.handleResize, false);
+    window.addEventListener("resize", this.handleResize, false);
     this.rendering = true;
     this.render(game);
   }
@@ -70,7 +70,7 @@ export class Pong3dThreeRenderer {
 
   private handleResize(): void {
     const domElement = this.renderer.domElement;
-    this.camera.aspect = domElement.clientWidth / domElement.clientHeight
+    this.camera.aspect = domElement.clientWidth / domElement.clientHeight;
     this.camera.updateProjectionMatrix();
   }
 
@@ -112,7 +112,7 @@ export class Pong3dThreeRenderer {
       part.position.set(0, yOffset, 0);
 
       return part;
-    }
+    };
 
     const playPlaneLength = (this.config.height / 2) - (game.config.playField.neutralZoneHeight);
     const playPlanePos = (game.config.playField.neutralZoneHeight / 2) + playPlaneLength / 2;

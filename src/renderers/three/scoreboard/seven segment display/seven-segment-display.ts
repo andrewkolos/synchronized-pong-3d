@@ -1,6 +1,6 @@
-import Three from 'three';
-import { segHeight, segWidth } from './constants';
-import { Digit } from './digit';
+import Three from "three";
+import { segHeight, segWidth } from "./constants";
+import { Digit } from "./digit";
 
 export class SevenSegmentDisplay {
 
@@ -11,12 +11,12 @@ export class SevenSegmentDisplay {
 
   public constructor(size: number, digitCount: number) {
     const object = new Three.Object3D();
-    
+
     this.object = object;
     this.digitCount = digitCount;
 
     const digitWidth = segWidth + segHeight * 2;
-     
+
     for (let i = 0; i < digitCount; i++) {
       const digit = new Digit(size);
       this.digits.push(digit);

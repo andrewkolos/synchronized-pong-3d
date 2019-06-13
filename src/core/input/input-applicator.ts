@@ -1,6 +1,6 @@
-import { Pong3dGameEngine } from '../game-engine';
-import { PlayerBoundPaddleInput } from './player-bound-paddle-input';
-import { Player } from '../enum/player';
+import { Player } from "../enum/player";
+import { Pong3dGameEngine } from "../game-engine";
+import { PlayerBoundPaddleInput } from "./player-bound-paddle-input";
 
 /* Applies input to a Pong 3d game. */
 export class Pong3dInputApplicator {
