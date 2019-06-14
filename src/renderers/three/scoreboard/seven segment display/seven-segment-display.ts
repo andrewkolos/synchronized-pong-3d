@@ -1,4 +1,4 @@
-import Three from "three";
+import * as Three from "three";
 import { segHeight, segWidth } from "./constants";
 import { Digit } from "./digit";
 

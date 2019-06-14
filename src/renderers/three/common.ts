@@ -1,4 +1,4 @@
-import Three from "three";
+import * as Three from "three";
 
 export function createPlane(width: number, height: number, color: number) {
   const geometry = new Three.PlaneGeometry(width, height, 12, 12);

@@ -1,7 +1,17 @@
-import Three from "three";
+import * as Three from "three";
 import { Pong3dGameEngine } from "../../game-engine";
 import { PaddleInput } from "../paddle-input";
-import { InvalidMovementReason, MovementValidationResult } from "./browser-input-collector";
+
+export enum InvalidMovementReason {
+  CollisionWithWall,
+  NeutralZoneInfraction,
+  LeavingPlayField,
+}
+
+export interface MovementValidationResult {
+  movementIsValid: boolean;
+  invalidReasons: InvalidMovementReason[];
+}
 
 export class PaddleMoveValidator {
   public static validate(inputToValidate: PaddleInput, game: Pong3dGameEngine,

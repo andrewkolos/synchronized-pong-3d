@@ -1,4 +1,4 @@
-import Three from "three";
+import * as Three from "three";
 
 export class Ball {
 

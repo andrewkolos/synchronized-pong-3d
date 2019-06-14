@@ -1,4 +1,5 @@
-import keycode from "keycode";
+// tslint:disable-next-line: no-var-requires
+const keycode = require("keycode");
 
 export class KeyCode {
 

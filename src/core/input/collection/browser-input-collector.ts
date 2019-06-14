@@ -1,11 +1,11 @@
-import Three from "three";
+import * as Three from "three";
 import { KeyboardManager } from "../../../keyboard";
 import { Pong3dGameEngine } from "../../game-engine";
 import { PaddleInput } from "../paddle-input";
 import { Pong3dInputCollector } from "./input-collector";
 import { KeyCode } from "./key-code";
 import { Pong3DKeyMappings } from "./key-mappings";
-import { PaddleMoveValidator } from "./paddle-move-validator";
+import { InvalidMovementReason, PaddleMoveValidator } from "./paddle-move-validator";
 
 export interface Pong3DBrowserInputCollectorContext {
   keyMappings: Pong3DKeyMappings;
@@ -99,15 +99,4 @@ export class Pong3dBrowserInputCollector implements Pong3dInputCollector {
   private isKeyDown(key: KeyCode) {
     return this.keyboardManager.isKeyDown(key.keyCode);
   }
-}
-
-export enum InvalidMovementReason {
-  CollisionWithWall,
-  NeutralZoneInfraction,
-  LeavingPlayField,
-}
-
-export interface MovementValidationResult {
-  movementIsValid: boolean;
-  invalidReasons: InvalidMovementReason[];
 }

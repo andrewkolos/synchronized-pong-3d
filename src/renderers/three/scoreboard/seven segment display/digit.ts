@@ -1,4 +1,4 @@
-import Three, { Object3D } from "three";
+import * as Three from "three";
 import { segHeight, segWidth } from "./constants";
 import { Segment } from "./segment";
 
@@ -44,19 +44,19 @@ export class Digit {
   }
 
   public setNumber(n: number) {
-    this.segments.forEach((segment: Object3D, index: number) => {
+    this.segments.forEach((segment: Three.Object3D, index: number) => {
       segment.visible = segmentStates[n][index];
     });
   }
 
   public invert() {
-    this.segments.forEach((segment: Object3D) => {
+    this.segments.forEach((segment: Three.Object3D) => {
       segment.visible = !segment.visible;
     });
   }
 
   public clear() {
-    this.segments.forEach((segment: Object3D) => {
+    this.segments.forEach((segment: Three.Object3D) => {
       segment.visible = false;
     });
   }

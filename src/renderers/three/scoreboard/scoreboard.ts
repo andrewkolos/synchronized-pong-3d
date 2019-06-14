@@ -1,4 +1,4 @@
-import Three from "three";
+import * as Three from "three";
 import { getWidthOfObject as getWidthOfObj } from "../common";
 import { Pong3dScoreboardConfig } from "../renderer-config";
 import { Meter } from "./meter";

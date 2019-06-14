@@ -1,4 +1,4 @@
-import Three from "three";
+import * as Three from "three";
 import { Pong3dGameEngine } from "../../core/game-engine";
 import { makeTextureFromBase64Image } from "../../util";
 import ballTexture from "./images/ball";

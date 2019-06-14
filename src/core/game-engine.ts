@@ -1,5 +1,5 @@
 import { GameLoop, TypedEventEmitter } from "@akolos/ts-client-server-game-synchronization";
-import Three, { Vector2 } from "three";
+import * as Three from "three";
 import { Ball } from "./ball";
 import { Pong3dConfig } from "./config/config";
 import { Player } from "./enum/player";
@@ -251,7 +251,7 @@ export class Pong3dGameEngine {
         if (paddle === this.player1Paddle || !aiEnabled) {
           delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
           delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
-          delta.rotateAround(new Vector2(0, 0), -paddle.object.rotation.z);
+          delta.rotateAround(new Three.Vector2(0, 0), -paddle.object.rotation.z);
         } else if (this.config.aiPlayer != null) {
           delta.y *= -1 * this.config.aiPlayer.speedIncreaseOnPaddleHit;
         }

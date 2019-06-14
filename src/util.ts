@@ -1,8 +1,8 @@
-import Three from 'three';
+import * as Three from "three";
 
 export type DeepReadonly<T> =
-  T extends (infer R)[] ? DeepReadonlyArray<R> :
-  T extends Function ? T :
+  T extends Array<(infer R)> ? DeepReadonlyArray<R> :
+  T extends () => void ? T :
   T extends object ? DeepReadonlyObject<T> :
   T;
 
@@ -17,9 +17,9 @@ export function makeTextureFromBase64Image(data: string) {
   image.src = data;
   const texture = new Three.Texture();
   texture.image = image;
-  image.onload= function() {
+  image.onload = () => {
     texture.needsUpdate = true;
-  }
+  };
 
   return texture;
 }

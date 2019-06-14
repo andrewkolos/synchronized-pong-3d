@@ -1,4 +1,4 @@
-import Three from "three";
+import * as Three from "three";
 import { createPlane } from "../common";
 import { Pong3dMeterConfig } from "../renderer-config";
 

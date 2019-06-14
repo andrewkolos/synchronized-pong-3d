@@ -1,4 +1,4 @@
-import Three from "three";
+import * as Three from "three";
 import { Pong3dThreeRendererConfig } from "./renderer-config";
 
 const player1Color = 0x0D47A1;
