@@ -5,7 +5,7 @@ export default {
   input: 'demos/game/index.ts',
   output: {
     name: 'bundle',
-    file: 'demo/build.js',
+    file: 'demos/game/index.js',
     format: 'iife',
     sourcemap: true
   },
