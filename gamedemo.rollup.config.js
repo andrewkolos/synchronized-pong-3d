@@ -5,7 +5,7 @@ import json from 'rollup-plugin-json';
 export default {
   input: 'demos/game/index.ts',
   output: {
-    name: 'bundle',
+    name: 'index',
     file: 'demos/game/index.js',
     format: 'iife',
     sourcemap: true
