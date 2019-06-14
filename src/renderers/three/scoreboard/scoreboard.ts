@@ -1,10 +1,11 @@
-import Three from "three"; 
+import Three from "three";
 import { getWidthOfObject as getWidthOfObj } from "../common";
 import { Pong3dScoreboardConfig } from "../renderer-config";
 import { Meter } from "./meter";
 import { SevenSegmentDisplay } from "./seven segment display/seven-segment-display";
 
-import font from "./helvetiker_regular.typeface.json";
+// tslint:disable-next-line: no-var-requires
+const font = require("./helvetiker_regular.typeface.json");
 
 export class Pong3dThreeScoreboard {
 

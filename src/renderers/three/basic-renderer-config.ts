@@ -6,7 +6,7 @@ const player2Color = 0xB71c1c;
 const scale = 1;
 const meterBackColor = 0x11111;
 
-export function generateSimpleThreeRendererConfig(width: number, height: number): Pong3dThreeRendererConfig {
+export function makeSimpleThreeRendererConfig(width: number, height: number): Pong3dThreeRendererConfig {
   return {
     camera: {
       fov: 45,
