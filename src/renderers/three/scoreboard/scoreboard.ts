@@ -4,8 +4,7 @@ import { Pong3dScoreboardConfig } from "../renderer-config";
 import { Meter } from "./meter";
 import { SevenSegmentDisplay } from "./seven segment display/seven-segment-display";
 
-// tslint:disable-next-line: no-var-requires
-const font = require("./helvetiker_regular.typeface.json");
+import font from "./helvetiker_regular.typeface.json";
 
 export class Pong3dThreeScoreboard {
 

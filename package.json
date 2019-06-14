@@ -13,7 +13,7 @@
     "@akolos/ts-client-server-game-synchronization": "^0.1.14",
     "@types/node": "^12.0.8",
     "@types/three": "^0.103.2",
-    "keycode": "^2.2.0",
+    "keycodes": "^1.0.0",
     "rollup-plugin-typescript2": "^0.21.1",
     "three": "^0.104.0",
     "tslint": "^5.17.0",
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "rollup": "^1.15.3",
+    "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^5.0.2"
   }
 }
