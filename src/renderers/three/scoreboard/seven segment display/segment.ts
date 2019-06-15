@@ -6,7 +6,7 @@ export class Segment {
   private object: Three.Object3D;
 
   public constructor(private size: number, material: Three.Material) {
-    const scale = this.scale;
+    const scale = this.scale.bind(this);
 
     const segWidthPad = scale(segWidth - segPad);
     const segHeightPad = scale(segHeight - segPad);

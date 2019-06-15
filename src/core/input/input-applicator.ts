@@ -1,3 +1,4 @@
+import * as Three from "three";
 import { Player } from "../enum/player";
 import { Pong3dGameEngine } from "../game-engine";
 import { PlayerBoundPaddleInput } from "./player-bound-paddle-input";
@@ -9,6 +10,7 @@ export class Pong3dInputApplicator {
   public applyInput(input: PlayerBoundPaddleInput) {
     const paddle = this.getPlayersPaddle(input.player);
 
+    paddle.object.position.add(new Three.Vector3(input.dx, input.dy));
     paddle.speed.setX(input.dx).setY(input.dy);
     paddle.object.rotation.z += input.dzRotation;
   }

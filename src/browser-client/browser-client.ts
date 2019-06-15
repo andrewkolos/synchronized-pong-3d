@@ -89,4 +89,8 @@ export class Pong3dBrowserClient {
     this.game.stop();
     this.renderer.stopRendering();
   }
+
+  public setSize(width: number, height: number) {
+    this.renderer.setSize(width, height);
+  }
 }

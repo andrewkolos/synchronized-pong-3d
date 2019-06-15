@@ -45,15 +45,19 @@ export class Pong3dGameEngine {
 
   public constructor(config: Pong3dConfig) {
     const createWalls = () => {
-      const width = config.walls.width;
-      const depth = config.walls.depth;
+      const playFieldWidth = config.playField.width;
       const playFieldHeight = config.playField.height;
 
-      const eastWallGeometry = new Three.BoxGeometry(width, playFieldHeight, depth);
-      const eastWall = new Three.Mesh(eastWallGeometry);
+      const wallWidth = config.walls.width;
+      const WallDepth = config.walls.depth;
 
-      const westWallGeometry = new Three.BoxGeometry(width, playFieldHeight, depth);
+      const eastWallGeometry = new Three.BoxGeometry(wallWidth, playFieldHeight, WallDepth);
+      const eastWall = new Three.Mesh(eastWallGeometry);
+      eastWall.position.set(-playFieldWidth / 2 - (wallWidth / 2), 0, wallWidth);
+
+      const westWallGeometry = new Three.BoxGeometry(wallWidth, playFieldHeight, WallDepth);
       const westWall = new Three.Mesh(westWallGeometry);
+      westWall.position.set(playFieldWidth / 2 + (wallWidth / 2), 0, wallWidth);
 
       return { eastWall, westWall };
     };
@@ -73,7 +77,7 @@ export class Pong3dGameEngine {
 
       const paddleHeight = config.paddles.height;
       const playFieldHeight = config.playField.height;
-      const player1YPosOffset = playFieldHeight / 2 + paddleHeight / 2;
+      const player1YPosOffset = - playFieldHeight / 2 + paddleHeight;
       const player2YPosOffset = - player1YPosOffset;
 
       return {
@@ -124,6 +128,7 @@ export class Pong3dGameEngine {
 
   private tick() {
     this.moveBall();
+    this.eventEmitter.emit("tick");
   }
   /**
    * Moves the ball.
@@ -141,10 +146,14 @@ export class Pong3dGameEngine {
       this.serveBall();
     }
 
+    if (this._timeUntilServeSec > 0) {
+      this._timeUntilServeSec -= 1 / this.config.game.tickRate;
+    }
+
   }
 
   // tslint:disable-next-line: member-ordering
-  private moveBallInPlay = (() => {
+  private moveBallInPlay() {
     const ballObject = this.ball.object;
 
     const isCollidingWithWall = (): boolean => {
@@ -163,7 +172,7 @@ export class Pong3dGameEngine {
       }
     };
 
-    const isCollidingWithAnyPaddle = (() => {
+    const isCollidingWithAnyPaddle = () => {
       const ball = this.ball.object;
       const ballRadius = this.config.ball.radius;
       const paddleWidth = this.config.paddles.width;
@@ -187,16 +196,14 @@ export class Pong3dGameEngine {
 
       };
 
-      return () => {
-        if (isCollidingWithPaddle(this.player1Paddle)) {
-          return Player.Player1;
-        } else if (isCollidingWithPaddle(this.player2Paddle)) {
-          return Player.Player2;
-        } else {
-          return undefined;
-        }
-      };
-    })();
+      if (isCollidingWithPaddle(this.player1Paddle)) {
+        return Player.Player1;
+      } else if (isCollidingWithPaddle(this.player2Paddle)) {
+        return Player.Player2;
+      } else {
+        return undefined;
+      }
+    };
 
     const isScoring = (): Player | undefined => {
 
@@ -213,75 +220,77 @@ export class Pong3dGameEngine {
 
     };
 
-    return () => {
+    const correctionFactor = 60 / this.config.game.tickRate;
+    const speedLimit = this.config.ball.speedLimit * correctionFactor;
 
-      const correctionFactor = 60 / this.config.game.tickRate;
-      const speedLimit = this.config.ball.speedLimit * correctionFactor;
+    const velocity = new Three.Vector3(this.ball.dx, this.ball.dy, 0).multiplyScalar(correctionFactor);
+    let distanceTraveled = velocity.length();
+    if (distanceTraveled > speedLimit) {
+      velocity.normalize().multiplyScalar(speedLimit);
+      this.ball.dx = velocity.x;
+      this.ball.dy = velocity.y;
+      distanceTraveled = speedLimit;
+    }
 
-      const velocity = new Three.Vector3(this.ball.dx, this.ball.dy, 0).multiplyScalar(correctionFactor);
-      let distanceTraveled = velocity.length();
-      if (distanceTraveled > speedLimit) {
-        velocity.normalize().multiplyScalar(speedLimit);
-        this.ball.dx = velocity.x;
-        this.ball.dy = velocity.y;
-        distanceTraveled = speedLimit;
+    ballObject.position.add(velocity);
+
+    const angle = distanceTraveled / this.config.ball.radius;
+    const axisOfRotation = new Three.Vector3(-this.ball.dy, this.ball.dy, 0).normalize();
+    const rotation = new Three.Matrix4();
+    rotation.makeRotationAxis(axisOfRotation, angle).multiplyScalar(correctionFactor);
+    this.ball.innerObject.applyMatrix(rotation);
+
+    const paddleBeingCollidedWith = isCollidingWithAnyPaddle();
+    const scorer = isScoring();
+
+    if (isCollidingWithWall()) {
+      handleCollisionWithWall();
+      this.eventEmitter.emit("ballHitWall");
+    } else if (paddleBeingCollidedWith != null) {
+
+      const aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
+
+      const delta = new Three.Vector2(this.ball.dx, this.ball.dy);
+      const paddle = paddleBeingCollidedWith === Player.Player1 ? this.player1Paddle : this.player2Paddle;
+
+      if (paddle === this.player1Paddle || !aiEnabled) {
+        delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
+        delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
+        delta.rotateAround(new Three.Vector2(0, 0), -paddle.object.rotation.z);
+      } else if (this.config.aiPlayer != null) {
+        delta.y *= -1 * this.config.aiPlayer.speedIncreaseOnPaddleHit;
       }
 
-      ballObject.position.add(velocity);
+      // TODO: May need to advance ball away from paddle to prevent a massive number of instantaneous collisions.
 
-      const angle = distanceTraveled / this.config.ball.radius;
-      const axisOfRotation = new Three.Vector3(-this.ball.dy, this.ball.dy, 0).normalize();
-      const rotation = new Three.Matrix4();
-      rotation.makeRotationAxis(axisOfRotation, angle).multiplyScalar(correctionFactor);
-      this.ball.innerObject.applyMatrix(rotation);
+      this.eventEmitter.emit("ballHitPaddle");
+    } else if (scorer != null) {
 
-      const paddleBeingCollidedWith = isCollidingWithAnyPaddle();
-      const scorer = isScoring();
+      const continuousRandom = (min: number, max: number) => {
+        return Math.random() * (max - min) + min;
+      };
 
-      if (isCollidingWithWall()) {
-        handleCollisionWithWall();
-        this.eventEmitter.emit("ballHitWall");
-      } else if (paddleBeingCollidedWith != null) {
+      const initialYVelocityAfterServe = this.config.ball.initDy;
 
-        const aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
+      this.ball.dy = scorer === Player.Player1 ? initialYVelocityAfterServe : -initialYVelocityAfterServe;
+      this.ball.dx = continuousRandom(this.config.ball.minDx, this.config.ball.maxDx);
 
-        const delta = new Three.Vector2(this.ball.dx, this.ball.dy);
-        const paddle = paddleBeingCollidedWith === Player.Player1 ? this.player1Paddle : this.player2Paddle;
-
-        if (paddle === this.player1Paddle || !aiEnabled) {
-          delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
-          delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
-          delta.rotateAround(new Three.Vector2(0, 0), -paddle.object.rotation.z);
-        } else if (this.config.aiPlayer != null) {
-          delta.y *= -1 * this.config.aiPlayer.speedIncreaseOnPaddleHit;
-        }
-
-        // TODO: May need to advance ball away from paddle to prevent a massive number of instantaneous collisions.
-
-        this.eventEmitter.emit("ballHitPaddle");
-      } else if (scorer != null) {
-
-        const continuousRandom = (min: number, max: number) => {
-          return Math.random() * (max - min) + min;
-        };
-
-        const initialYVelocityAfterServe = this.config.ball.initDy;
-
-        this.ball.dy = scorer === Player.Player1 ? initialYVelocityAfterServe : -initialYVelocityAfterServe;
-        this.ball.dx = continuousRandom(this.config.ball.minDx, this.config.ball.maxDx);
-
-        this._timeUntilServeSec = this.config.pauseAfterScoreSec;
-        if (scorer === Player.Player1) {
-          this._score.player1 += 1;
-        } else if (scorer === Player.Player2) {
-          this._score.player2 += 1;
-        }
-
-        this.eventEmitter.emit("playerScored", scorer, this._score);
+      this._timeUntilServeSec = this.config.pauseAfterScoreSec;
+      if (scorer === Player.Player1) {
+        this._score.player1 += 1;
+      } else if (scorer === Player.Player2) {
+        this._score.player2 += 1;
       }
-    };
 
-  })();
+      this.startServing();
+
+      this.eventEmitter.emit("playerScored", scorer, this._score);
+    }
+  }
+
+  private startServing() {
+    this._timeUntilServeSec = this.config.pauseAfterScoreSec;
+  }
 
   private movePlayer2Paddle() {
     if (this.config.aiPlayer == null) {
@@ -316,7 +325,7 @@ export class Pong3dGameEngine {
     const ballYPosOffsetPlayer1 = (paddleHeight / 2 + ballRadius * 2); // Move the ball in front of the paddle.
     const ballYPosOffsetPlayer2 = -ballYPosOffsetPlayer1;
 
-    const ballYPosOffset = this.server == Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
+    const ballYPosOffset = this.server === Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
 
     ballObject.position.x = servingPaddleObj.position.x + ballYPosOffset *
       Math.cos(servingPaddleObj.rotation.z + Math.PI / 2);
@@ -331,6 +340,8 @@ export class Pong3dGameEngine {
     const servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle.object : this.player2Paddle.object;
     this.ball.dx = initDy * Math.cos(servingPaddleObj.rotation.z - Math.PI / 2);
     this.ball.dy = initDy * Math.sin(servingPaddleObj.rotation.z - Math.PI / 2);
+
+    this.ballIsInPlay = true;
 
     this.moveBall(); // Prevent ball from getting stuck on a moving paddle.
   }

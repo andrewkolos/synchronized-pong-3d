@@ -20,7 +20,7 @@ export class Pong3dThreeScoreboard {
 
   public constructor(config: Pong3dScoreboardConfig) {
 
-    const scale = this.scale;
+    const scale = this.scale.bind(this);
 
     this.object = new Three.Object3D();
     this.config = config;
@@ -47,7 +47,7 @@ export class Pong3dThreeScoreboard {
 
     const player2Mesh = this.generatePlayerTextMesh("P2", config.player2TextColor);
     player2Mesh.position.x = scale(0.25);
-    player2Mesh.position.y = scale(0.25);
+    player2Mesh.position.y = scale(-0.25);
     player2Mesh.position.z = scale(0.80);
 
     this.object.add(player1Mesh);
@@ -77,6 +77,8 @@ export class Pong3dThreeScoreboard {
     player2ScoreDisplayObj.position.z = scale(1.3);
     this.player2ScoreDisplay = player2ScoreDisplay;
     this.object.add(player2ScoreDisplayObj);
+
+    this.object.position.copy(config.position);
   }
 
   public getObject(): Three.Object3D {

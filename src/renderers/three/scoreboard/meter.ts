@@ -11,7 +11,7 @@ export class Meter {
 
   public constructor(config: Pong3dMeterConfig) {
     this.config = config;
-    const scale = this.scale;
+    const scale = this.scale.bind(this);
 
     const ballSpeedMeter = createPlane(scale(0), scale(1.5), 0);
     ballSpeedMeter.material = new Three.MeshLambertMaterial({ color: config.backColor });
@@ -43,7 +43,7 @@ export class Meter {
 
     const parts: Three.Object3D[] = [];
 
-    const scale = this.scale;
+    const scale = this.scale.bind(this);
     const meterWidth = scale(8);
     const meterHeight = scale(1.5);
     const spaceBetweenSegments = scale(0.2);

@@ -56,19 +56,23 @@ export class PaddleMoveValidator {
   }
 
   private isClippingWithWall(): boolean {
-    const isClippingWithEastWall = this.nextX > -(this.playFieldWidth / 2) + this.paddleWidth / 2;
-    const isClippingWithWestWall = this.nextX < this.playFieldWidth / 2 - this.paddleWidth / 2;
+    const isClippingWithEastWall = this.nextX <= -(this.playFieldWidth / 2) + this.paddleWidth / 2;
+    const isClippingWithWestWall = this.nextX >= this.playFieldWidth / 2 - this.paddleWidth / 2;
     return isClippingWithEastWall || isClippingWithWestWall;
   }
 
   private isViolatingNeutralZone(): boolean {
-    return this.nextY > -(this.neutralZoneHeight) / 2 &&
-      this.nextY < this.playFieldHeight / 2;
+    return this.nextY > -(this.neutralZoneHeight) / 2 - this.paddleWidth / 2 &&
+      this.nextY < this.playFieldHeight / 2 + this.paddleWidth / 2;
   }
 
   private isLeavingPlayField(): boolean {
-    const isLeavingFieldThroughBottom = this.nextY < -(this.playFieldHeight / 2) + (this.paddleHeight / 2);
-    const isLeavingFieldThroughTop = this.nextY > (this.playFieldHeight / 2) - (this.paddleHeight / 2);
+    const southBound = -(this.playFieldHeight / 2) + (this.paddleHeight / 2);
+    const northBound = (this.playFieldHeight / 2) - (this.paddleHeight / 2);
+
+    const isLeavingFieldThroughBottom = this.nextY <= southBound;
+    const isLeavingFieldThroughTop = this.nextY >= northBound;
+
     return isLeavingFieldThroughBottom || isLeavingFieldThroughTop;
   }
 }

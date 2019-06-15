@@ -41,7 +41,7 @@ export class Pong3dBrowserInputCollector implements Pong3dInputCollector {
     };
 
     const moveSpeedPerMs = 0.009;
-    const rotateSpeedPerMs = Math.PI / 0.00002083;
+    const rotateSpeedPerMs = (Math.PI / 48 * 60) / 1000;
 
     if (this.isKeyDown(this.mappings.movePaddleBackward)) {
       input.dy += - moveSpeedPerMs * dt;

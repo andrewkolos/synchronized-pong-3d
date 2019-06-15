@@ -33,5 +33,5 @@ export interface Pong3dConfig {
     enabled: true;
     moveSpeed: number;
     speedIncreaseOnPaddleHit: number;
-  }
+  };
 }
