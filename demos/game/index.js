@@ -48436,23 +48436,23 @@
                 this._timeUntilServeSec -= 1 / this.config.game.tickRate;
             }
         };
-        // tslint:disable-next-line: member-ordering
         Pong3dGameEngine.prototype.moveBallInPlay = function () {
             var _this = this;
             var ballObject = this.ball.object;
-            var isCollidingWithWall = function () {
-                var playFieldWith = _this.config.playField.width;
+            console.log(this.ball.dx);
+            var isCollidingWithWall = (function () {
+                var playFieldWidth = _this.config.playField.width;
                 var ballRadius = _this.config.ball.radius;
-                return (ballObject.position.x < -(playFieldWith / 2) + ballRadius ||
-                    ballObject.position.x > playFieldWith / 2 - ballRadius);
-            };
-            var handleCollisionWithWall = function () {
-                var ballIsAlreadyTravelingAwayFromWall = Math.sign(_this.ball.dx) === Math.sign(_this.ball.object.position.x);
+                return (ballObject.position.x < -(playFieldWidth / 2) + ballRadius ||
+                    ballObject.position.x > playFieldWidth / 2 - ballRadius);
+            }).bind(this);
+            var handleCollisionWithWall = (function () {
+                var ballIsAlreadyTravelingAwayFromWall = Math.sign(_this.ball.dx) !== Math.sign(_this.ball.object.position.x);
                 if (!ballIsAlreadyTravelingAwayFromWall) {
                     _this.ball.dx *= -1;
                     _this.eventEmitter.emit("ballHitWall");
                 }
-            };
+            }).bind(this);
             var isCollidingWithAnyPaddle = function () {
                 var ball = _this.ball.object;
                 var ballRadius = _this.config.ball.radius;
@@ -48524,10 +48524,14 @@
                     delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
                     delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
                     delta.rotateAround(new Vector2(0, 0), -paddle.object.rotation.z);
+                    delta.y *= -1;
+                    delta.rotateAround(new Vector2(0, 0), paddle.object.rotation.z);
                 }
                 else if (this.config.aiPlayer != null) {
                     delta.y *= -1 * this.config.aiPlayer.speedIncreaseOnPaddleHit;
                 }
+                this.ball.dx = delta.x;
+                this.ball.dy = delta.y;
                 // TODO: May need to advance ball away from paddle to prevent a massive number of instantaneous collisions.
                 this.eventEmitter.emit("ballHitPaddle");
             }
@@ -48561,7 +48565,7 @@
             var player2PaddleObj = this.player2Paddle.object;
             var player2PaddleMinX = this.config.playField.width / 2 - this.config.paddles.width / 2;
             if (ball.position.x > player2PaddleObj.position.x && player2PaddleObj.position.x < player2PaddleMinX) {
-                ball.position.x += this.config.aiPlayer.moveSpeed;
+                player2PaddleObj.position.x += this.config.aiPlayer.moveSpeed;
                 if (ball.position.x < player2PaddleObj.position.x) {
                     player2PaddleObj.position.x = ball.position.x;
                 }
@@ -94566,8 +94570,7 @@
             this.scene.add(dirLight);
             this.scene.add(ambientLight);
             this.scene.add(hemisphereLight);
-            //this.scene.add(scoreboardLight);
-            console.log(scoreboardLight);
+            this.scene.add(scoreboardLight);
             this.scene.add(new HemisphereLightHelper(hemisphereLight, 1));
             this.scene.add(new CameraHelper(dirLight.shadow.camera));
             this.scene.add(new DirectionalLightHelper(dirLight));

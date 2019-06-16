@@ -152,25 +152,26 @@ export class Pong3dGameEngine {
 
   }
 
-  // tslint:disable-next-line: member-ordering
   private moveBallInPlay() {
     const ballObject = this.ball.object;
 
-    const isCollidingWithWall = (): boolean => {
-      const playFieldWith = this.config.playField.width;
+    console.log(this.ball.dx);
+
+    const isCollidingWithWall = ((): boolean => {
+      const playFieldWidth = this.config.playField.width;
       const ballRadius = this.config.ball.radius;
 
-      return (ballObject.position.x < -(playFieldWith / 2) + ballRadius ||
-        ballObject.position.x > playFieldWith / 2 - ballRadius);
-    };
+      return (ballObject.position.x < -(playFieldWidth / 2) + ballRadius ||
+        ballObject.position.x > playFieldWidth / 2 - ballRadius);
+    }).bind(this);
 
-    const handleCollisionWithWall = () => {
-      const ballIsAlreadyTravelingAwayFromWall = Math.sign(this.ball.dx) === Math.sign(this.ball.object.position.x);
+    const handleCollisionWithWall = (() => {
+      const ballIsAlreadyTravelingAwayFromWall = Math.sign(this.ball.dx) !== Math.sign(this.ball.object.position.x);
       if (!ballIsAlreadyTravelingAwayFromWall) {
         this.ball.dx *= -1;
         this.eventEmitter.emit("ballHitWall");
       }
-    };
+    }).bind(this);
 
     const isCollidingWithAnyPaddle = () => {
       const ball = this.ball.object;
@@ -257,10 +258,16 @@ export class Pong3dGameEngine {
         delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
         delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
         delta.rotateAround(new Three.Vector2(0, 0), -paddle.object.rotation.z);
+
+        delta.y *= -1;
+        delta.rotateAround(new Three.Vector2(0, 0), paddle.object.rotation.z);
+
       } else if (this.config.aiPlayer != null) {
         delta.y *= -1 * this.config.aiPlayer.speedIncreaseOnPaddleHit;
       }
 
+      this.ball.dx = delta.x;
+      this.ball.dy = delta.y;
       // TODO: May need to advance ball away from paddle to prevent a massive number of instantaneous collisions.
 
       this.eventEmitter.emit("ballHitPaddle");
@@ -302,7 +309,7 @@ export class Pong3dGameEngine {
     const player2PaddleObj = this.player2Paddle.object;
     const player2PaddleMinX = this.config.playField.width / 2 - this.config.paddles.width / 2;
     if (ball.position.x > player2PaddleObj.position.x && player2PaddleObj.position.x < player2PaddleMinX) {
-      ball.position.x += this.config.aiPlayer.moveSpeed;
+      player2PaddleObj.position.x += this.config.aiPlayer.moveSpeed;
       if (ball.position.x < player2PaddleObj.position.x) {
         player2PaddleObj.position.x = ball.position.x;
       }
