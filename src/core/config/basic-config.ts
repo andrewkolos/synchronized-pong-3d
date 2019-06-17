@@ -24,7 +24,7 @@ export const basicPong3dConfig: Pong3dConfig = {
     segmentCount: 64,
     iFrames: 15,
     speedLimit: 1,
-    speedIncreaseOnPaddleHit: 0.005,
+    speedIncreaseOnPaddleHit: 0.5,
     maxDx: 0.14,
     minDx: 0.04,
     initDx: 0.08,
@@ -38,6 +38,6 @@ export const basicPong3dConfigWithAiOpponent: Pong3dConfig = {
   aiPlayer: {
     enabled: true,
     moveSpeed: 0.06 * 2.1,
-    speedIncreaseOnPaddleHit: 0.005,
+    speedIncreaseOnPaddleHit: 0.02,
   }
 };

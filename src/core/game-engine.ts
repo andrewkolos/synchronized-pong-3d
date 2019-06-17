@@ -135,6 +135,7 @@ export class Pong3dGameEngine {
    */
   private moveBall() {
 
+    console.log(this.ball.dy);
     if (this.ballIsInPlay) {
       this.moveBallInPlay();
       if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
@@ -144,6 +145,7 @@ export class Pong3dGameEngine {
       this.moveBallPreparingToServe();
     } else if (this.isBallServingAtCurrentInstant()) {
       this.serveBall();
+      this.eventEmitter.emit("ballServed");
     }
 
     if (this._timeUntilServeSec > 0) {
@@ -153,9 +155,8 @@ export class Pong3dGameEngine {
   }
 
   private moveBallInPlay() {
-    const ballObject = this.ball.object;
 
-    console.log(this.ball.dx);
+    const ballObject = this.ball.object;
 
     const isCollidingWithWall = ((): boolean => {
       const playFieldWidth = this.config.playField.width;
@@ -173,35 +174,44 @@ export class Pong3dGameEngine {
       }
     }).bind(this);
 
-    const isCollidingWithAnyPaddle = () => {
+    const getRelativePosition = (object: Three.Object3D, relativeToObject: Three.Object3D) => {
+      const relXPos = object.position.x - relativeToObject.position.x;
+      const relYPos = object.position.y - relativeToObject.position.y;
+
+      return new Three.Vector2(relXPos, relYPos);
+    };
+
+    const isCollidingWithPaddle = (paddle: Paddle) => {
+
       const ball = this.ball.object;
+
       const ballRadius = this.config.ball.radius;
       const paddleWidth = this.config.paddles.width;
       const paddleHeight = this.config.paddles.height;
 
-      const getRelativePosition = (object: Three.Object3D, relativeToObject: Three.Object3D) => {
-        const relXPos = object.position.x - relativeToObject.position.x;
-        const relYPos = object.position.y - relativeToObject.position.y;
+      const origin = new Three.Vector2(0, 0);
+      const ballRelPos = getRelativePosition(ball, paddle.object);
+      const ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.object.rotation.z);
 
-        return new Three.Vector2(relXPos, relYPos);
-      };
+      if (Math.abs(ballRelPosDisregardingRotation.x) - ballRadius < paddleWidth / 2 &&
+        Math.abs(ballRelPosDisregardingRotation.y) - ballRadius < paddleHeight && !this.ball.collidingWithPaddle) {
+        return true;
+      } else {
+        return false;
+      }
 
-      const isCollidingWithPaddle = (paddle: Paddle) => {
+    };
 
-        const origin = new Three.Vector2(0, 0);
-        const ballRelPos = getRelativePosition(ball, paddle.object);
-        const ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.object.rotation.z);
-
-        return (Math.abs(ballRelPosDisregardingRotation.x) - ballRadius < paddleWidth / 2 &&
-          Math.abs(ballRelPosDisregardingRotation.y) - ballRadius < paddleHeight);
-
-      };
+    const isCollidingWithAnyPaddle = () => {
 
       if (isCollidingWithPaddle(this.player1Paddle)) {
+        this.ball.collidingWithPaddle = true;
         return Player.Player1;
       } else if (isCollidingWithPaddle(this.player2Paddle)) {
+        this.ball.collidingWithPaddle = true;
         return Player.Player2;
       } else {
+        this.ball.collidingWithPaddle = false;
         return undefined;
       }
     };
@@ -222,7 +232,7 @@ export class Pong3dGameEngine {
     };
 
     const correctionFactor = 60 / this.config.game.tickRate;
-    const speedLimit = this.config.ball.speedLimit * correctionFactor;
+    const speedLimit = this.config.ball.speedLimit;
 
     const velocity = new Three.Vector3(this.ball.dx, this.ball.dy, 0).multiplyScalar(correctionFactor);
     let distanceTraveled = velocity.length();
@@ -236,9 +246,9 @@ export class Pong3dGameEngine {
     ballObject.position.add(velocity);
 
     const angle = distanceTraveled / this.config.ball.radius;
-    const axisOfRotation = new Three.Vector3(-this.ball.dy, this.ball.dy, 0).normalize();
+    const axisOfRotation = new Three.Vector3(-this.ball.dy, this.ball.dx, 0).normalize();
     const rotation = new Three.Matrix4();
-    rotation.makeRotationAxis(axisOfRotation, angle).multiplyScalar(correctionFactor);
+    rotation.makeRotationAxis(axisOfRotation, angle);
     this.ball.innerObject.applyMatrix(rotation);
 
     const paddleBeingCollidedWith = isCollidingWithAnyPaddle();
@@ -250,25 +260,34 @@ export class Pong3dGameEngine {
     } else if (paddleBeingCollidedWith != null) {
 
       const aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
-
       const delta = new Three.Vector2(this.ball.dx, this.ball.dy);
       const paddle = paddleBeingCollidedWith === Player.Player1 ? this.player1Paddle : this.player2Paddle;
+
+      const rot = paddle.object.rotation.z;
 
       if (paddle === this.player1Paddle || !aiEnabled) {
         delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
         delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
-        delta.rotateAround(new Three.Vector2(0, 0), -paddle.object.rotation.z);
+        delta.rotateAround(new Three.Vector2(0, 0), -rot);
 
         delta.y *= -1;
-        delta.rotateAround(new Three.Vector2(0, 0), paddle.object.rotation.z);
+        delta.rotateAround(new Three.Vector2(0, 0), rot);
 
       } else if (this.config.aiPlayer != null) {
-        delta.y *= -1 * this.config.aiPlayer.speedIncreaseOnPaddleHit;
+        delta.y *= -1;
+        delta.y -= this.config.aiPlayer.speedIncreaseOnPaddleHit;
       }
 
       this.ball.dx = delta.x;
       this.ball.dy = delta.y;
-      // TODO: May need to advance ball away from paddle to prevent a massive number of instantaneous collisions.
+
+      while (isCollidingWithPaddle(paddle)) {
+        this.ball.object.position.add(new Three.Vector3(this.ball.dx, this.ball.dy));
+      }
+      // const oneRadiusInDirectionOfBounce = new Three.Vector3(this.ball.dx, this.ball.dy)
+      //   .normalize()
+      //   .multiplyScalar(this.config.ball.radius);
+      // this.ball.object.position.add(oneRadiusInDirectionOfBounce);
 
       this.eventEmitter.emit("ballHitPaddle");
     } else if (scorer != null) {
@@ -289,13 +308,16 @@ export class Pong3dGameEngine {
         this._score.player2 += 1;
       }
 
-      this.startServing();
+      const server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
+      this.startServing(server);
 
       this.eventEmitter.emit("playerScored", scorer, this._score);
     }
   }
 
-  private startServing() {
+  private startServing(server: Player) {
+    this.ballIsInPlay = false;
+    this.server = server;
     this._timeUntilServeSec = this.config.pauseAfterScoreSec;
   }
 

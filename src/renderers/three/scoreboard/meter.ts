@@ -1,6 +1,10 @@
 import * as Three from "three";
-import { createPlane } from "../common";
+import { PlaneFactory } from "../misc/plane-factory";
 import { Pong3dMeterConfig } from "../renderer-config";
+
+const METER_WIDTH = 8;
+const METER_HEIGHT = 1.5;
+
 
 export class Meter {
 
@@ -9,11 +13,15 @@ export class Meter {
 
   private meterParts: Three.Object3D[] = [];
 
+  private planeFactory: PlaneFactory;
+
   public constructor(config: Pong3dMeterConfig) {
     this.config = config;
     const scale = this.scale.bind(this);
 
-    const ballSpeedMeter = createPlane(scale(0), scale(1.5), 0);
+    this.planeFactory = new PlaneFactory(new Three.Euler(Math.PI / 2));
+
+    const ballSpeedMeter = this.planeFactory.createPlane(scale(METER_WIDTH), scale(METER_HEIGHT), 0);
     ballSpeedMeter.material = new Three.MeshLambertMaterial({ color: config.backColor });
     this.object.add(ballSpeedMeter);
 
@@ -44,17 +52,18 @@ export class Meter {
     const parts: Three.Object3D[] = [];
 
     const scale = this.scale.bind(this);
-    const meterWidth = scale(8);
-    const meterHeight = scale(1.5);
+    const meterWidth = scale(METER_WIDTH);
+    const meterHeight = scale(METER_HEIGHT);
     const spaceBetweenSegments = scale(0.2);
-    const black = 0x000000;
 
-    const meterPartWidth = meterWidth - spaceBetweenSegments / this.config.numberOfSegments - spaceBetweenSegments;
+    const meterPartWidth = (meterWidth - spaceBetweenSegments) / this.config.numberOfSegments - spaceBetweenSegments;
+    const meterPartHeight = meterHeight - spaceBetweenSegments * 2;
 
-    const xPosOfFirstSegment = -(meterWidth / 2) + spaceBetweenSegments + meterPartWidth;
+    const xPosOfFirstSegment = -(meterWidth / 2) + spaceBetweenSegments + meterPartWidth / 2;
     for (let i = 0; i < this.config.numberOfSegments; i++) {
-      const part = createPlane(meterPartWidth, meterHeight - spaceBetweenSegments * 2, black);
+      const part = this.planeFactory.createPlane(meterPartWidth, meterPartHeight, this.config.segmentColors[i]);
       part.position.x = xPosOfFirstSegment + (i * (meterPartWidth + spaceBetweenSegments));
+      part.position.y = - 0.01;
       parts.push(part);
 
       part.visible = false;

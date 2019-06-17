@@ -15,7 +15,10 @@ export class SevenSegmentDisplay {
     this.object = object;
     this.digitCount = digitCount;
 
+    const digitHeight = segHeight * 3 + segWidth * 2;
     const digitWidth = segWidth + segHeight * 2;
+    const fullHeight = digitHeight + segHeight * 2;
+    const fullWidth = segHeight + digitCount * (digitWidth + segHeight);
 
     for (let i = 0; i < digitCount; i++) {
       const digit = new Digit(size);
@@ -24,11 +27,18 @@ export class SevenSegmentDisplay {
       digit.getObject().position.set(i * (digitWidth + segHeight), 0, 0);
     }
 
+    const backGeo = new Three.PlaneGeometry(fullWidth, fullHeight);
+    const backMat = new Three.MeshLambertMaterial({ color: /*1118481*/ 0x32CD32});
+    const backMesh = new Three.Mesh(backGeo, backMat);
+    backMesh.position.z = -0.01;
+    object.add(backMesh);
+
     const bounds = new Three.Box3();
     bounds.setFromObject(object);
     const displayHeight = bounds.max.y - bounds.min.y;
     object.scale.x = 1 / displayHeight;
     object.scale.y = 1 / displayHeight;
+    object.rotation.x = Math.PI / 2;
   }
 
   public getObject() {

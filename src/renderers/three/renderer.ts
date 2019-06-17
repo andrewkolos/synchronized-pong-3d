@@ -4,7 +4,7 @@ import { Pong3dGameEngine } from "../../core/game-engine";
 import { makeTextureFromBase64Image } from "../../util";
 import ballTexture from "./images/ball";
 import { Pong3dThreeRendererConfig } from "./renderer-config";
-import { Pong3dThreeScoreboard } from "./scoreboard/scoreboard";
+import { MeterType, Pong3dThreeScoreboard } from "./scoreboard/scoreboard";
 
 export class Pong3dThreeRenderer {
 
@@ -131,21 +131,26 @@ export class Pong3dThreeRenderer {
       });
 
       game.eventEmitter.on("playerScored", () => {
+        this.scoreboard.setSpeed(0); // Clears speed meter.
+        this.scoreboard.showMeter(MeterType.ServeProgress);
         this.scoreboard.setScore(game.score.player1, game.score.player2);
       });
 
       game.eventEmitter.on("startingServe", () => {
-        this.scoreboard.setSpeed(0); // Clears speed meter.
+        this.scoreboard.showMeter(MeterType.Speed);
       });
 
       game.eventEmitter.on("tick", () => {
         if (game.timeUntilServeSec > 0) {
-          this.scoreboard.setServeProgress(game.config.pauseAfterScoreSec / game.timeUntilServeSec);
+          const timePassed = game.config.pauseAfterScoreSec - game.timeUntilServeSec;
+          const serveProgress = timePassed / game.config.pauseAfterScoreSec;
+          this.scoreboard.setServeProgress(serveProgress);
         }
       });
 
       game.eventEmitter.on("ballServed", () => {
-        this.scoreboard.setServeProgress(0); // Clears meter.
+        this.scoreboard.showMeter(MeterType.Speed);
+        this.scoreboard.setServeProgress(0);
       });
 
       this.addLighting();
@@ -212,7 +217,7 @@ export class Pong3dThreeRenderer {
     const createHemiLight = () => {
       const hlConfig = config.hemisphericalLight;
       const light = new Three.HemisphereLight(0xffffff, 0xffffff, hlConfig.brightness);
-      light.color.setHSL(0.6, 0.1, 0.6);
+      light.color.setHSL(0.6, 1, 0.6);
       light.groundColor.setHSL(0.095, 1, 0.75);
       light.position.copy(hlConfig.position);
 

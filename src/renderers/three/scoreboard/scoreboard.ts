@@ -1,11 +1,15 @@
 import * as Three from "three";
-import { getWidthOfObject as getWidthOfObj } from "../common";
+import { getWidthOfObject as getWidthOfObj } from "../misc/common";
 import { Pong3dScoreboardConfig } from "../renderer-config";
 import { Meter } from "./meter";
 import { SevenSegmentDisplay } from "./seven segment display/seven-segment-display";
 
 import font from "./helvetiker_regular.typeface.json";
 
+export enum MeterType {
+  ServeProgress,
+  Speed,
+}
 export class Pong3dThreeScoreboard {
 
   private object: Three.Object3D;
@@ -29,13 +33,13 @@ export class Pong3dThreeScoreboard {
     const height = scale(0.5);
     const depth = scale(5.25);
     const boardGeometry = new Three.BoxGeometry(width, height, depth, 32, 32, 32);
-    const boardMaterial = new Three.MeshPhongMaterial({ color: config.color });
+    const boardMaterial = new Three.MeshPhongMaterial({ color: config.color, opacity: 0.1 });
     const scoreboardBase = new Three.Mesh(boardGeometry, boardMaterial);
 
     scoreboardBase.castShadow = true;
     scoreboardBase.receiveShadow = true;
 
-    this.object.add(scoreboardBase);
+ //   this.object.add(scoreboardBase);
 
     const loader = new Three.FontLoader();
     this.font = loader.parse(font);
@@ -54,27 +58,28 @@ export class Pong3dThreeScoreboard {
     this.object.add(player2Mesh);
 
     const speedometer = new Meter(config.speedometer);
-    this.speedometer = speedometer;
+    speedometer.getObject().position.set(0, scale(-0.5), scale(-0.9));
     this.object.add(speedometer.getObject());
+    this.speedometer = speedometer;
 
     const serveMeter = new Meter(config.serveMeter);
+    serveMeter.getObject().position.set(0, scale(-0.5), scale(-0.9));
     this.serverMeter = serveMeter;
     this.object.add(serveMeter.getObject());
 
     const player1ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
     const player1ScoreDisplayObj = player1ScoreDisplay.getObject();
     player1ScoreDisplayObj.position.x = - getWidthOfObj(player1ScoreDisplayObj) / 2 - scale(0.5) / 2;
-    player1ScoreDisplayObj.position.y = scale(-1);
-    player1ScoreDisplayObj.position.z = scale(1.3);
+    player1ScoreDisplayObj.position.y = scale(-0.25);
+    player1ScoreDisplayObj.position.z = scale(0.8);
     this.player1ScoreDisplay = player1ScoreDisplay;
     this.object.add(player1ScoreDisplayObj);
 
     const player2ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
     const player2ScoreDisplayObj = player2ScoreDisplay.getObject();
-    player2ScoreDisplayObj.position.x = getWidthOfObj(speedometer.getObject()) / 2 -
-                                        getWidthOfObj(player2ScoreDisplayObj) / 2;
-    player2ScoreDisplayObj.position.y = scale(-1);
-    player2ScoreDisplayObj.position.z = scale(1.3);
+    player2ScoreDisplayObj.position.x = 4;
+    player2ScoreDisplayObj.position.y = scale(-0.25);
+    player2ScoreDisplayObj.position.z = scale(0.8);
     this.player2ScoreDisplay = player2ScoreDisplay;
     this.object.add(player2ScoreDisplayObj);
 
@@ -96,6 +101,12 @@ export class Pong3dThreeScoreboard {
   public setScore(player1: number, player2: number) {
     this.player1ScoreDisplay.setNumber(player1);
     this.player2ScoreDisplay.setNumber(player2);
+  }
+
+  public showMeter(meter: MeterType) {
+    const serveMeterShowing = meter === MeterType.ServeProgress;
+    this.serverMeter.getObject().visible = serveMeterShowing;
+    this.speedometer.getObject().visible = !serveMeterShowing;
   }
 
   private scale(x: number) {
