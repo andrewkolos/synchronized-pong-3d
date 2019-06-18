@@ -116,10 +116,12 @@ private rendering = true;
       };
 
       const eastWall = createWall();
-      eastWall.position.set(-playFieldWidth / 2 - (wallWidth / 2), 0, wallHeight / 2 - playFieldDepth / 2);
+      eastWall.position.x = -playFieldWidth / 2 - wallWidth / 2,
+      eastWall.position.z = wallHeight / 2 - playFieldDepth / 2;
 
       const westWall = createWall();
-      westWall.position.set(playFieldWidth / 2 + (wallWidth / 2), 0, wallHeight / 2 - playFieldDepth / 2);
+      westWall.position.x = playFieldWidth / 2 + wallWidth / 2;
+      westWall.position.z = wallHeight / 2 - playFieldDepth / 2;
 
       return { eastWall, westWall };
     };
@@ -127,26 +129,24 @@ private rendering = true;
     if (!(game.player1Paddle.object.material instanceof Three.MeshLambertMaterial)) {
 
       const { eastWall, westWall } = createWalls();
+      enableShadows(westWall);
+      enableShadows(eastWall);
+      this.scene.add(eastWall);
+      this.scene.add(westWall);
 
       game.player1Paddle.object.material = new Three.MeshLambertMaterial({color: this.config.paddles.player1Color});
       game.player2Paddle.object.material = new Three.MeshLambertMaterial({color: this.config.paddles.player2Color});
-
       enableShadows(game.player1Paddle.object);
       enableShadows(game.player2Paddle.object);
-      enableShadows(westWall);
-      enableShadows(eastWall);
+      this.scene.add(game.player1Paddle.object);
+      this.scene.add(game.player2Paddle.object);
 
       const ballMaterial = new Three.MeshPhongMaterial();
       ballMaterial.map = makeTextureFromBase64Image(ballTexture);
       game.ball.innerObject.material = ballMaterial;
-
       enableShadows(game.ball.innerObject);
-
       this.scene.add(game.ball.object);
-      this.scene.add(eastWall);
-      this.scene.add(westWall);
-      this.scene.add(game.player1Paddle.object);
-      this.scene.add(game.player2Paddle.object);
+
       this.scene.add(this.createPlayField(game));
 
       game.eventEmitter.on("ballHitPaddle", () => {
