@@ -92942,7 +92942,7 @@
     var segPad = 0.10;
 
     var Segment = /** @class */ (function () {
-        function Segment(size, material) {
+        function Segment(size, color) {
             this.size = size;
             var scale = this.scale.bind(this);
             var segWidthPad = scale(segWidth - segPad);
@@ -92958,13 +92958,17 @@
             geometry.faces.push(new Face3(0, 1, 3), new Face3(3, 4, 0), new Face3(1, 2, 3), new Face3(4, 5, 0));
             geometry.computeFaceNormals();
             geometry.computeVertexNormals();
-            material.side = DoubleSide;
-            var segMesh = new Mesh(geometry, material);
+            this.material = new MeshBasicMaterial({ color: color });
+            this.material.side = DoubleSide;
+            var segMesh = new Mesh(geometry, this.material);
             segMesh.receiveShadow = true;
             this.object = segMesh;
         }
         Segment.prototype.getObject = function () {
             return this.object;
+        };
+        Segment.prototype.setColor = function (color) {
+            this.material.color = new Color(color);
         };
         Segment.prototype.scale = function (x) {
             return x * this.size;
@@ -92985,12 +92989,11 @@
         [true, true, true, true, true, true, false],
     ];
     var Digit = /** @class */ (function () {
-        function Digit(size) {
+        function Digit(size, color) {
             this.segments = [];
-            var material = new MeshBasicMaterial({ color: /*0xff0000*/ 0x00ff00 });
             this.object = new Object3D();
             for (var i = 0; i < 7; i++) {
-                var segment = new Segment(size, material).getObject();
+                var segment = new Segment(size, color).getObject();
                 this.segments.push(segment);
                 this.object.add(segment);
             }
@@ -93031,6 +93034,7 @@
     var SevenSegmentDisplay = /** @class */ (function () {
         function SevenSegmentDisplay(size, digitCount) {
             this.digits = [];
+            this.invertedDigits = [];
             var object = new Object3D();
             this.object = object;
             this.digitCount = digitCount;
@@ -93038,11 +93042,19 @@
             var digitWidth = segWidth + segHeight * 2;
             var fullHeight = digitHeight + segHeight * 2;
             var fullWidth = segHeight + digitCount * (digitWidth + segHeight);
+            var _loop_1 = function (i) {
+                var digits = [0x00ff00, 0x222222].map(function (color) {
+                    var digit = new Digit(size, color);
+                    digit.getObject().position.setX(-fullWidth / 2 + segHeight + digitWidth / 2 + i * (digitWidth + segHeight));
+                    return digit;
+                });
+                this_1.digits.push(digits[0]);
+                this_1.invertedDigits.push(digits[1]);
+                digits.forEach(function (d) { return object.add(d.getObject()); });
+            };
+            var this_1 = this;
             for (var i = 0; i < digitCount; i++) {
-                var digit = new Digit(size);
-                this.digits.push(digit);
-                object.add(digit.getObject());
-                digit.getObject().position.set(-fullWidth / 2 + segHeight + digitWidth / 2 + i * (digitWidth + segHeight), 0, 0);
+                _loop_1(i);
             }
             var backGeo = new PlaneGeometry(fullWidth, fullHeight, 1, 1);
             var backMat = new MeshLambertMaterial({ color: 1118481 });
@@ -93055,27 +93067,36 @@
             object.scale.x = 1 / displayHeight;
             object.scale.y = 1 / displayHeight;
             object.rotation.x = Math.PI / 2;
+            this.setNumber(0);
         }
         SevenSegmentDisplay.prototype.getObject = function () {
             return this.object;
         };
         SevenSegmentDisplay.prototype.setNumber = function (n) {
-            var i = this.digitCount - 1;
-            do {
-                this.digits[i--].setNumber(n % 10);
-                n = (n - n % 10) / 10;
-            } while (n > 0 && i >= 0);
-            while (i >= 0) {
-                this.digits[i--].clear();
-            }
-        };
-        SevenSegmentDisplay.prototype.invert = function () {
-            this.digits.forEach(function (digit) {
+            var _this = this;
+            [this.digits, this.invertedDigits].forEach(function (array) {
+                var ncopy = n;
+                var i = _this.digitCount - 1;
+                do {
+                    array[i--].setNumber(ncopy % 10);
+                    ncopy = (ncopy - ncopy % 10) / 10;
+                } while (ncopy > 0 && i >= 0);
+                while (i >= 0) {
+                    array[i--].clear();
+                }
+            });
+            this.invertedDigits.forEach(function (digit) {
                 digit.invert();
             });
         };
+        SevenSegmentDisplay.prototype.invert = function () {
+            for (var i = 0; i < this.digits.length; i++) {
+                this.digits[i].invert();
+                this.invertedDigits[i].invert();
+            }
+        };
         SevenSegmentDisplay.prototype.clear = function () {
-            this.digits.forEach(function (digit) {
+            this.digits.concat(this.invertedDigits).forEach(function (digit) {
                 digit.clear();
             });
         };
@@ -94394,7 +94415,7 @@
             var scoreboardBase = new Mesh(boardGeometry, boardMaterial);
             scoreboardBase.castShadow = true;
             scoreboardBase.receiveShadow = true;
-            //   this.object.add(scoreboardBase);
+            this.object.add(scoreboardBase);
             var loader = new FontLoader();
             this.font = loader.parse(font);
             var player1Mesh = this.generatePlayerTextMesh("P1", config.player1TextColor);
@@ -94507,7 +94528,6 @@
             this.scene.add(this.cameraParent);
             // tslint:disable-next-line: no-unused-expression
             new OrbitControls_1(this.camera, this.renderer.domElement);
-            this.scene.add(new AxesHelper(3));
             var scoreboard = new Pong3dThreeScoreboard(config.scoreboard);
             scoreboard.getObject().position.copy(config.scoreboard.position);
             this.scene.add(scoreboard.getObject());
@@ -94604,10 +94624,6 @@
                     _this.scoreboard.setServeProgress(0);
                 });
                 this.addLighting();
-                var digit = new SevenSegmentDisplay(1, 2);
-                digit.setNumber(12);
-                digit.getObject().position.set(0, 0, 1);
-                this.scene.add(digit.getObject());
             }
         };
         Pong3dThreeRenderer.prototype.createPlayField = function (game) {

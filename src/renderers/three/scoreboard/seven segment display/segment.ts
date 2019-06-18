@@ -4,8 +4,10 @@ import { segHeight, segPad, segWidth } from "./constants";
 export class Segment {
 
   private object: Three.Object3D;
+  private material: Three.MeshBasicMaterial;
 
-  public constructor(private size: number, material: Three.Material) {
+  public constructor(private size: number, color: number) {
+
     const scale = this.scale.bind(this);
 
     const segWidthPad = scale(segWidth - segPad);
@@ -29,8 +31,9 @@ export class Segment {
     geometry.computeFaceNormals();
     geometry.computeVertexNormals();
 
-    material.side = Three.DoubleSide;
-    const segMesh = new Three.Mesh(geometry, material);
+    this.material = new Three.MeshBasicMaterial({ color });
+    this.material.side = Three.DoubleSide;
+    const segMesh = new Three.Mesh(geometry, this.material);
     segMesh.receiveShadow = true;
 
     this.object = segMesh;
@@ -38,6 +41,10 @@ export class Segment {
 
   public getObject() {
     return this.object;
+  }
+
+  public setColor(color: number): void {
+    this.material.color = new Three.Color(color);
   }
 
   private scale(x: number) {

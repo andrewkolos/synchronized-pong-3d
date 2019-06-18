@@ -18,13 +18,11 @@ const segmentStates = [
 export class Digit {
   private object: Three.Object3D;
   private segments: Three.Object3D[] = [];
-
-  public constructor(size: number) {
-    const material = new Three.MeshBasicMaterial({color: /*0xff0000*/0x00ff00});
+  public constructor(size: number, color: number) {
 
     this.object = new Three.Object3D();
     for (let i = 0; i < 7; i++) {
-      const segment = new Segment(size, material).getObject();
+      const segment = new Segment(size, color).getObject();
       this.segments.push(segment);
       this.object.add(segment);
     }

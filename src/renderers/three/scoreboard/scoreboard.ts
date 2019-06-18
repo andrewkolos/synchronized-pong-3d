@@ -39,7 +39,7 @@ export class Pong3dThreeScoreboard {
     scoreboardBase.castShadow = true;
     scoreboardBase.receiveShadow = true;
 
- //   this.object.add(scoreboardBase);
+    this.object.add(scoreboardBase);
 
     const loader = new Three.FontLoader();
     this.font = loader.parse(font);
