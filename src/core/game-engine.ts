@@ -21,8 +21,6 @@ enum CollisionType {
 export class Pong3dGameEngine {
 
   // Game Objects.
-  public eastWall: Three.Mesh;
-  public westWall: Three.Mesh;
   public player1Paddle: Paddle;
   public player2Paddle: Paddle;
   public ball: Ball;
@@ -51,23 +49,7 @@ export class Pong3dGameEngine {
   private gameLoop = new GameLoop(this.tick.bind(this));
 
   public constructor(config: Pong3dConfig) {
-    const createWalls = () => {
-      const playFieldWidth = config.playField.width;
-      const playFieldHeight = config.playField.height;
 
-      const wallWidth = config.walls.width;
-      const WallDepth = config.walls.depth;
-
-      const eastWallGeometry = new Three.BoxGeometry(wallWidth, playFieldHeight, WallDepth);
-      const eastWall = new Three.Mesh(eastWallGeometry);
-      eastWall.position.set(-playFieldWidth / 2 - (wallWidth / 2), 0, wallWidth);
-
-      const westWallGeometry = new Three.BoxGeometry(wallWidth, playFieldHeight, WallDepth);
-      const westWall = new Three.Mesh(westWallGeometry);
-      westWall.position.set(playFieldWidth / 2 + (wallWidth / 2), 0, wallWidth);
-
-      return { eastWall, westWall };
-    };
     const createPaddles = () => {
       const createPaddle = (offset: number): Paddle => {
         const { width, height, depth } = config.paddles;
@@ -103,12 +85,9 @@ export class Pong3dGameEngine {
       return new Ball(ball, innerBall, config.ball.initDx, config.ball.initDy);
     };
 
-    const walls = createWalls();
     const paddles = createPaddles();
     const ball = createBall();
 
-    this.eastWall = walls.eastWall;
-    this.westWall = walls.westWall;
     this.player1Paddle = paddles.player1Paddle;
     this.player2Paddle = paddles.player2Paddle;
     this.ball = ball;

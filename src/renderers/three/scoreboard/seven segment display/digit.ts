@@ -20,7 +20,8 @@ export class Digit {
   private segments: Three.Object3D[] = [];
 
   public constructor(size: number) {
-    const material = new Three.MeshBasicMaterial({color: 0xff0000});
+    const material = new Three.MeshBasicMaterial({color: /*0xff0000*/0x00ff00});
+
     this.object = new Three.Object3D();
     for (let i = 0; i < 7; i++) {
       const segment = new Segment(size, material).getObject();
@@ -36,6 +37,7 @@ export class Digit {
     this.segments[4].position.set(halfSegment, -halfSegment, 0);
     this.segments[4].rotation.z = Math.PI / 2;
     this.segments[5].position.set(0, -halfSegment * 2, 0);
+    this.segments[6].position.set(-halfSegment, -halfSegment, 0);
     this.segments[6].rotation.z = Math.PI / 2;
 
     this.setNumber(0);

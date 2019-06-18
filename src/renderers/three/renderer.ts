@@ -5,6 +5,7 @@ import { makeTextureFromBase64Image } from "../../util";
 import ballTexture from "./images/ball";
 import { Pong3dThreeRendererConfig } from "./renderer-config";
 import { MeterType, Pong3dThreeScoreboard } from "./scoreboard/scoreboard";
+import { SevenSegmentDisplay } from "./scoreboard/seven segment display/seven-segment-display";
 
 export class Pong3dThreeRenderer {
 
@@ -15,7 +16,7 @@ export class Pong3dThreeRenderer {
   private config: Pong3dThreeRendererConfig;
   private scoreboard: Pong3dThreeScoreboard;
 
-  private rendering = true;
+private rendering = true;
 
   public constructor(config: Pong3dThreeRendererConfig) {
     this.config = config;
@@ -53,8 +54,6 @@ export class Pong3dThreeRenderer {
 
     // tslint:disable-next-line: no-unused-expression
     new OrbitControls(this.camera, this.renderer.domElement);
-
-    this.scene.add(new Three.AxesHelper(3));
 
     const scoreboard = new Pong3dThreeScoreboard(config.scoreboard);
     scoreboard.getObject().position.copy(config.scoreboard.position);
@@ -102,16 +101,40 @@ export class Pong3dThreeRenderer {
       obj.receiveShadow = true;
     };
 
-    if (!(game.westWall.material instanceof Three.MeshLambertMaterial)) {
-      game.westWall.material = new Three.MeshLambertMaterial({color: this.config.wallColor});
-      game.eastWall.material = new Three.MeshLambertMaterial({color: this.config.wallColor});
+    const createWalls = () => {
+      const playFieldWidth = game.config.playField.width;
+      const playFieldHeight = game.config.playField.height;
+      const playFieldDepth = this.config.playField.height;
+
+      const wallWidth = this.config.walls.width;
+      const wallHeight = this.config.walls.height;
+
+      const createWall = () => {
+        const geo = new Three.BoxGeometry(wallWidth, playFieldHeight, wallHeight);
+        const mat = new Three.MeshLambertMaterial({color: this.config.wallColor});
+        return new Three.Mesh(geo, mat);
+      };
+
+      const eastWall = createWall();
+      eastWall.position.set(-playFieldWidth / 2 - (wallWidth / 2), 0, wallHeight / 2 - playFieldDepth / 2);
+
+      const westWall = createWall();
+      westWall.position.set(playFieldWidth / 2 + (wallWidth / 2), 0, wallHeight / 2 - playFieldDepth / 2);
+
+      return { eastWall, westWall };
+    };
+
+    if (!(game.player1Paddle.object.material instanceof Three.MeshLambertMaterial)) {
+
+      const { eastWall, westWall } = createWalls();
+
       game.player1Paddle.object.material = new Three.MeshLambertMaterial({color: this.config.paddles.player1Color});
       game.player2Paddle.object.material = new Three.MeshLambertMaterial({color: this.config.paddles.player2Color});
 
       enableShadows(game.player1Paddle.object);
       enableShadows(game.player2Paddle.object);
-      enableShadows(game.westWall);
-      enableShadows(game.eastWall);
+      enableShadows(westWall);
+      enableShadows(eastWall);
 
       const ballMaterial = new Three.MeshPhongMaterial();
       ballMaterial.map = makeTextureFromBase64Image(ballTexture);
@@ -120,8 +143,8 @@ export class Pong3dThreeRenderer {
       enableShadows(game.ball.innerObject);
 
       this.scene.add(game.ball.object);
-      this.scene.add(game.eastWall);
-      this.scene.add(game.westWall);
+      this.scene.add(eastWall);
+      this.scene.add(westWall);
       this.scene.add(game.player1Paddle.object);
       this.scene.add(game.player2Paddle.object);
       this.scene.add(this.createPlayField(game));
@@ -159,7 +182,7 @@ export class Pong3dThreeRenderer {
 
   private createPlayField(game: Pong3dGameEngine) {
     const createPart = (color: number, length: number, yOffset: number) => {
-      const geometry = new Three.PlaneGeometry(game.config.playField.width, length, 32, 32);
+      const geometry = new Three.BoxGeometry(game.config.playField.width, length, this.config.playField.height, 32, 32);
       const material = new Three.MeshLambertMaterial({color});
       material.side = Three.DoubleSide;
       const part = new Three.Mesh(geometry, material);

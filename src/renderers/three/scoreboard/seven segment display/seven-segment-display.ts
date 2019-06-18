@@ -30,7 +30,7 @@ export class SevenSegmentDisplay {
     const backGeo = new Three.PlaneGeometry(fullWidth, fullHeight, 1, 1);
     const backMat = new Three.MeshLambertMaterial({ color: 1118481});
     const backMesh = new Three.Mesh(backGeo, backMat);
-    backMesh.position.z = -0.01;
+    backMesh.position.z -= 0.01;
     object.add(backMesh);
 
     const bounds = new Three.Box3();

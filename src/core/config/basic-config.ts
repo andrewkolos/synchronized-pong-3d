@@ -9,10 +9,6 @@ export const basicPong3dConfig: Pong3dConfig = {
     height: 20,
     neutralZoneHeight: 0.5,
   },
-  walls: {
-    width: 0.5,
-    depth: 1,
-  },
   paddles: {
     width: 2,
     height: 0.125,

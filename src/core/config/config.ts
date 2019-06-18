@@ -7,10 +7,6 @@ export interface Pong3dConfig {
     height: number;
     neutralZoneHeight: number;
   };
-  walls: {
-    width: number;
-    depth: number;
-  };
   paddles: {
     width: number;
     height: number;

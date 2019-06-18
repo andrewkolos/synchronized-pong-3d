@@ -36,10 +36,6 @@
             height: 20,
             neutralZoneHeight: 0.5,
         },
-        walls: {
-            width: 0.5,
-            depth: 1,
-        },
         paddles: {
             width: 2,
             height: 0.125,
@@ -48338,19 +48334,6 @@
         function Pong3dGameEngine(config) {
             this.eventEmitter = new TypedEventEmitter();
             this.gameLoop = new GameLoop(this.tick.bind(this));
-            var createWalls = function () {
-                var playFieldWidth = config.playField.width;
-                var playFieldHeight = config.playField.height;
-                var wallWidth = config.walls.width;
-                var WallDepth = config.walls.depth;
-                var eastWallGeometry = new BoxGeometry(wallWidth, playFieldHeight, WallDepth);
-                var eastWall = new Mesh(eastWallGeometry);
-                eastWall.position.set(-playFieldWidth / 2 - (wallWidth / 2), 0, wallWidth);
-                var westWallGeometry = new BoxGeometry(wallWidth, playFieldHeight, WallDepth);
-                var westWall = new Mesh(westWallGeometry);
-                westWall.position.set(playFieldWidth / 2 + (wallWidth / 2), 0, wallWidth);
-                return { eastWall: eastWall, westWall: westWall };
-            };
             var createPaddles = function () {
                 var createPaddle = function (offset) {
                     var _a = config.paddles, width = _a.width, height = _a.height, depth = _a.depth;
@@ -48381,11 +48364,8 @@
                 ball.add(innerBall);
                 return new Ball(ball, innerBall, config.ball.initDx, config.ball.initDy);
             };
-            var walls = createWalls();
             var paddles = createPaddles();
             var ball = createBall();
-            this.eastWall = walls.eastWall;
-            this.westWall = walls.westWall;
             this.player1Paddle = paddles.player1Paddle;
             this.player2Paddle = paddles.player2Paddle;
             this.ball = ball;
@@ -48931,9 +48911,14 @@
             },
             width: width,
             height: height,
+            walls: {
+                width: 0.5,
+                height: 1,
+            },
             playField: {
                 color: 0x156289,
                 centerlineColor: 0xFFFFFF,
+                height: 0.2,
             },
             paddles: {
                 player1Color: player1Color,
@@ -92973,6 +92958,7 @@
             geometry.faces.push(new Face3(0, 1, 3), new Face3(3, 4, 0), new Face3(1, 2, 3), new Face3(4, 5, 0));
             geometry.computeFaceNormals();
             geometry.computeVertexNormals();
+            material.side = DoubleSide;
             var segMesh = new Mesh(geometry, material);
             segMesh.receiveShadow = true;
             this.object = segMesh;
@@ -93001,7 +92987,7 @@
     var Digit = /** @class */ (function () {
         function Digit(size) {
             this.segments = [];
-            var material = new MeshBasicMaterial({ color: 0xff0000 });
+            var material = new MeshBasicMaterial({ color: /*0xff0000*/ 0x00ff00 });
             this.object = new Object3D();
             for (var i = 0; i < 7; i++) {
                 var segment = new Segment(size, material).getObject();
@@ -93017,6 +93003,7 @@
             this.segments[4].position.set(halfSegment, -halfSegment, 0);
             this.segments[4].rotation.z = Math.PI / 2;
             this.segments[5].position.set(0, -halfSegment * 2, 0);
+            this.segments[6].position.set(-halfSegment, -halfSegment, 0);
             this.segments[6].rotation.z = Math.PI / 2;
             this.setNumber(0);
         }
@@ -93060,7 +93047,7 @@
             var backGeo = new PlaneGeometry(fullWidth, fullHeight, 1, 1);
             var backMat = new MeshLambertMaterial({ color: 1118481 });
             var backMesh = new Mesh(backGeo, backMat);
-            backMesh.position.z = -0.01;
+            backMesh.position.z -= 0.01;
             object.add(backMesh);
             var bounds = new Box3();
             bounds.setFromObject(object);
@@ -94559,22 +94546,38 @@
                 obj.castShadow = true;
                 obj.receiveShadow = true;
             };
-            if (!(game.westWall.material instanceof MeshLambertMaterial)) {
-                game.westWall.material = new MeshLambertMaterial({ color: this.config.wallColor });
-                game.eastWall.material = new MeshLambertMaterial({ color: this.config.wallColor });
+            var createWalls = function () {
+                var playFieldWidth = game.config.playField.width;
+                var playFieldHeight = game.config.playField.height;
+                var playFieldDepth = _this.config.playField.height;
+                var wallWidth = _this.config.walls.width;
+                var wallHeight = _this.config.walls.height;
+                var createWall = function () {
+                    var geo = new BoxGeometry(wallWidth, playFieldHeight, wallHeight);
+                    var mat = new MeshLambertMaterial({ color: _this.config.wallColor });
+                    return new Mesh(geo, mat);
+                };
+                var eastWall = createWall();
+                eastWall.position.set(-playFieldWidth / 2 - (wallWidth / 2), 0, wallHeight / 2 - playFieldDepth / 2);
+                var westWall = createWall();
+                westWall.position.set(playFieldWidth / 2 + (wallWidth / 2), 0, wallHeight / 2 - playFieldDepth / 2);
+                return { eastWall: eastWall, westWall: westWall };
+            };
+            if (!(game.player1Paddle.object.material instanceof MeshLambertMaterial)) {
+                var _a = createWalls(), eastWall = _a.eastWall, westWall = _a.westWall;
                 game.player1Paddle.object.material = new MeshLambertMaterial({ color: this.config.paddles.player1Color });
                 game.player2Paddle.object.material = new MeshLambertMaterial({ color: this.config.paddles.player2Color });
                 enableShadows(game.player1Paddle.object);
                 enableShadows(game.player2Paddle.object);
-                enableShadows(game.westWall);
-                enableShadows(game.eastWall);
+                enableShadows(westWall);
+                enableShadows(eastWall);
                 var ballMaterial = new MeshPhongMaterial();
                 ballMaterial.map = makeTextureFromBase64Image(ballTexture);
                 game.ball.innerObject.material = ballMaterial;
                 enableShadows(game.ball.innerObject);
                 this.scene.add(game.ball.object);
-                this.scene.add(game.eastWall);
-                this.scene.add(game.westWall);
+                this.scene.add(eastWall);
+                this.scene.add(westWall);
                 this.scene.add(game.player1Paddle.object);
                 this.scene.add(game.player2Paddle.object);
                 this.scene.add(this.createPlayField(game));
@@ -94601,11 +94604,16 @@
                     _this.scoreboard.setServeProgress(0);
                 });
                 this.addLighting();
+                var digit = new SevenSegmentDisplay(1, 2);
+                digit.setNumber(12);
+                digit.getObject().position.set(0, 0, 1);
+                this.scene.add(digit.getObject());
             }
         };
         Pong3dThreeRenderer.prototype.createPlayField = function (game) {
+            var _this = this;
             var createPart = function (color, length, yOffset) {
-                var geometry = new PlaneGeometry(game.config.playField.width, length, 32, 32);
+                var geometry = new BoxGeometry(game.config.playField.width, length, _this.config.playField.height, 32, 32);
                 var material = new MeshLambertMaterial({ color: color });
                 material.side = DoubleSide;
                 var part = new Mesh(geometry, material);

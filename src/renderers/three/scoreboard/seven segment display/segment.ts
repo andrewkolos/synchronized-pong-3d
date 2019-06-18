@@ -29,6 +29,7 @@ export class Segment {
     geometry.computeFaceNormals();
     geometry.computeVertexNormals();
 
+    material.side = Three.DoubleSide;
     const segMesh = new Three.Mesh(geometry, material);
     segMesh.receiveShadow = true;
 

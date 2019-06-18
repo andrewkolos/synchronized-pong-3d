@@ -29,9 +29,14 @@ export interface Pong3dThreeRendererConfig {
   };
   width: number;
   height: number;
+  walls: {
+    width: number;
+    height: number;
+  };
   playField: {
     color: number;
     centerlineColor: number;
+    height: number;
   };
   paddles: {
     player1Color: number;
