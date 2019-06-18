@@ -1,22 +1,22 @@
 import { ClientEntitySynchronizer, ClientEntitySynchronizerContext,
   InputCollectionStrategy, SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
-import { Pong3dGameEngine } from "../core/game-engine";
+import { GameEngine } from "../core/game-engine";
 import { Paddle } from "../core/paddle";
-import { Pong3dEntityFactory } from "./client/entity-factory";
+import { EntityFactory } from "./client/entity-factory";
 import { BallEntity } from "./entities/ball";
 import { PaddleEntity } from "./entities/paddle";
-import { Pong3dLocalServerConnection } from "./local/local-server-connection";
+import { LocalServerConnection } from "./local/local-server-connection";
 
-export interface Pong3dNetworkAdapterContext {
-  serverConnection: Pong3dLocalServerConnection;
+export interface NetworkAdapterContext {
+  serverConnection: LocalServerConnection;
   serverUpdateRate: number;
   inputCollectionStrategy: InputCollectionStrategy;
 }
 
-export class Pong3dNetworkAdapter {
+export class NetworkAdapter {
 
-  public constructor(gameToSync: Pong3dGameEngine, context: Pong3dNetworkAdapterContext) {
-    const entityFactory = new Pong3dEntityFactory();
+  public constructor(gameToSync: GameEngine, context: NetworkAdapterContext) {
+    const entityFactory = new EntityFactory();
 
     const syncContext: ClientEntitySynchronizerContext = {
       entityFactory,

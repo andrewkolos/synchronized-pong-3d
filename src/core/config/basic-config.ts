@@ -1,6 +1,6 @@
-import { Pong3dConfig } from "./config";
+import { Config } from "./config";
 
-export const basicPong3dConfig: Pong3dConfig = {
+export const basicConfig: Config = {
   game: {
     tickRate: 60,
   },
@@ -29,8 +29,8 @@ export const basicPong3dConfig: Pong3dConfig = {
   pauseAfterScoreSec: 2,
 };
 
-export const basicPong3dConfigWithAiOpponent: Pong3dConfig = {
-  ...basicPong3dConfig,
+export const basicConfigWithAiOpponent: Config = {
+  ...basicConfig,
   aiPlayer: {
     enabled: true,
     moveSpeed: 0.06 * 2.1,

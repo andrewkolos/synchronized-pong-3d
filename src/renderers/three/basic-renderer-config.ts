@@ -1,12 +1,12 @@
 import * as Three from "three";
-import { Pong3dThreeRendererConfig } from "./renderer-config";
+import { ThreeRendererConfig } from "./renderer-config";
 
 const player1Color = 0x0D47A1;
 const player2Color = 0xB71c1c;
 const scale = 1;
 const meterBackColor = 0x11111;
 
-export function makeSimpleThreeRendererConfig(width: number, height: number): Pong3dThreeRendererConfig {
+export function makeSimpleThreeRendererConfig(width: number, height: number): ThreeRendererConfig {
   return {
     camera: {
       fov: 45,

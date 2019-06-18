@@ -1,9 +1,9 @@
 import { GameLoop, TypedEventEmitter } from "@akolos/ts-client-server-game-synchronization";
 import * as Three from "three";
 import { Ball } from "./ball";
-import { Pong3dConfig } from "./config/config";
+import { Config } from "./config/config";
 import { Player } from "./enum/player";
-import { Pong3dGameEngineEvents } from "./game-engine-events";
+import { GameEngineEvents } from "./game-engine-events";
 import { Paddle } from "./paddle";
 
 interface Score {
@@ -18,7 +18,7 @@ enum CollisionType {
   RightEdge,
 }
 
-export class Pong3dGameEngine {
+export class GameEngine {
 
   // Game Objects.
   public player1Paddle: Paddle;
@@ -26,9 +26,9 @@ export class Pong3dGameEngine {
   public ball: Ball;
 
   // Configuration.
-  public config: Readonly<Pong3dConfig>;
+  public config: Readonly<Config>;
 
-  public eventEmitter: TypedEventEmitter<Pong3dGameEngineEvents> = new TypedEventEmitter();
+  public eventEmitter: TypedEventEmitter<GameEngineEvents> = new TypedEventEmitter();
 
   public get score(): Readonly<Score> {
     return this._score;
@@ -48,7 +48,7 @@ export class Pong3dGameEngine {
 
   private gameLoop = new GameLoop(this.tick.bind(this));
 
-  public constructor(config: Pong3dConfig) {
+  public constructor(config: Config) {
 
     const createPaddles = () => {
       const paddleWidth = config.paddles.width;

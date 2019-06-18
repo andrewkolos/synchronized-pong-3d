@@ -1,5 +1,5 @@
 import * as Three from "three";
-import { Pong3dBallConfig } from "./config/config";
+import { BallConfig } from "./config/config";
 
 export class Ball {
 
@@ -10,7 +10,7 @@ export class Ball {
   public collidingWithPaddle: boolean;
   public collidingWithWall: boolean;
 
-  public constructor(config: Pong3dBallConfig) {
+  public constructor(config: BallConfig) {
     this.radius = config.radius;
 
     this.velocity = new Three.Vector2();

@@ -1,6 +1,6 @@
 import { InputMessage, ServerConnection, StateMessage } from "@akolos/ts-client-server-game-synchronization";
 
-export class Pong3dLocalServerConnection implements ServerConnection {
+export class LocalServerConnection implements ServerConnection {
   public send(message: InputMessage): void {
     throw new Error("Method not implemented.");
   }

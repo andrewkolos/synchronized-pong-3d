@@ -1,4 +1,4 @@
-export interface Pong3dBallConfig {
+export interface BallConfig {
   radius: number;
   segmentCount: number;
   iFrames: number;
@@ -10,7 +10,7 @@ export interface Pong3dBallConfig {
   initDy: number;
 }
 
-export interface Pong3dConfig {
+export interface Config {
   game: {
     tickRate: number;
   };
@@ -25,7 +25,7 @@ export interface Pong3dConfig {
     depth: number;
     baseMoveSpeed: number;
   };
-  ball: Pong3dBallConfig;
+  ball: BallConfig;
   pauseAfterScoreSec: number;
   aiPlayer?: {
     enabled: true;

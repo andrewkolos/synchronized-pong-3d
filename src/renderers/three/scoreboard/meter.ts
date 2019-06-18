@@ -1,6 +1,6 @@
 import * as Three from "three";
 import { PlaneFactory } from "../misc/plane-factory";
-import { Pong3dMeterConfig } from "../renderer-config";
+import { MeterConfig } from "../renderer-config";
 
 export const METER_WIDTH = 8;
 export const METER_HEIGHT = 1.5;
@@ -8,13 +8,13 @@ export const METER_HEIGHT = 1.5;
 export class Meter {
 
   private object: Three.Object3D = new Three.Object3D();
-  private config: Pong3dMeterConfig;
+  private config: MeterConfig;
 
   private meterParts: Three.Object3D[] = [];
 
   private planeFactory: PlaneFactory;
 
-  public constructor(config: Pong3dMeterConfig) {
+  public constructor(config: MeterConfig) {
     this.config = config;
     const scale = this.scale.bind(this);
 

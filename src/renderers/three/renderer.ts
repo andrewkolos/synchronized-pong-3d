@@ -1,21 +1,21 @@
 import * as Three from "three";
 import { OrbitControls } from "three-orbitcontrols-ts";
 import { Ball } from "../../core/ball";
-import { Pong3dGameEngine } from "../../core/game-engine";
+import { GameEngine } from "../../core/game-engine";
 import { Paddle } from "../../core/paddle";
 import { makeTextureFromBase64Image } from "../../util";
 import ballTexture from "./images/ball";
-import { Pong3dThreeRendererConfig } from "./renderer-config";
-import { MeterType, Pong3dThreeScoreboard } from "./scoreboard/scoreboard";
+import { ThreeRendererConfig } from "./renderer-config";
+import { MeterType, ThreeScoreboard } from "./scoreboard/scoreboard";
 
-export class Pong3dThreeRenderer {
+export class ThreeRenderer {
 
   private scene: Three.Scene;
   private camera: Three.PerspectiveCamera;
   private cameraParent = new Three.Group();
   private renderer: Three.WebGLRenderer;
-  private config: Pong3dThreeRendererConfig;
-  private scoreboard: Pong3dThreeScoreboard;
+  private config: ThreeRendererConfig;
+  private scoreboard: ThreeScoreboard;
 
   private gameObjects?: {
     ball: { outerObj: Three.Group, innerObj: Three.Mesh };
@@ -25,7 +25,7 @@ export class Pong3dThreeRenderer {
 
   private rendering = true;
 
-  public constructor(config: Pong3dThreeRendererConfig) {
+  public constructor(config: ThreeRendererConfig) {
     this.config = config;
 
     const createCamera = (): Three.PerspectiveCamera => {
@@ -62,7 +62,7 @@ export class Pong3dThreeRenderer {
     // tslint:disable-next-line: no-unused-expression
     new OrbitControls(this.camera, this.renderer.domElement);
 
-    const scoreboard = new Pong3dThreeScoreboard(config.scoreboard);
+    const scoreboard = new ThreeScoreboard(config.scoreboard);
     scoreboard.getObject().position.copy(config.scoreboard.position);
     this.scene.add(scoreboard.getObject());
     this.scoreboard = scoreboard;
@@ -72,7 +72,7 @@ export class Pong3dThreeRenderer {
     return this.renderer.domElement;
   }
 
-  public startRendering(game: Pong3dGameEngine): void {
+  public startRendering(game: GameEngine): void {
     this.rendering = true;
     this.render(game);
   }
@@ -90,7 +90,7 @@ export class Pong3dThreeRenderer {
     this.renderer.setSize(domElement.clientWidth, domElement.clientHeight);
   }
 
-  private render(game: Pong3dGameEngine): void {
+  private render(game: GameEngine): void {
     this.performInitialSetup(game);
 
     if (this.rendering) {
@@ -101,7 +101,7 @@ export class Pong3dThreeRenderer {
     }
   }
 
-  private performInitialSetup(game: Pong3dGameEngine) {
+  private performInitialSetup(game: GameEngine) {
 
     const enableShadows = (obj: Three.Object3D) => {
       obj.castShadow = true;
@@ -247,7 +247,7 @@ export class Pong3dThreeRenderer {
     }
   }
 
-  private createPlayField(game: Pong3dGameEngine) {
+  private createPlayField(game: GameEngine) {
     const createPart = (color: number, length: number, yOffset: number) => {
       const geometry = new Three.BoxGeometry(game.config.playField.width, length, this.config.playField.depth, 32, 32);
       const material = new Three.MeshLambertMaterial({color});

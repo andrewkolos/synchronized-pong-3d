@@ -1,5 +1,5 @@
 import { PaddleInput } from "../paddle-input";
 
-export interface Pong3dInputCollector {
+export interface InputCollector {
   getPaddleMoveInput(dt: number): PaddleInput;
 }

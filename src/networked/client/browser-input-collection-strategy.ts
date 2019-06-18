@@ -1,13 +1,13 @@
 import { InputCollectionStrategy, InputForEntity } from "@akolos/ts-client-server-game-synchronization";
-import { Pong3dInputCollector } from "../../core/input/collection/input-collector";
+import { InputCollector } from "../../core/input/collection/input-collector";
 
-export interface Pong3DBrowserInputCollectionStrategyContext {
+export interface BrowserInputCollectionStrategyContext {
   playerEntityId: string;
 }
 
-export class Pong3DBrowserInputCollectionStrategy implements InputCollectionStrategy {
+export class BrowserInputCollectionStrategy implements InputCollectionStrategy {
 
-  constructor(private playerEntityId: string, private inputCollector: Pong3dInputCollector) {}
+  constructor(private playerEntityId: string, private inputCollector: InputCollector) {}
 
   public getInputs(dt: number): InputForEntity[] {
     const input: InputForEntity = {

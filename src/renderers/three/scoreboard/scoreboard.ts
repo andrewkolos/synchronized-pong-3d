@@ -1,6 +1,6 @@
 import * as Three from "three";
 import { getWidthOfObject as getWidthOfObj } from "../misc/common";
-import { Pong3dScoreboardConfig } from "../renderer-config";
+import { ScoreboardConfig } from "../renderer-config";
 import { Meter, METER_HEIGHT } from "./meter";
 import { SevenSegmentDisplay } from "./seven segment display/seven-segment-display";
 
@@ -10,11 +10,11 @@ export enum MeterType {
   ServeProgress,
   Speed,
 }
-export class Pong3dThreeScoreboard {
+export class ThreeScoreboard {
 
   private object: Three.Object3D;
   private font: Three.Font;
-  private config: Pong3dScoreboardConfig;
+  private config: ScoreboardConfig;
 
   private speedometer: Meter;
   private serverMeter: Meter;
@@ -22,7 +22,7 @@ export class Pong3dThreeScoreboard {
   private player1ScoreDisplay: SevenSegmentDisplay;
   private player2ScoreDisplay: SevenSegmentDisplay;
 
-  public constructor(config: Pong3dScoreboardConfig) {
+  public constructor(config: ScoreboardConfig) {
 
     const scale = this.scale.bind(this);
 

@@ -1,44 +1,44 @@
-import { basicPong3dConfig } from "../core/config/basic-config";
-import { Pong3dConfig } from "../core/config/config";
+import { basicConfig } from "../core/config/basic-config";
+import { Config } from "../core/config/config";
 import { Player } from "../core/enum/player";
-import { Pong3dGameEngine } from "../core/game-engine";
-import { Pong3dBrowserInputCollector,
-  Pong3DBrowserInputCollectorContext } from "../core/input/collection/browser-input-collector";
+import { GameEngine } from "../core/game-engine";
+import { BrowserInputCollector,
+  BrowserInputCollectorContext } from "../core/input/collection/browser-input-collector";
 import { KeyCode } from "../core/input/collection/key-code";
-import { Pong3DKeyMappings } from "../core/input/collection/key-mappings";
-import { Pong3dInputApplicator } from "../core/input/input-applicator";
+import { KeyMappings } from "../core/input/collection/key-mappings";
+import { InputApplicator } from "../core/input/input-applicator";
 import { makeSimpleThreeRendererConfig } from "../renderers/three/basic-renderer-config";
-import { Pong3dThreeRenderer } from "../renderers/three/renderer";
-import { Pong3dThreeRendererConfig } from "../renderers/three/renderer-config";
+import { ThreeRenderer } from "../renderers/three/renderer";
+import { ThreeRendererConfig } from "../renderers/three/renderer-config";
 
-export interface Pong3dBrowserClientOptions {
-  gameConfig: Partial<Pong3dConfig>;
-  keyMappings: Pong3DKeyMappings;
+export interface BrowserClientOptions {
+  gameConfig: Partial<Config>;
+  keyMappings: KeyMappings;
   player: Player;
-  rendererConfig: Partial<Pong3dThreeRendererConfig>;
+  rendererConfig: Partial<ThreeRendererConfig>;
 }
 
-export class Pong3dBrowserClient {
+export class BrowserClient {
 
-  private game: Pong3dGameEngine;
-  private renderer: Pong3dThreeRenderer;
+  private game: GameEngine;
+  private renderer: ThreeRenderer;
 
-  public constructor(hostElement: HTMLElement, options?: Partial<Pong3dBrowserClientOptions>) {
+  public constructor(hostElement: HTMLElement, options?: Partial<BrowserClientOptions>) {
 
     if (options == null) {
       options = {};
     }
 
     const game = (() => {
-      const baseConfig = basicPong3dConfig;
+      const baseConfig = basicConfig;
       const suppliedConfig = options.gameConfig;
-      const config: Pong3dConfig = {...baseConfig, ...suppliedConfig};
-      return new Pong3dGameEngine(config);
+      const config: Config = {...baseConfig, ...suppliedConfig};
+      return new GameEngine(config);
     })();
 
     const inputCollector = (() => {
 
-      const keyMappings: Pong3DKeyMappings = options.keyMappings || {
+      const keyMappings: KeyMappings = options.keyMappings || {
         movePaddleForward: KeyCode.fromKeyName("w"),
         movePaddleLeft: KeyCode.fromKeyName("a"),
         movePaddleBackward: KeyCode.fromKeyName("s"),
@@ -47,16 +47,16 @@ export class Pong3dBrowserClient {
         rotatePaddleRight: KeyCode.fromKeyName("e"),
       };
 
-      const context: Pong3DBrowserInputCollectorContext = {
+      const context: BrowserInputCollectorContext = {
         keyMappings,
         game,
         playerPaddle: options.player === Player.Player2 ? game.player2Paddle : game.player1Paddle,
       };
 
-      return new Pong3dBrowserInputCollector(context);
+      return new BrowserInputCollector(context);
     })();
 
-    const inputApplicator = new Pong3dInputApplicator(game);
+    const inputApplicator = new InputApplicator(game);
 
     let lastTickTime = new Date().getTime();
     game.eventEmitter.on("tick", () => {
@@ -70,7 +70,7 @@ export class Pong3dBrowserClient {
       const rendererWidth = hostElement.clientWidth;
       const rendererHeight = hostElement.clientHeight;
       const config = {...makeSimpleThreeRendererConfig(rendererWidth, rendererHeight), ...options.rendererConfig};
-      return new Pong3dThreeRenderer(config);
+      return new ThreeRenderer(config);
     })();
 
     const domElement = renderer.getRendererDomElement();

@@ -1,6 +1,6 @@
 import Three, { Vector3 } from 'three';
 
-export interface Pong3dMeterConfig {
+export interface MeterConfig {
   scale: number;
   backColor: number;
   numberOfSegments: number;
@@ -8,17 +8,17 @@ export interface Pong3dMeterConfig {
   maxValue: number;
 }
 
-export interface Pong3dScoreboardConfig {
+export interface ScoreboardConfig {
   position: Vector3;
   scale: number;
   color: number;
   player1TextColor: number;
   player2TextColor: number;
-  speedometer: Pong3dMeterConfig;
-  serveMeter: Pong3dMeterConfig;
+  speedometer: MeterConfig;
+  serveMeter: MeterConfig;
 }
 
-export interface Pong3dThreeRendererConfig {
+export interface ThreeRendererConfig {
   camera: {
     fov: number;
     clippingPlane: {
@@ -42,7 +42,7 @@ export interface Pong3dThreeRendererConfig {
     player1Color: number;
     player2Color: number;
   };
-  scoreboard: Pong3dScoreboardConfig;
+  scoreboard: ScoreboardConfig;
   screenShake: {
     minSpeed: number;
     maxSpeed: number;

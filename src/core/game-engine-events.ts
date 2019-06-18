@@ -1,6 +1,6 @@
 import { Player } from "./enum/player";
 
-export interface Pong3dGameEngineEvents {
+export interface GameEngineEvents {
   tick: () => void;
   startingServe: () => void;
   ballServed: () => void;

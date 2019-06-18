@@ -27,7 +27,7 @@
         return __assign.apply(this, arguments);
     };
 
-    var basicPong3dConfig = {
+    var basicConfig = {
         game: {
             tickRate: 60,
         },
@@ -55,7 +55,7 @@
         },
         pauseAfterScoreSec: 2,
     };
-    var basicPong3dConfigWithAiOpponent = __assign({}, basicPong3dConfig, { aiPlayer: {
+    var basicConfigWithAiOpponent = __assign({}, basicConfig, { aiPlayer: {
             enabled: true,
             moveSpeed: 0.06 * 2.1,
             speedIncreaseOnPaddleHit: 0.02,
@@ -48340,8 +48340,8 @@
         CollisionType[CollisionType["LeftEdge"] = 2] = "LeftEdge";
         CollisionType[CollisionType["RightEdge"] = 3] = "RightEdge";
     })(CollisionType || (CollisionType = {}));
-    var Pong3dGameEngine = /** @class */ (function () {
-        function Pong3dGameEngine(config) {
+    var GameEngine = /** @class */ (function () {
+        function GameEngine(config) {
             this.eventEmitter = new TypedEventEmitter();
             this.gameLoop = new GameLoop(this.tick.bind(this));
             var createPaddles = function () {
@@ -48369,30 +48369,30 @@
             };
             this.config = config;
         }
-        Object.defineProperty(Pong3dGameEngine.prototype, "score", {
+        Object.defineProperty(GameEngine.prototype, "score", {
             get: function () {
                 return this._score;
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Pong3dGameEngine.prototype, "timeUntilServeSec", {
+        Object.defineProperty(GameEngine.prototype, "timeUntilServeSec", {
             get: function () {
                 return this._timeUntilServeSec;
             },
             enumerable: true,
             configurable: true
         });
-        Pong3dGameEngine.prototype.start = function () {
+        GameEngine.prototype.start = function () {
             this.gameLoop.start(this.config.game.tickRate);
         };
-        Pong3dGameEngine.prototype.stop = function () {
+        GameEngine.prototype.stop = function () {
             this.gameLoop.stop();
         };
-        Pong3dGameEngine.prototype.getPaddleByPlayer = function (player) {
+        GameEngine.prototype.getPaddleByPlayer = function (player) {
             return player === Player.Player1 ? this.player1Paddle : this.player2Paddle;
         };
-        Pong3dGameEngine.prototype.getPlayerByPaddle = function (paddle) {
+        GameEngine.prototype.getPlayerByPaddle = function (paddle) {
             switch (paddle) {
                 case this.player1Paddle:
                     return Player.Player1;
@@ -48402,14 +48402,14 @@
                     throw Error("Paddle does not belong to either player.");
             }
         };
-        Pong3dGameEngine.prototype.tick = function () {
+        GameEngine.prototype.tick = function () {
             this.moveBall();
             this.eventEmitter.emit("tick");
         };
         /**
          * Moves the ball.
          */
-        Pong3dGameEngine.prototype.moveBall = function () {
+        GameEngine.prototype.moveBall = function () {
             if (this.ballIsInPlay) {
                 this.moveBallInPlay();
                 if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
@@ -48427,7 +48427,7 @@
                 this._timeUntilServeSec -= 1 / this.config.game.tickRate;
             }
         };
-        Pong3dGameEngine.prototype.moveBallInPlay = function () {
+        GameEngine.prototype.moveBallInPlay = function () {
             var _this = this;
             var ball = this.ball;
             var isCollidingWithWall = (function () {
@@ -48573,12 +48573,12 @@
                 this.eventEmitter.emit("playerScored", scorer, this._score);
             }
         };
-        Pong3dGameEngine.prototype.startServing = function (server) {
+        GameEngine.prototype.startServing = function (server) {
             this.ballIsInPlay = false;
             this.server = server;
             this._timeUntilServeSec = this.config.pauseAfterScoreSec;
         };
-        Pong3dGameEngine.prototype.movePlayer2Paddle = function () {
+        GameEngine.prototype.movePlayer2Paddle = function () {
             if (this.config.aiPlayer == null) {
                 throw Error("AI config is missing");
             }
@@ -48599,7 +48599,7 @@
                 }
             }
         };
-        Pong3dGameEngine.prototype.moveBallPreparingToServe = function () {
+        GameEngine.prototype.moveBallPreparingToServe = function () {
             var paddleHeight = this.config.paddles.height;
             var ballRadius = this.config.ball.radius;
             var servingPaddle = this.server === Player.Player1 ? this.player1Paddle : this.player2Paddle;
@@ -48611,7 +48611,7 @@
             this.ball.position.y = servingPaddle.position.y + ballYPosOffset *
                 Math.sin(servingPaddle.zRotationRads + Math.PI / 2);
         };
-        Pong3dGameEngine.prototype.serveBall = function () {
+        GameEngine.prototype.serveBall = function () {
             var initDy = this.config.ball.initDy;
             var servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle : this.player2Paddle;
             this.ball.velocity.x = initDy * Math.cos(servingPaddleObj.zRotationRads - Math.PI / 2);
@@ -48619,13 +48619,13 @@
             this.ballIsInPlay = true;
             this.moveBall(); // Prevent ball from getting stuck on a moving paddle.
         };
-        Pong3dGameEngine.prototype.isBallServingAtCurrentInstant = function () {
+        GameEngine.prototype.isBallServingAtCurrentInstant = function () {
             return this._timeUntilServeSec <= 0;
         };
-        Pong3dGameEngine.prototype.isBallBeingHeldByServer = function () {
+        GameEngine.prototype.isBallBeingHeldByServer = function () {
             return this._timeUntilServeSec > 0;
         };
-        return Pong3dGameEngine;
+        return GameEngine;
     }());
 
     var KeyboardManager = /** @class */ (function () {
@@ -48698,19 +48698,19 @@
         return PaddleMoveValidator;
     }());
 
-    var Pong3dBrowserInputCollector = /** @class */ (function () {
-        function Pong3dBrowserInputCollector(context) {
+    var BrowserInputCollector = /** @class */ (function () {
+        function BrowserInputCollector(context) {
             this.keyboardManager = new KeyboardManager();
             this.mappings = context.keyMappings;
             this.game = context.game;
             this.playerPaddle = context.playerPaddle;
         }
-        Pong3dBrowserInputCollector.prototype.getPaddleMoveInput = function (dt) {
+        BrowserInputCollector.prototype.getPaddleMoveInput = function (dt) {
             var rawInput = this.getInputFromControls(dt);
             var correctedInput = this.correctInput(rawInput);
             return correctedInput;
         };
-        Pong3dBrowserInputCollector.prototype.getInputFromControls = function (dt) {
+        BrowserInputCollector.prototype.getInputFromControls = function (dt) {
             var input = {
                 dx: 0,
                 dy: 0,
@@ -48738,7 +48738,7 @@
             }
             return input;
         };
-        Pong3dBrowserInputCollector.prototype.correctInput = function (rawInput) {
+        BrowserInputCollector.prototype.correctInput = function (rawInput) {
             var validationResult = PaddleMoveValidator.validate(rawInput, this.game, this.playerPaddle);
             var inputAfterValidation = {
                 dx: rawInput.dx,
@@ -48764,10 +48764,10 @@
             }
             return inputAfterValidation;
         };
-        Pong3dBrowserInputCollector.prototype.isKeyDown = function (key) {
+        BrowserInputCollector.prototype.isKeyDown = function (key) {
             return this.keyboardManager.isKeyDown(key.keyCode);
         };
-        return Pong3dBrowserInputCollector;
+        return BrowserInputCollector;
     }());
 
     // tslint:disable-next-line: no-var-requires
@@ -48862,20 +48862,20 @@
     }
 
     /* Applies input to a Pong 3d game. */
-    var Pong3dInputApplicator = /** @class */ (function () {
-        function Pong3dInputApplicator(game) {
+    var InputApplicator = /** @class */ (function () {
+        function InputApplicator(game) {
             this.game = game;
         }
-        Pong3dInputApplicator.prototype.applyInput = function (input) {
+        InputApplicator.prototype.applyInput = function (input) {
             var paddle = this.getPlayersPaddle(input.player);
             paddle.position.add(new Vector2(input.dx, input.dy));
             paddle.velocity.setX(input.dx).setY(input.dy);
             paddle.zRotationRads += input.dzRotation;
         };
-        Pong3dInputApplicator.prototype.getPlayersPaddle = function (player) {
+        InputApplicator.prototype.getPlayersPaddle = function (player) {
             return player === Player.Player1 ? this.game.player1Paddle : this.game.player2Paddle;
         };
-        return Pong3dInputApplicator;
+        return InputApplicator;
     }());
 
     var player1Color = 0x0D47A1;
@@ -94385,8 +94385,8 @@
         MeterType[MeterType["ServeProgress"] = 0] = "ServeProgress";
         MeterType[MeterType["Speed"] = 1] = "Speed";
     })(MeterType || (MeterType = {}));
-    var Pong3dThreeScoreboard = /** @class */ (function () {
-        function Pong3dThreeScoreboard(config) {
+    var ThreeScoreboard = /** @class */ (function () {
+        function ThreeScoreboard(config) {
             var scale = this.scale.bind(this);
             this.object = new Object3D();
             this.config = config;
@@ -94439,28 +94439,28 @@
             this.object.add(player2ScoreDisplayObj);
             this.object.position.copy(config.position);
         }
-        Pong3dThreeScoreboard.prototype.getObject = function () {
+        ThreeScoreboard.prototype.getObject = function () {
             return this.object;
         };
-        Pong3dThreeScoreboard.prototype.setSpeed = function (speed) {
+        ThreeScoreboard.prototype.setSpeed = function (speed) {
             this.speedometer.setValue(speed);
         };
-        Pong3dThreeScoreboard.prototype.setServeProgress = function (progress) {
+        ThreeScoreboard.prototype.setServeProgress = function (progress) {
             this.serverMeter.setValue(progress);
         };
-        Pong3dThreeScoreboard.prototype.setScore = function (player1, player2) {
+        ThreeScoreboard.prototype.setScore = function (player1, player2) {
             this.player1ScoreDisplay.setNumber(player1);
             this.player2ScoreDisplay.setNumber(player2);
         };
-        Pong3dThreeScoreboard.prototype.showMeter = function (meter) {
+        ThreeScoreboard.prototype.showMeter = function (meter) {
             var serveMeterShowing = meter === MeterType.ServeProgress;
             this.serverMeter.getObject().visible = serveMeterShowing;
             this.speedometer.getObject().visible = !serveMeterShowing;
         };
-        Pong3dThreeScoreboard.prototype.scale = function (x) {
+        ThreeScoreboard.prototype.scale = function (x) {
             return this.config.scale * x;
         };
-        Pong3dThreeScoreboard.prototype.generatePlayerTextMesh = function (text, color) {
+        ThreeScoreboard.prototype.generatePlayerTextMesh = function (text, color) {
             var playerTextGeometry = new TextGeometry(text, {
                 font: this.font,
                 size: this.config.scale,
@@ -94478,11 +94478,11 @@
             playerScoreMesh.castShadow = true;
             return playerScoreMesh;
         };
-        return Pong3dThreeScoreboard;
+        return ThreeScoreboard;
     }());
 
-    var Pong3dThreeRenderer = /** @class */ (function () {
-        function Pong3dThreeRenderer(config) {
+    var ThreeRenderer = /** @class */ (function () {
+        function ThreeRenderer(config) {
             this.cameraParent = new Group();
             this.rendering = true;
             this.config = config;
@@ -94511,29 +94511,29 @@
             this.scene.add(this.cameraParent);
             // tslint:disable-next-line: no-unused-expression
             new OrbitControls_1(this.camera, this.renderer.domElement);
-            var scoreboard = new Pong3dThreeScoreboard(config.scoreboard);
+            var scoreboard = new ThreeScoreboard(config.scoreboard);
             scoreboard.getObject().position.copy(config.scoreboard.position);
             this.scene.add(scoreboard.getObject());
             this.scoreboard = scoreboard;
         }
-        Pong3dThreeRenderer.prototype.getRendererDomElement = function () {
+        ThreeRenderer.prototype.getRendererDomElement = function () {
             return this.renderer.domElement;
         };
-        Pong3dThreeRenderer.prototype.startRendering = function (game) {
+        ThreeRenderer.prototype.startRendering = function (game) {
             this.rendering = true;
             this.render(game);
         };
-        Pong3dThreeRenderer.prototype.stopRendering = function () {
+        ThreeRenderer.prototype.stopRendering = function () {
             this.rendering = false;
         };
-        Pong3dThreeRenderer.prototype.setSize = function (width, height) {
+        ThreeRenderer.prototype.setSize = function (width, height) {
             this.renderer.setSize(width, height);
             var domElement = this.renderer.domElement;
             this.camera.aspect = domElement.clientWidth / domElement.clientHeight;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(domElement.clientWidth, domElement.clientHeight);
         };
-        Pong3dThreeRenderer.prototype.render = function (game) {
+        ThreeRenderer.prototype.render = function (game) {
             var _this = this;
             this.performInitialSetup(game);
             if (this.rendering) {
@@ -94543,7 +94543,7 @@
                 });
             }
         };
-        Pong3dThreeRenderer.prototype.performInitialSetup = function (game) {
+        ThreeRenderer.prototype.performInitialSetup = function (game) {
             var _this = this;
             var enableShadows = function (obj) {
                 obj.castShadow = true;
@@ -94656,7 +94656,7 @@
                 });
             }
         };
-        Pong3dThreeRenderer.prototype.createPlayField = function (game) {
+        ThreeRenderer.prototype.createPlayField = function (game) {
             var _this = this;
             var createPart = function (color, length, yOffset) {
                 var geometry = new BoxGeometry(game.config.playField.width, length, _this.config.playField.depth, 32, 32);
@@ -94676,7 +94676,7 @@
             obj.add(topHalf, bottomHalf, centerline);
             return obj;
         };
-        Pong3dThreeRenderer.prototype.addLighting = function () {
+        ThreeRenderer.prototype.addLighting = function () {
             var _this = this;
             var config = this.config.lighting;
             var createDirLight = function () {
@@ -94726,19 +94726,19 @@
             this.scene.add(hemisphereLight);
             this.scene.add(scoreboardLight);
         };
-        return Pong3dThreeRenderer;
+        return ThreeRenderer;
     }());
 
-    var Pong3dBrowserClient = /** @class */ (function () {
-        function Pong3dBrowserClient(hostElement, options) {
+    var BrowserClient = /** @class */ (function () {
+        function BrowserClient(hostElement, options) {
             if (options == null) {
                 options = {};
             }
             var game = (function () {
-                var baseConfig = basicPong3dConfig;
+                var baseConfig = basicConfig;
                 var suppliedConfig = options.gameConfig;
                 var config = __assign({}, baseConfig, suppliedConfig);
-                return new Pong3dGameEngine(config);
+                return new GameEngine(config);
             })();
             var inputCollector = (function () {
                 var keyMappings = options.keyMappings || {
@@ -94754,9 +94754,9 @@
                     game: game,
                     playerPaddle: options.player === Player.Player2 ? game.player2Paddle : game.player1Paddle,
                 };
-                return new Pong3dBrowserInputCollector(context);
+                return new BrowserInputCollector(context);
             })();
-            var inputApplicator = new Pong3dInputApplicator(game);
+            var inputApplicator = new InputApplicator(game);
             var lastTickTime = new Date().getTime();
             game.eventEmitter.on("tick", function () {
                 var currentTime = new Date().getTime();
@@ -94768,30 +94768,30 @@
                 var rendererWidth = hostElement.clientWidth;
                 var rendererHeight = hostElement.clientHeight;
                 var config = __assign({}, makeSimpleThreeRendererConfig(rendererWidth, rendererHeight), options.rendererConfig);
-                return new Pong3dThreeRenderer(config);
+                return new ThreeRenderer(config);
             })();
             var domElement = renderer.getRendererDomElement();
             hostElement.appendChild(domElement);
             this.game = game;
             this.renderer = renderer;
         }
-        Pong3dBrowserClient.prototype.startGame = function () {
+        BrowserClient.prototype.startGame = function () {
             this.game.start();
             this.renderer.startRendering(this.game);
         };
-        Pong3dBrowserClient.prototype.stopGame = function () {
+        BrowserClient.prototype.stopGame = function () {
             this.game.stop();
             this.renderer.stopRendering();
         };
-        Pong3dBrowserClient.prototype.setSize = function (width, height) {
+        BrowserClient.prototype.setSize = function (width, height) {
             this.renderer.setSize(width, height);
         };
-        return Pong3dBrowserClient;
+        return BrowserClient;
     }());
 
     var rendererElement = document.getElementById("game");
     rendererElement.style.height = window.innerHeight + "px";
-    var client = new Pong3dBrowserClient(rendererElement, { gameConfig: basicPong3dConfigWithAiOpponent });
+    var client = new BrowserClient(rendererElement, { gameConfig: basicConfigWithAiOpponent });
     client.startGame();
     window.addEventListener("resize", function () {
         rendererElement.style.height = window.innerHeight + "px";

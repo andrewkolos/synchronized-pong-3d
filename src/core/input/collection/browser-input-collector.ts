@@ -1,27 +1,27 @@
 import * as Three from "three";
 import { KeyboardManager } from "../../../keyboard";
-import { Pong3dGameEngine } from "../../game-engine";
+import { GameEngine } from "../../game-engine";
 import { Paddle } from "../../paddle";
 import { PaddleInput } from "../paddle-input";
-import { Pong3dInputCollector } from "./input-collector";
+import { InputCollector } from "./input-collector";
 import { KeyCode } from "./key-code";
-import { Pong3DKeyMappings } from "./key-mappings";
+import { KeyMappings } from "./key-mappings";
 import { InvalidMovementReason, PaddleMoveValidator } from "./paddle-move-validator";
 
-export interface Pong3DBrowserInputCollectorContext {
-  keyMappings: Pong3DKeyMappings;
-  game: Pong3dGameEngine;
+export interface BrowserInputCollectorContext {
+  keyMappings: KeyMappings;
+  game: GameEngine;
   playerPaddle: Paddle;
 }
 
-export class Pong3dBrowserInputCollector implements Pong3dInputCollector {
+export class BrowserInputCollector implements InputCollector {
 
-  private mappings: Pong3DKeyMappings;
+  private mappings: KeyMappings;
   private keyboardManager = new KeyboardManager();
-  private game: Pong3dGameEngine;
+  private game: GameEngine;
   private playerPaddle: Paddle;
 
-  constructor(context: Pong3DBrowserInputCollectorContext) {
+  constructor(context: BrowserInputCollectorContext) {
     this.mappings = context.keyMappings;
     this.game = context.game;
     this.playerPaddle = context.playerPaddle;
