@@ -37,6 +37,8 @@ export class Digit {
     this.segments[4].rotation.z = Math.PI / 2;
     this.segments[5].position.set(0, -halfSegment * 2, 0);
     this.segments[6].rotation.z = Math.PI / 2;
+
+    this.setNumber(0);
   }
 
   public getObject() {

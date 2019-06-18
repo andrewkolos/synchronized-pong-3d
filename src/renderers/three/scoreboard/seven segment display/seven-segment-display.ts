@@ -24,11 +24,11 @@ export class SevenSegmentDisplay {
       const digit = new Digit(size);
       this.digits.push(digit);
       object.add(digit.getObject());
-      digit.getObject().position.set(i * (digitWidth + segHeight), 0, 0);
+      digit.getObject().position.set(-fullWidth / 2 + segHeight + digitWidth / 2 + i * (digitWidth + segHeight), 0, 0);
     }
 
-    const backGeo = new Three.PlaneGeometry(fullWidth, fullHeight);
-    const backMat = new Three.MeshLambertMaterial({ color: /*1118481*/ 0x32CD32});
+    const backGeo = new Three.PlaneGeometry(fullWidth, fullHeight, 1, 1);
+    const backMat = new Three.MeshLambertMaterial({ color: 1118481});
     const backMesh = new Three.Mesh(backGeo, backMat);
     backMesh.position.z = -0.01;
     object.add(backMesh);

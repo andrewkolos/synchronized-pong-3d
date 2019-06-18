@@ -239,9 +239,5 @@ export class Pong3dThreeRenderer {
     this.scene.add(ambientLight);
     this.scene.add(hemisphereLight);
     this.scene.add(scoreboardLight);
-
-    this.scene.add(new Three.HemisphereLightHelper(hemisphereLight, 1));
-    this.scene.add(new Three.CameraHelper(dirLight.shadow.camera));
-    this.scene.add(new Three.DirectionalLightHelper(dirLight));
   }
 }

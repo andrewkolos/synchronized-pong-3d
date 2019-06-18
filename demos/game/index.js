@@ -44,7 +44,7 @@
             width: 2,
             height: 0.125,
             depth: 1,
-            baseMoveSpeed: 0.6 * 2.5,
+            baseMoveSpeed: 0.6 * 1.5,
         },
         ball: {
             radius: 0.45,
@@ -48327,6 +48327,13 @@
         return Ball;
     }());
 
+    var CollisionType;
+    (function (CollisionType) {
+        CollisionType[CollisionType["None"] = 0] = "None";
+        CollisionType[CollisionType["Standard"] = 1] = "Standard";
+        CollisionType[CollisionType["LeftEdge"] = 2] = "LeftEdge";
+        CollisionType[CollisionType["RightEdge"] = 3] = "RightEdge";
+    })(CollisionType || (CollisionType = {}));
     var Pong3dGameEngine = /** @class */ (function () {
         function Pong3dGameEngine(config) {
             this.eventEmitter = new TypedEventEmitter();
@@ -48412,6 +48419,19 @@
         Pong3dGameEngine.prototype.stop = function () {
             this.gameLoop.stop();
         };
+        Pong3dGameEngine.prototype.getPaddleByPlayer = function (player) {
+            return player === Player.Player1 ? this.player1Paddle : this.player2Paddle;
+        };
+        Pong3dGameEngine.prototype.getPlayerByPaddle = function (paddle) {
+            switch (paddle) {
+                case this.player1Paddle:
+                    return Player.Player1;
+                case this.player2Paddle:
+                    return Player.Player2;
+                default:
+                    throw Error("Paddle does not belong to either player.");
+            }
+        };
         Pong3dGameEngine.prototype.tick = function () {
             this.moveBall();
             this.eventEmitter.emit("tick");
@@ -48420,7 +48440,6 @@
          * Moves the ball.
          */
         Pong3dGameEngine.prototype.moveBall = function () {
-            console.log(this.ball.dy);
             if (this.ballIsInPlay) {
                 this.moveBallInPlay();
                 if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
@@ -48467,27 +48486,40 @@
                 var origin = new Vector2(0, 0);
                 var ballRelPos = getRelativePosition(ball, paddle.object);
                 var ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.object.rotation.z);
-                if (Math.abs(ballRelPosDisregardingRotation.x) - ballRadius < paddleWidth / 2 &&
-                    Math.abs(ballRelPosDisregardingRotation.y) - ballRadius < paddleHeight && !_this.ball.collidingWithPaddle) {
-                    return true;
+                var xDiff = Math.abs(ballRelPosDisregardingRotation.x) - ballRadius;
+                var yDiff = Math.abs(ballRelPosDisregardingRotation.y) - ballRadius;
+                if (xDiff < paddleWidth / 2 && yDiff < paddleHeight && !_this.ball.collidingWithPaddle) {
+                    if (Math.abs(xDiff) > (paddleWidth / 2 * 0.70) && Math.abs(yDiff) < _this.config.ball.radius) {
+                        if (ballRelPos.x > 0) {
+                            return CollisionType.RightEdge;
+                        }
+                        else {
+                            return CollisionType.LeftEdge;
+                        }
+                    }
+                    else {
+                        return CollisionType.Standard;
+                    }
                 }
                 else {
-                    return false;
+                    return CollisionType.None;
                 }
             };
             var isCollidingWithAnyPaddle = function () {
-                if (isCollidingWithPaddle(_this.player1Paddle)) {
-                    _this.ball.collidingWithPaddle = true;
-                    return Player.Player1;
-                }
-                else if (isCollidingWithPaddle(_this.player2Paddle)) {
-                    _this.ball.collidingWithPaddle = true;
-                    return Player.Player2;
-                }
-                else {
-                    _this.ball.collidingWithPaddle = false;
-                    return undefined;
-                }
+                var player;
+                var collisionType = CollisionType.None;
+                [_this.player1Paddle, _this.player2Paddle].forEach(function (p) {
+                    var c = isCollidingWithPaddle(p);
+                    if (c !== CollisionType.None) {
+                        player = _this.getPlayerByPaddle(p);
+                        collisionType = c;
+                    }
+                });
+                _this.ball.collidingWithPaddle = player != null;
+                return {
+                    player: player,
+                    collisionType: collisionType,
+                };
             };
             var isScoring = function () {
                 var ballYPosition = _this.ball.object.position.y;
@@ -48519,37 +48551,43 @@
             var rotation = new Matrix4();
             rotation.makeRotationAxis(axisOfRotation, angle);
             this.ball.innerObject.applyMatrix(rotation);
-            var paddleBeingCollidedWith = isCollidingWithAnyPaddle();
+            var collisionInfo = isCollidingWithAnyPaddle();
             var scorer = isScoring();
             if (isCollidingWithWall()) {
                 handleCollisionWithWall();
                 this.eventEmitter.emit("ballHitWall");
             }
-            else if (paddleBeingCollidedWith != null) {
+            else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
                 var aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
                 var delta = new Vector2(this.ball.dx, this.ball.dy);
-                var paddle = paddleBeingCollidedWith === Player.Player1 ? this.player1Paddle : this.player2Paddle;
+                var paddle = this.getPaddleByPlayer(collisionInfo.player);
                 var rot = paddle.object.rotation.z;
-                if (paddle === this.player1Paddle || !aiEnabled) {
-                    delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
-                    delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
-                    delta.rotateAround(new Vector2(0, 0), -rot);
-                    delta.y *= -1;
-                    delta.rotateAround(new Vector2(0, 0), rot);
+                if (collisionInfo.collisionType === CollisionType.Standard) {
+                    if (paddle === this.player1Paddle || !aiEnabled) {
+                        delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
+                        delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
+                        delta.rotateAround(new Vector2(0, 0), -rot);
+                        delta.y *= -1;
+                        delta.rotateAround(new Vector2(0, 0), rot);
+                    }
+                    else if (this.config.aiPlayer != null) {
+                        delta.y *= -1;
+                        delta.y -= this.config.aiPlayer.speedIncreaseOnPaddleHit;
+                    }
                 }
-                else if (this.config.aiPlayer != null) {
-                    delta.y *= -1;
-                    delta.y -= this.config.aiPlayer.speedIncreaseOnPaddleHit;
+                else {
+                    delta.x = Math.hypot(delta.x, delta.y);
+                    delta.y = 0;
+                    delta.rotateAround(new Vector2(), collisionInfo.collisionType === CollisionType.RightEdge ? rot : rot);
+                    if (collisionInfo.collisionType === CollisionType.LeftEdge) {
+                        delta.multiplyScalar(-1);
+                    }
+                    // Prevent double-counted collision.
+                    this.ball.object.position.add(new Vector3(paddle.speed.x, paddle.speed.y));
                 }
                 this.ball.dx = delta.x;
                 this.ball.dy = delta.y;
-                while (isCollidingWithPaddle(paddle)) {
-                    this.ball.object.position.add(new Vector3(this.ball.dx, this.ball.dy));
-                }
-                // const oneRadiusInDirectionOfBounce = new Three.Vector3(this.ball.dx, this.ball.dy)
-                //   .normalize()
-                //   .multiplyScalar(this.config.ball.radius);
-                // this.ball.object.position.add(oneRadiusInDirectionOfBounce);
+                this.ball.object.position.add(new Vector3(this.ball.dx, this.ball.dy));
                 this.eventEmitter.emit("ballHitPaddle");
             }
             else if (scorer != null) {
@@ -48715,7 +48753,7 @@
                 dy: 0,
                 dzRotation: 0,
             };
-            var moveSpeedPerMs = 0.009;
+            var moveSpeedPerMs = 0.006;
             var rotateSpeedPerMs = (Math.PI / 48 * 60) / 1000;
             if (this.isKeyDown(this.mappings.movePaddleBackward)) {
                 input.dy += -moveSpeedPerMs * dt;
@@ -92914,9 +92952,9 @@
         return Meter;
     }());
 
-    var segHeight = 0.75 * 1.5;
-    var segWidth = 1.5 * 1.5;
-    var segPad = 0.10 * 1.5;
+    var segHeight = 0.75;
+    var segWidth = 1.5;
+    var segPad = 0.10;
 
     var Segment = /** @class */ (function () {
         function Segment(size, material) {
@@ -92980,6 +93018,7 @@
             this.segments[4].rotation.z = Math.PI / 2;
             this.segments[5].position.set(0, -halfSegment * 2, 0);
             this.segments[6].rotation.z = Math.PI / 2;
+            this.setNumber(0);
         }
         Digit.prototype.getObject = function () {
             return this.object;
@@ -93016,10 +93055,10 @@
                 var digit = new Digit(size);
                 this.digits.push(digit);
                 object.add(digit.getObject());
-                digit.getObject().position.set(i * (digitWidth + segHeight), 0, 0);
+                digit.getObject().position.set(-fullWidth / 2 + segHeight + digitWidth / 2 + i * (digitWidth + segHeight), 0, 0);
             }
-            var backGeo = new PlaneGeometry(fullWidth, fullHeight);
-            var backMat = new MeshLambertMaterial({ color: /*1118481*/ 0x32CD32 });
+            var backGeo = new PlaneGeometry(fullWidth, fullHeight, 1, 1);
+            var backMat = new MeshLambertMaterial({ color: 1118481 });
             var backMesh = new Mesh(backGeo, backMat);
             backMesh.position.z = -0.01;
             object.add(backMesh);
@@ -94391,16 +94430,20 @@
             this.object.add(serveMeter.getObject());
             var player1ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
             var player1ScoreDisplayObj = player1ScoreDisplay.getObject();
-            player1ScoreDisplayObj.position.x = -getWidthOfObject(player1ScoreDisplayObj) / 2 - scale(0.5) / 2;
-            player1ScoreDisplayObj.position.y = scale(-0.25);
-            player1ScoreDisplayObj.position.z = scale(0.8);
+            player1ScoreDisplayObj.scale.x *= METER_HEIGHT;
+            player1ScoreDisplayObj.scale.y *= METER_HEIGHT;
+            player1ScoreDisplayObj.position.x = -getWidthOfObject(player1ScoreDisplayObj) / 2 - scale(0.25);
+            player1ScoreDisplayObj.position.y = scale(-1);
+            player1ScoreDisplayObj.position.z = scale(1.3);
             this.player1ScoreDisplay = player1ScoreDisplay;
             this.object.add(player1ScoreDisplayObj);
             var player2ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
             var player2ScoreDisplayObj = player2ScoreDisplay.getObject();
-            player2ScoreDisplayObj.position.x = 4;
-            player2ScoreDisplayObj.position.y = scale(-0.25);
-            player2ScoreDisplayObj.position.z = scale(0.8);
+            player2ScoreDisplayObj.scale.x *= METER_HEIGHT;
+            player2ScoreDisplayObj.scale.y *= METER_HEIGHT;
+            player2ScoreDisplayObj.position.x = scale(4) - getWidthOfObject(player2ScoreDisplayObj) / 2;
+            player2ScoreDisplayObj.position.y = scale(-1);
+            player2ScoreDisplayObj.position.z = scale(1.3);
             this.player2ScoreDisplay = player2ScoreDisplay;
             this.object.add(player2ScoreDisplayObj);
             this.object.position.copy(config.position);
@@ -94628,9 +94671,6 @@
             this.scene.add(ambientLight);
             this.scene.add(hemisphereLight);
             this.scene.add(scoreboardLight);
-            this.scene.add(new HemisphereLightHelper(hemisphereLight, 1));
-            this.scene.add(new CameraHelper(dirLight.shadow.camera));
-            this.scene.add(new DirectionalLightHelper(dirLight));
         };
         return Pong3dThreeRenderer;
     }());

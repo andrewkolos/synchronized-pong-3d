@@ -11,6 +11,13 @@ interface Score {
   player2: number;
 }
 
+enum CollisionType {
+  None,
+  Standard,
+  LeftEdge,
+  RightEdge,
+}
+
 export class Pong3dGameEngine {
 
   // Game Objects.
@@ -126,6 +133,21 @@ export class Pong3dGameEngine {
     this.gameLoop.stop();
   }
 
+  private getPaddleByPlayer(player: Player): Paddle {
+    return player === Player.Player1 ? this.player1Paddle : this.player2Paddle;
+  }
+
+  private getPlayerByPaddle(paddle: Paddle): Player {
+    switch (paddle) {
+      case this.player1Paddle:
+        return Player.Player1;
+      case this.player2Paddle:
+        return Player.Player2;
+      default:
+        throw Error("Paddle does not belong to either player.");
+    }
+  }
+
   private tick() {
     this.moveBall();
     this.eventEmitter.emit("tick");
@@ -135,7 +157,6 @@ export class Pong3dGameEngine {
    */
   private moveBall() {
 
-    console.log(this.ball.dy);
     if (this.ballIsInPlay) {
       this.moveBallInPlay();
       if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
@@ -193,27 +214,43 @@ export class Pong3dGameEngine {
       const ballRelPos = getRelativePosition(ball, paddle.object);
       const ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.object.rotation.z);
 
-      if (Math.abs(ballRelPosDisregardingRotation.x) - ballRadius < paddleWidth / 2 &&
-        Math.abs(ballRelPosDisregardingRotation.y) - ballRadius < paddleHeight && !this.ball.collidingWithPaddle) {
-        return true;
+      const xDiff = Math.abs(ballRelPosDisregardingRotation.x) - ballRadius;
+      const yDiff = Math.abs(ballRelPosDisregardingRotation.y) - ballRadius;
+
+      if (xDiff < paddleWidth / 2 && yDiff < paddleHeight && !this.ball.collidingWithPaddle) {
+        if (Math.abs(xDiff) > (paddleWidth / 2 * 0.70) && Math.abs(yDiff) < this.config.ball.radius ) {
+          if (ballRelPos.x > 0) {
+            return CollisionType.RightEdge;
+          } else {
+            return CollisionType.LeftEdge;
+          }
+        } else {
+          return CollisionType.Standard;
+        };
       } else {
-        return false;
+        return CollisionType.None;
       }
 
     };
 
     const isCollidingWithAnyPaddle = () => {
 
-      if (isCollidingWithPaddle(this.player1Paddle)) {
-        this.ball.collidingWithPaddle = true;
-        return Player.Player1;
-      } else if (isCollidingWithPaddle(this.player2Paddle)) {
-        this.ball.collidingWithPaddle = true;
-        return Player.Player2;
-      } else {
-        this.ball.collidingWithPaddle = false;
-        return undefined;
-      }
+      let player: Player | undefined;
+      let collisionType: CollisionType = CollisionType.None;
+
+      [this.player1Paddle, this.player2Paddle].forEach((p: Paddle) => {
+        const c = isCollidingWithPaddle(p);
+        if (c !== CollisionType.None) {
+          player = this.getPlayerByPaddle(p);
+          collisionType = c;
+        }
+      })
+
+      this.ball.collidingWithPaddle = player != null;
+      return {
+        player,
+        collisionType,
+      };
     };
 
     const isScoring = (): Player | undefined => {
@@ -251,43 +288,50 @@ export class Pong3dGameEngine {
     rotation.makeRotationAxis(axisOfRotation, angle);
     this.ball.innerObject.applyMatrix(rotation);
 
-    const paddleBeingCollidedWith = isCollidingWithAnyPaddle();
+    const collisionInfo = isCollidingWithAnyPaddle();
     const scorer = isScoring();
 
     if (isCollidingWithWall()) {
       handleCollisionWithWall();
       this.eventEmitter.emit("ballHitWall");
-    } else if (paddleBeingCollidedWith != null) {
+    } else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
 
       const aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
       const delta = new Three.Vector2(this.ball.dx, this.ball.dy);
-      const paddle = paddleBeingCollidedWith === Player.Player1 ? this.player1Paddle : this.player2Paddle;
+      const paddle = this.getPaddleByPlayer(collisionInfo.player);
 
       const rot = paddle.object.rotation.z;
 
-      if (paddle === this.player1Paddle || !aiEnabled) {
-        delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
-        delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
-        delta.rotateAround(new Three.Vector2(0, 0), -rot);
+      if (collisionInfo.collisionType === CollisionType.Standard) {
+        if (paddle === this.player1Paddle || !aiEnabled) {
+          delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
+          delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
+          delta.rotateAround(new Three.Vector2(0, 0), -rot);
 
-        delta.y *= -1;
-        delta.rotateAround(new Three.Vector2(0, 0), rot);
+          delta.y *= -1;
+          delta.rotateAround(new Three.Vector2(0, 0), rot);
 
-      } else if (this.config.aiPlayer != null) {
-        delta.y *= -1;
-        delta.y -= this.config.aiPlayer.speedIncreaseOnPaddleHit;
+        } else if (this.config.aiPlayer != null) {
+          delta.y *= -1;
+          delta.y -= this.config.aiPlayer.speedIncreaseOnPaddleHit;
+        }
+      } else {
+        delta.x = Math.hypot(delta.x, delta.y);
+        delta.y = 0;
+        delta.rotateAround(new Three.Vector2(), collisionInfo.collisionType === CollisionType.RightEdge ? rot : rot);
+
+        if (collisionInfo.collisionType === CollisionType.LeftEdge) {
+          delta.multiplyScalar(-1);
+        }
+
+        // Prevent double-counted collision.
+        this.ball.object.position.add(new Three.Vector3(paddle.speed.x, paddle.speed.y));
       }
 
       this.ball.dx = delta.x;
       this.ball.dy = delta.y;
 
-      while (isCollidingWithPaddle(paddle)) {
-        this.ball.object.position.add(new Three.Vector3(this.ball.dx, this.ball.dy));
-      }
-      // const oneRadiusInDirectionOfBounce = new Three.Vector3(this.ball.dx, this.ball.dy)
-      //   .normalize()
-      //   .multiplyScalar(this.config.ball.radius);
-      // this.ball.object.position.add(oneRadiusInDirectionOfBounce);
+      this.ball.object.position.add(new Three.Vector3(this.ball.dx, this.ball.dy));
 
       this.eventEmitter.emit("ballHitPaddle");
     } else if (scorer != null) {

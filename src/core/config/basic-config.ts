@@ -17,7 +17,7 @@ export const basicPong3dConfig: Pong3dConfig = {
     width: 2,
     height: 0.125,
     depth: 1,
-    baseMoveSpeed: 0.6 * 2.5,
+    baseMoveSpeed: 0.6 * 1.5,
   },
   ball: {
     radius: 0.45,

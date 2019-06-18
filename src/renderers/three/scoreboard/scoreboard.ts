@@ -1,7 +1,7 @@
 import * as Three from "three";
 import { getWidthOfObject as getWidthOfObj } from "../misc/common";
 import { Pong3dScoreboardConfig } from "../renderer-config";
-import { Meter } from "./meter";
+import { Meter, METER_HEIGHT } from "./meter";
 import { SevenSegmentDisplay } from "./seven segment display/seven-segment-display";
 
 import font from "./helvetiker_regular.typeface.json";
@@ -69,17 +69,21 @@ export class Pong3dThreeScoreboard {
 
     const player1ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
     const player1ScoreDisplayObj = player1ScoreDisplay.getObject();
-    player1ScoreDisplayObj.position.x = - getWidthOfObj(player1ScoreDisplayObj) / 2 - scale(0.5) / 2;
-    player1ScoreDisplayObj.position.y = scale(-0.25);
-    player1ScoreDisplayObj.position.z = scale(0.8);
+    player1ScoreDisplayObj.scale.x *= METER_HEIGHT;
+    player1ScoreDisplayObj.scale.y *= METER_HEIGHT;
+    player1ScoreDisplayObj.position.x = - getWidthOfObj(player1ScoreDisplayObj) / 2 - scale(0.25);
+    player1ScoreDisplayObj.position.y = scale(-1);
+    player1ScoreDisplayObj.position.z = scale(1.3);
     this.player1ScoreDisplay = player1ScoreDisplay;
     this.object.add(player1ScoreDisplayObj);
 
     const player2ScoreDisplay = new SevenSegmentDisplay(config.scale, 2);
     const player2ScoreDisplayObj = player2ScoreDisplay.getObject();
-    player2ScoreDisplayObj.position.x = 4;
-    player2ScoreDisplayObj.position.y = scale(-0.25);
-    player2ScoreDisplayObj.position.z = scale(0.8);
+    player2ScoreDisplayObj.scale.x *= METER_HEIGHT;
+    player2ScoreDisplayObj.scale.y *= METER_HEIGHT;
+    player2ScoreDisplayObj.position.x = scale(4) - getWidthOfObj(player2ScoreDisplayObj) / 2;
+    player2ScoreDisplayObj.position.y = scale(-1);
+    player2ScoreDisplayObj.position.z = scale(1.3);
     this.player2ScoreDisplay = player2ScoreDisplay;
     this.object.add(player2ScoreDisplayObj);
 

@@ -2,9 +2,8 @@ import * as Three from "three";
 import { PlaneFactory } from "../misc/plane-factory";
 import { Pong3dMeterConfig } from "../renderer-config";
 
-const METER_WIDTH = 8;
-const METER_HEIGHT = 1.5;
-
+export const METER_WIDTH = 8;
+export const METER_HEIGHT = 1.5;
 
 export class Meter {
 
