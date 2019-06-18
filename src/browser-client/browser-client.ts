@@ -50,7 +50,7 @@ export class Pong3dBrowserClient {
       const context: Pong3DBrowserInputCollectorContext = {
         keyMappings,
         game,
-        playerPaddle: options.player === Player.Player2 ? game.player2Paddle.object : game.player1Paddle.object,
+        playerPaddle: options.player === Player.Player2 ? game.player2Paddle : game.player1Paddle,
       };
 
       return new Pong3dBrowserInputCollector(context);

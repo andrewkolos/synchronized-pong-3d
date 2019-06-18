@@ -1,6 +1,7 @@
 import * as Three from "three";
 import { KeyboardManager } from "../../../keyboard";
 import { Pong3dGameEngine } from "../../game-engine";
+import { Paddle } from "../../paddle";
 import { PaddleInput } from "../paddle-input";
 import { Pong3dInputCollector } from "./input-collector";
 import { KeyCode } from "./key-code";
@@ -10,7 +11,7 @@ import { InvalidMovementReason, PaddleMoveValidator } from "./paddle-move-valida
 export interface Pong3DBrowserInputCollectorContext {
   keyMappings: Pong3DKeyMappings;
   game: Pong3dGameEngine;
-  playerPaddle: Three.Mesh;
+  playerPaddle: Paddle;
 }
 
 export class Pong3dBrowserInputCollector implements Pong3dInputCollector {
@@ -18,7 +19,7 @@ export class Pong3dBrowserInputCollector implements Pong3dInputCollector {
   private mappings: Pong3DKeyMappings;
   private keyboardManager = new KeyboardManager();
   private game: Pong3dGameEngine;
-  private playerPaddle: Three.Mesh;
+  private playerPaddle: Paddle;
 
   constructor(context: Pong3DBrowserInputCollectorContext) {
     this.mappings = context.keyMappings;

@@ -20,12 +20,12 @@ export function makeSimpleThreeRendererConfig(width: number, height: number): Po
     height,
     walls: {
       width: 0.5,
-      height: 1,
+      depth: 1,
     },
     playField: {
       color: 0x156289,
       centerlineColor: 0xFFFFFF,
-      height: 0.2,
+      depth: 0.2,
     },
     paddles: {
       player1Color,

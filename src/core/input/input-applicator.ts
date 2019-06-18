@@ -10,9 +10,9 @@ export class Pong3dInputApplicator {
   public applyInput(input: PlayerBoundPaddleInput) {
     const paddle = this.getPlayersPaddle(input.player);
 
-    paddle.object.position.add(new Three.Vector3(input.dx, input.dy));
-    paddle.speed.setX(input.dx).setY(input.dy);
-    paddle.object.rotation.z += input.dzRotation;
+    paddle.position.add(new Three.Vector2(input.dx, input.dy));
+    paddle.velocity.setX(input.dx).setY(input.dy);
+    paddle.zRotationRads += input.dzRotation;
   }
 
   private getPlayersPaddle(player: Player) {

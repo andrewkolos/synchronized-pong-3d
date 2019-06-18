@@ -23,3 +23,7 @@ export function makeTextureFromBase64Image(data: string) {
 
   return texture;
 }
+
+export function vec3FromVec2(from: Three.Vector2) {
+  return new Three.Vector3(from.x, from.y);
+}

@@ -1,3 +1,15 @@
+export interface Pong3dBallConfig {
+  radius: number;
+  segmentCount: number;
+  iFrames: number;
+  speedLimit: number;
+  speedIncreaseOnPaddleHit: number;
+  maxDx: number;
+  minDx: number;
+  initDx: number;
+  initDy: number;
+}
+
 export interface Pong3dConfig {
   game: {
     tickRate: number;
@@ -13,17 +25,7 @@ export interface Pong3dConfig {
     depth: number;
     baseMoveSpeed: number;
   };
-  ball: {
-    radius: number;
-    segmentCount: number;
-    iFrames: number;
-    speedLimit: number;
-    speedIncreaseOnPaddleHit: number;
-    maxDx: number;
-    minDx: number;
-    initDx: number;
-    initDy: number;
-  };
+  ball: Pong3dBallConfig;
   pauseAfterScoreSec: number;
   aiPlayer?: {
     enabled: true;

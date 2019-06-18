@@ -48312,15 +48312,25 @@
     };
 
     var Ball = /** @class */ (function () {
-        function Ball(object, innerObject, initDx, initDy) {
-            this.object = object;
-            this.innerObject = innerObject;
-            this.dx = initDx;
-            this.dy = initDy;
+        function Ball(config) {
+            this.radius = config.radius;
+            this.velocity = new Vector2();
+            this.position = new Vector2();
             this.collidingWithPaddle = false;
             this.collidingWithWall = false;
         }
         return Ball;
+    }());
+
+    var Paddle = /** @class */ (function () {
+        function Paddle(width, height, position, speed) {
+            this.width = width;
+            this.height = height;
+            this.zRotationRads = 0;
+            this.position = position != null ? position : new Vector2();
+            this.velocity = speed != null ? speed : new Vector2();
+        }
+        return Paddle;
     }());
 
     var CollisionType;
@@ -48335,40 +48345,20 @@
             this.eventEmitter = new TypedEventEmitter();
             this.gameLoop = new GameLoop(this.tick.bind(this));
             var createPaddles = function () {
-                var createPaddle = function (offset) {
-                    var _a = config.paddles, width = _a.width, height = _a.height, depth = _a.depth;
-                    var geometry = new BoxGeometry(width, height, depth);
-                    var paddle = new Mesh(geometry);
-                    paddle.position.set(0, offset, depth / 2);
-                    return {
-                        object: paddle,
-                        speed: new Vector2(),
-                    };
-                };
+                var paddleWidth = config.paddles.width;
                 var paddleHeight = config.paddles.height;
                 var playFieldHeight = config.playField.height;
                 var player1YPosOffset = -playFieldHeight / 2 + paddleHeight;
                 var player2YPosOffset = -player1YPosOffset;
                 return {
-                    player1Paddle: createPaddle(player1YPosOffset),
-                    player2Paddle: createPaddle(player2YPosOffset),
+                    player1Paddle: new Paddle(paddleWidth, paddleHeight, new Vector2(0, player1YPosOffset)),
+                    player2Paddle: new Paddle(paddleWidth, paddleHeight, new Vector2(0, player2YPosOffset)),
                 };
             };
-            var createBall = function () {
-                var _a = config.ball, radius = _a.radius, segmentCount = _a.segmentCount;
-                var geometry = new SphereGeometry(radius, segmentCount, segmentCount);
-                var innerBall = new Mesh(geometry);
-                // tslint:disable-next-line: no-shadowed-variable
-                var ball = new Group();
-                ball.position.set(0, 0, radius);
-                ball.add(innerBall);
-                return new Ball(ball, innerBall, config.ball.initDx, config.ball.initDy);
-            };
             var paddles = createPaddles();
-            var ball = createBall();
             this.player1Paddle = paddles.player1Paddle;
             this.player2Paddle = paddles.player2Paddle;
-            this.ball = ball;
+            this.ball = new Ball(config.ball);
             // Initialize game state.
             this._timeUntilServeSec = 3;
             this.ballIsInPlay = false;
@@ -48439,33 +48429,33 @@
         };
         Pong3dGameEngine.prototype.moveBallInPlay = function () {
             var _this = this;
-            var ballObject = this.ball.object;
+            var ball = this.ball;
             var isCollidingWithWall = (function () {
                 var playFieldWidth = _this.config.playField.width;
                 var ballRadius = _this.config.ball.radius;
-                return (ballObject.position.x < -(playFieldWidth / 2) + ballRadius ||
-                    ballObject.position.x > playFieldWidth / 2 - ballRadius);
+                return (ball.position.x < -(playFieldWidth / 2) + ballRadius ||
+                    ball.position.x > playFieldWidth / 2 - ballRadius);
             }).bind(this);
             var handleCollisionWithWall = (function () {
-                var ballIsAlreadyTravelingAwayFromWall = Math.sign(_this.ball.dx) !== Math.sign(_this.ball.object.position.x);
+                var ballIsAlreadyTravelingAwayFromWall = Math.sign(_this.ball.velocity.x) !== Math.sign(_this.ball.position.x);
                 if (!ballIsAlreadyTravelingAwayFromWall) {
-                    _this.ball.dx *= -1;
+                    _this.ball.velocity.x *= -1;
                     _this.eventEmitter.emit("ballHitWall");
                 }
             }).bind(this);
-            var getRelativePosition = function (object, relativeToObject) {
-                var relXPos = object.position.x - relativeToObject.position.x;
-                var relYPos = object.position.y - relativeToObject.position.y;
+            var getRelativePosition = function (ball, paddle) {
+                var relXPos = ball.position.x - paddle.position.x;
+                var relYPos = ball.position.y - paddle.position.y;
                 return new Vector2(relXPos, relYPos);
             };
             var isCollidingWithPaddle = function (paddle) {
-                var ball = _this.ball.object;
+                var ball = _this.ball;
                 var ballRadius = _this.config.ball.radius;
                 var paddleWidth = _this.config.paddles.width;
                 var paddleHeight = _this.config.paddles.height;
                 var origin = new Vector2(0, 0);
-                var ballRelPos = getRelativePosition(ball, paddle.object);
-                var ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.object.rotation.z);
+                var ballRelPos = getRelativePosition(ball, paddle);
+                var ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.zRotationRads);
                 var xDiff = Math.abs(ballRelPosDisregardingRotation.x) - ballRadius;
                 var yDiff = Math.abs(ballRelPosDisregardingRotation.y) - ballRadius;
                 if (xDiff < paddleWidth / 2 && yDiff < paddleHeight && !_this.ball.collidingWithPaddle) {
@@ -48502,7 +48492,7 @@
                 };
             };
             var isScoring = function () {
-                var ballYPosition = _this.ball.object.position.y;
+                var ballYPosition = _this.ball.position.y;
                 var halfOfPlayFieldHeight = _this.config.playField.height / 2;
                 var ballDiameter = _this.config.ball.radius * 2;
                 if (ballYPosition > halfOfPlayFieldHeight + ballDiameter) {
@@ -48516,21 +48506,16 @@
                 }
             };
             var correctionFactor = 60 / this.config.game.tickRate;
-            var speedLimit = this.config.ball.speedLimit;
-            var velocity = new Vector3(this.ball.dx, this.ball.dy, 0).multiplyScalar(correctionFactor);
-            var distanceTraveled = velocity.length();
+            var speedLimit = this.config.ball.speedLimit * correctionFactor;
+            var positionDelta = this.ball.velocity.clone().multiplyScalar(correctionFactor);
+            var distanceTraveled = positionDelta.length();
             if (distanceTraveled > speedLimit) {
-                velocity.normalize().multiplyScalar(speedLimit);
-                this.ball.dx = velocity.x;
-                this.ball.dy = velocity.y;
+                positionDelta.normalize().multiplyScalar(speedLimit);
+                this.ball.velocity.x = positionDelta.x;
+                this.ball.velocity.y = positionDelta.y;
                 distanceTraveled = speedLimit;
             }
-            ballObject.position.add(velocity);
-            var angle = distanceTraveled / this.config.ball.radius;
-            var axisOfRotation = new Vector3(-this.ball.dy, this.ball.dx, 0).normalize();
-            var rotation = new Matrix4();
-            rotation.makeRotationAxis(axisOfRotation, angle);
-            this.ball.innerObject.applyMatrix(rotation);
+            ball.position.add(positionDelta);
             var collisionInfo = isCollidingWithAnyPaddle();
             var scorer = isScoring();
             if (isCollidingWithWall()) {
@@ -48539,13 +48524,13 @@
             }
             else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
                 var aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
-                var delta = new Vector2(this.ball.dx, this.ball.dy);
+                var delta = new Vector2(ball.velocity.x, ball.velocity.y);
                 var paddle = this.getPaddleByPlayer(collisionInfo.player);
-                var rot = paddle.object.rotation.z;
+                var rot = paddle.zRotationRads;
                 if (collisionInfo.collisionType === CollisionType.Standard) {
                     if (paddle === this.player1Paddle || !aiEnabled) {
-                        delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
-                        delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
+                        delta.x -= paddle.velocity.x * this.config.ball.speedIncreaseOnPaddleHit;
+                        delta.y -= paddle.velocity.y * this.config.ball.speedIncreaseOnPaddleHit;
                         delta.rotateAround(new Vector2(0, 0), -rot);
                         delta.y *= -1;
                         delta.rotateAround(new Vector2(0, 0), rot);
@@ -48563,11 +48548,10 @@
                         delta.multiplyScalar(-1);
                     }
                     // Prevent double-counted collision.
-                    this.ball.object.position.add(new Vector3(paddle.speed.x, paddle.speed.y));
+                    ball.position.add(new Vector2(paddle.velocity.x, paddle.velocity.y));
                 }
-                this.ball.dx = delta.x;
-                this.ball.dy = delta.y;
-                this.ball.object.position.add(new Vector3(this.ball.dx, this.ball.dy));
+                ball.velocity.set(delta.x, delta.y);
+                ball.position.add(ball.velocity);
                 this.eventEmitter.emit("ballHitPaddle");
             }
             else if (scorer != null) {
@@ -48575,8 +48559,8 @@
                     return Math.random() * (max - min) + min;
                 };
                 var initialYVelocityAfterServe = this.config.ball.initDy;
-                this.ball.dy = scorer === Player.Player1 ? initialYVelocityAfterServe : -initialYVelocityAfterServe;
-                this.ball.dx = continuousRandom(this.config.ball.minDx, this.config.ball.maxDx);
+                ball.velocity.y = scorer === Player.Player1 ? initialYVelocityAfterServe : -initialYVelocityAfterServe;
+                ball.velocity.x = continuousRandom(this.config.ball.minDx, this.config.ball.maxDx);
                 this._timeUntilServeSec = this.config.pauseAfterScoreSec;
                 if (scorer === Player.Player1) {
                     this._score.player1 += 1;
@@ -48599,8 +48583,8 @@
                 throw Error("AI config is missing");
             }
             // tslint:disable-next-line: no-shadowed-variable
-            var ball = this.ball.object;
-            var player2PaddleObj = this.player2Paddle.object;
+            var ball = this.ball;
+            var player2PaddleObj = this.player2Paddle;
             var player2PaddleMinX = this.config.playField.width / 2 - this.config.paddles.width / 2;
             if (ball.position.x > player2PaddleObj.position.x && player2PaddleObj.position.x < player2PaddleMinX) {
                 player2PaddleObj.position.x += this.config.aiPlayer.moveSpeed;
@@ -48616,23 +48600,22 @@
             }
         };
         Pong3dGameEngine.prototype.moveBallPreparingToServe = function () {
-            var ballObject = this.ball.object;
             var paddleHeight = this.config.paddles.height;
             var ballRadius = this.config.ball.radius;
-            var servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle.object : this.player2Paddle.object;
+            var servingPaddle = this.server === Player.Player1 ? this.player1Paddle : this.player2Paddle;
             var ballYPosOffsetPlayer1 = (paddleHeight / 2 + ballRadius * 2); // Move the ball in front of the paddle.
             var ballYPosOffsetPlayer2 = -ballYPosOffsetPlayer1;
             var ballYPosOffset = this.server === Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
-            ballObject.position.x = servingPaddleObj.position.x + ballYPosOffset *
-                Math.cos(servingPaddleObj.rotation.z + Math.PI / 2);
-            ballObject.position.y = servingPaddleObj.position.y + ballYPosOffset *
-                Math.sin(servingPaddleObj.rotation.z + Math.PI / 2);
+            this.ball.position.x = servingPaddle.position.x + ballYPosOffset *
+                Math.cos(servingPaddle.zRotationRads + Math.PI / 2);
+            this.ball.position.y = servingPaddle.position.y + ballYPosOffset *
+                Math.sin(servingPaddle.zRotationRads + Math.PI / 2);
         };
         Pong3dGameEngine.prototype.serveBall = function () {
             var initDy = this.config.ball.initDy;
-            var servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle.object : this.player2Paddle.object;
-            this.ball.dx = initDy * Math.cos(servingPaddleObj.rotation.z - Math.PI / 2);
-            this.ball.dy = initDy * Math.sin(servingPaddleObj.rotation.z - Math.PI / 2);
+            var servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle : this.player2Paddle;
+            this.ball.velocity.x = initDy * Math.cos(servingPaddleObj.zRotationRads - Math.PI / 2);
+            this.ball.velocity.y = initDy * Math.sin(servingPaddleObj.zRotationRads - Math.PI / 2);
             this.ballIsInPlay = true;
             this.moveBall(); // Prevent ball from getting stuck on a moving paddle.
         };
@@ -48885,9 +48868,9 @@
         }
         Pong3dInputApplicator.prototype.applyInput = function (input) {
             var paddle = this.getPlayersPaddle(input.player);
-            paddle.object.position.add(new Vector3(input.dx, input.dy));
-            paddle.speed.setX(input.dx).setY(input.dy);
-            paddle.object.rotation.z += input.dzRotation;
+            paddle.position.add(new Vector2(input.dx, input.dy));
+            paddle.velocity.setX(input.dx).setY(input.dy);
+            paddle.zRotationRads += input.dzRotation;
         };
         Pong3dInputApplicator.prototype.getPlayersPaddle = function (player) {
             return player === Player.Player1 ? this.game.player1Paddle : this.game.player2Paddle;
@@ -48913,12 +48896,12 @@
             height: height,
             walls: {
                 width: 0.5,
-                height: 1,
+                depth: 1,
             },
             playField: {
                 color: 0x156289,
                 centerlineColor: 0xFFFFFF,
-                height: 0.2,
+                depth: 0.2,
             },
             paddles: {
                 player1Color: player1Color,
@@ -94569,40 +94552,67 @@
             var createWalls = function () {
                 var playFieldWidth = game.config.playField.width;
                 var playFieldHeight = game.config.playField.height;
-                var playFieldDepth = _this.config.playField.height;
+                var playFieldDepth = _this.config.playField.depth;
                 var wallWidth = _this.config.walls.width;
-                var wallHeight = _this.config.walls.height;
+                var wallHeight = _this.config.walls.depth;
                 var createWall = function () {
                     var geo = new BoxGeometry(wallWidth, playFieldHeight, wallHeight);
                     var mat = new MeshLambertMaterial({ color: _this.config.wallColor });
-                    return new Mesh(geo, mat);
+                    var wall = new Mesh(geo, mat);
+                    enableShadows(wall);
+                    return wall;
                 };
                 var eastWall = createWall();
-                eastWall.position.set(-playFieldWidth / 2 - (wallWidth / 2), 0, wallHeight / 2 - playFieldDepth / 2);
+                eastWall.position.x = -playFieldWidth / 2 - wallWidth / 2,
+                    eastWall.position.z = wallHeight / 2 - playFieldDepth;
                 var westWall = createWall();
-                westWall.position.set(playFieldWidth / 2 + (wallWidth / 2), 0, wallHeight / 2 - playFieldDepth / 2);
+                westWall.position.x = playFieldWidth / 2 + wallWidth / 2;
+                westWall.position.z = wallHeight / 2 - playFieldDepth;
                 return { eastWall: eastWall, westWall: westWall };
             };
-            if (!(game.player1Paddle.object.material instanceof MeshLambertMaterial)) {
-                var _a = createWalls(), eastWall = _a.eastWall, westWall = _a.westWall;
-                game.player1Paddle.object.material = new MeshLambertMaterial({ color: this.config.paddles.player1Color });
-                game.player2Paddle.object.material = new MeshLambertMaterial({ color: this.config.paddles.player2Color });
-                enableShadows(game.player1Paddle.object);
-                enableShadows(game.player2Paddle.object);
-                enableShadows(westWall);
-                enableShadows(eastWall);
+            var createBall = function () {
+                var outerObj = new Group();
+                var ballGeometry = new SphereGeometry(game.ball.radius, 32, 32);
                 var ballMaterial = new MeshPhongMaterial();
                 ballMaterial.map = makeTextureFromBase64Image(ballTexture);
-                game.ball.innerObject.material = ballMaterial;
-                enableShadows(game.ball.innerObject);
-                this.scene.add(game.ball.object);
+                var innerObj = new Mesh(ballGeometry, ballMaterial);
+                outerObj.position.z = game.ball.radius;
+                enableShadows(innerObj);
+                outerObj.add(innerObj);
+                return { outerObj: outerObj, innerObj: innerObj };
+            };
+            var createPaddles = function () {
+                var createPaddle = function (paddle, color) {
+                    var geometry = new BoxGeometry(paddle.width, paddle.height, _this.config.walls.depth);
+                    var material = new MeshLambertMaterial({ color: color });
+                    var paddleObj = new Mesh(geometry, material);
+                    paddleObj.position.set(paddle.position.x, paddle.position.y, _this.config.walls.depth / 2);
+                    enableShadows(paddleObj);
+                    return paddleObj;
+                };
+                return {
+                    player1Paddle: createPaddle(game.player1Paddle, _this.config.paddles.player1Color),
+                    player2Paddle: createPaddle(game.player2Paddle, _this.config.paddles.player2Color),
+                };
+            };
+            if (this.gameObjects == null) {
+                var _a = createWalls(), eastWall = _a.eastWall, westWall = _a.westWall;
                 this.scene.add(eastWall);
                 this.scene.add(westWall);
-                this.scene.add(game.player1Paddle.object);
-                this.scene.add(game.player2Paddle.object);
+                var _b = createPaddles(), player1Paddle = _b.player1Paddle, player2Paddle = _b.player2Paddle;
+                this.scene.add(player1Paddle);
+                this.scene.add(player2Paddle);
+                var ball = createBall();
+                this.scene.add(ball.outerObj);
                 this.scene.add(this.createPlayField(game));
+                this.addLighting();
+                this.gameObjects = {
+                    ball: ball,
+                    player1Paddle: player1Paddle,
+                    player2Paddle: player2Paddle,
+                };
                 game.eventEmitter.on("ballHitPaddle", function () {
-                    _this.scoreboard.setSpeed(Math.hypot(game.ball.dx, game.ball.dy));
+                    _this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
                 });
                 game.eventEmitter.on("playerScored", function () {
                     _this.scoreboard.setSpeed(0); // Clears speed meter.
@@ -94613,28 +94623,46 @@
                     _this.scoreboard.showMeter(MeterType.Speed);
                 });
                 game.eventEmitter.on("tick", function () {
+                    if (_this.gameObjects == null) {
+                        throw Error("Cannot render before render has been initialized.");
+                    }
                     if (game.timeUntilServeSec > 0) {
                         var timePassed = game.config.pauseAfterScoreSec - game.timeUntilServeSec;
                         var serveProgress = timePassed / game.config.pauseAfterScoreSec;
                         _this.scoreboard.setServeProgress(serveProgress);
                     }
+                    // move ball
+                    _this.gameObjects.ball.outerObj.position.x = game.ball.position.x;
+                    _this.gameObjects.ball.outerObj.position.y = game.ball.position.y;
+                    var distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
+                    var angle = distanceTraveled / game.ball.radius;
+                    var axisOfRotation = new Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
+                    var rotation = new Matrix4();
+                    rotation.makeRotationAxis(axisOfRotation, angle);
+                    _this.gameObjects.ball.innerObj.applyMatrix(rotation);
+                    // update paddles
+                    _this.gameObjects.player1Paddle.position.x = game.player1Paddle.position.x;
+                    _this.gameObjects.player1Paddle.position.y = game.player1Paddle.position.y;
+                    _this.gameObjects.player1Paddle.rotation.z = game.player1Paddle.zRotationRads;
+                    _this.gameObjects.player2Paddle.position.x = game.player2Paddle.position.x;
+                    _this.gameObjects.player2Paddle.position.y = game.player2Paddle.position.y;
+                    _this.gameObjects.player2Paddle.rotation.z = game.player2Paddle.zRotationRads;
                 });
                 game.eventEmitter.on("ballServed", function () {
                     _this.scoreboard.showMeter(MeterType.Speed);
                     _this.scoreboard.setServeProgress(0);
                 });
-                this.addLighting();
             }
         };
         Pong3dThreeRenderer.prototype.createPlayField = function (game) {
             var _this = this;
             var createPart = function (color, length, yOffset) {
-                var geometry = new BoxGeometry(game.config.playField.width, length, _this.config.playField.height, 32, 32);
+                var geometry = new BoxGeometry(game.config.playField.width, length, _this.config.playField.depth, 32, 32);
                 var material = new MeshLambertMaterial({ color: color });
                 material.side = DoubleSide;
                 var part = new Mesh(geometry, material);
                 part.receiveShadow = true;
-                part.position.set(0, yOffset, 0);
+                part.position.set(0, yOffset, -_this.config.playField.depth / 2);
                 return part;
             };
             var playPlaneLength = (game.config.playField.height / 2) - (game.config.playField.neutralZoneHeight) / 2;
@@ -94722,7 +94750,7 @@
                 var context = {
                     keyMappings: keyMappings,
                     game: game,
-                    playerPaddle: options.player === Player.Player2 ? game.player2Paddle.object : game.player1Paddle.object,
+                    playerPaddle: options.player === Player.Player2 ? game.player2Paddle : game.player1Paddle,
                 };
                 return new Pong3dBrowserInputCollector(context);
             })();

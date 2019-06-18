@@ -1,19 +1,20 @@
 import * as Three from "three";
+import { Pong3dBallConfig } from "./config/config";
 
 export class Ball {
 
-  public object: Three.Group;
-  public innerObject: Three.Mesh;
-  public dx: number;
-  public dy: number;
+  /** The distanced traveled by the ball per game tick. */
+  public velocity: Three.Vector2;
+  public readonly radius: number;
+  public position: Three.Vector2;
   public collidingWithPaddle: boolean;
   public collidingWithWall: boolean;
 
-  public constructor(object: Three.Group, innerObject: Three.Mesh, initDx: number, initDy: number) {
-    this.object = object;
-    this.innerObject = innerObject;
-    this.dx = initDx;
-    this.dy = initDy;
+  public constructor(config: Pong3dBallConfig) {
+    this.radius = config.radius;
+
+    this.velocity = new Three.Vector2();
+    this.position = new Three.Vector2();
     this.collidingWithPaddle = false;
     this.collidingWithWall = false;
   }

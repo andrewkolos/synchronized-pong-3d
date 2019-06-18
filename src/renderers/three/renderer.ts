@@ -1,11 +1,11 @@
 import * as Three from "three";
 import { OrbitControls } from "three-orbitcontrols-ts";
 import { Pong3dGameEngine } from "../../core/game-engine";
-import { makeTextureFromBase64Image } from "../../util";
+import { Paddle } from "../../core/paddle";
+import { makeTextureFromBase64Image, vec3FromVec2 } from "../../util";
 import ballTexture from "./images/ball";
 import { Pong3dThreeRendererConfig } from "./renderer-config";
 import { MeterType, Pong3dThreeScoreboard } from "./scoreboard/scoreboard";
-import { SevenSegmentDisplay } from "./scoreboard/seven segment display/seven-segment-display";
 
 export class Pong3dThreeRenderer {
 
@@ -16,7 +16,13 @@ export class Pong3dThreeRenderer {
   private config: Pong3dThreeRendererConfig;
   private scoreboard: Pong3dThreeScoreboard;
 
-private rendering = true;
+  private gameObjects?: {
+    ball: { outerObj: Three.Group, innerObj: Three.Mesh };
+    player1Paddle: Three.Mesh;
+    player2Paddle: Three.Mesh;
+  };
+
+  private rendering = true;
 
   public constructor(config: Pong3dThreeRendererConfig) {
     this.config = config;
@@ -104,53 +110,86 @@ private rendering = true;
     const createWalls = () => {
       const playFieldWidth = game.config.playField.width;
       const playFieldHeight = game.config.playField.height;
-      const playFieldDepth = this.config.playField.height;
+      const playFieldDepth = this.config.playField.depth;
 
       const wallWidth = this.config.walls.width;
-      const wallHeight = this.config.walls.height;
+      const wallHeight = this.config.walls.depth;
 
       const createWall = () => {
         const geo = new Three.BoxGeometry(wallWidth, playFieldHeight, wallHeight);
         const mat = new Three.MeshLambertMaterial({color: this.config.wallColor});
-        return new Three.Mesh(geo, mat);
+        const wall = new Three.Mesh(geo, mat);
+        enableShadows(wall);
+        return wall;
       };
 
       const eastWall = createWall();
       eastWall.position.x = -playFieldWidth / 2 - wallWidth / 2,
-      eastWall.position.z = wallHeight / 2 - playFieldDepth / 2;
+      eastWall.position.z = wallHeight / 2 - playFieldDepth;
 
       const westWall = createWall();
       westWall.position.x = playFieldWidth / 2 + wallWidth / 2;
-      westWall.position.z = wallHeight / 2 - playFieldDepth / 2;
+      westWall.position.z = wallHeight / 2 - playFieldDepth;
 
       return { eastWall, westWall };
     };
 
-    if (!(game.player1Paddle.object.material instanceof Three.MeshLambertMaterial)) {
+    const createBall = () => {
+      const outerObj = new Three.Group();
+      const ballGeometry = new Three.SphereGeometry(game.ball.radius, 32, 32);
+      const ballMaterial = new Three.MeshPhongMaterial();
+      ballMaterial.map = makeTextureFromBase64Image(ballTexture);
+      const innerObj = new Three.Mesh(ballGeometry, ballMaterial);
+
+      outerObj.position.z = game.ball.radius;
+
+      enableShadows(innerObj);
+      outerObj.add(innerObj);
+      return { outerObj, innerObj};
+    };
+
+    const createPaddles = () => {
+      const createPaddle = (paddle: Paddle, color: number): Three.Mesh => {
+        const geometry = new Three.BoxGeometry(paddle.width, paddle.height, this.config.walls.depth);
+        const material = new Three.MeshLambertMaterial({ color });
+        const paddleObj = new Three.Mesh(geometry, material);
+
+        paddleObj.position.set(paddle.position.x, paddle.position.y, this.config.walls.depth / 2);
+        enableShadows(paddleObj);
+
+        return paddleObj;
+      };
+      return {
+        player1Paddle: createPaddle(game.player1Paddle, this.config.paddles.player1Color),
+        player2Paddle: createPaddle(game.player2Paddle, this.config.paddles.player2Color),
+      };
+    };
+
+    if (this.gameObjects == null) {
 
       const { eastWall, westWall } = createWalls();
-      enableShadows(westWall);
-      enableShadows(eastWall);
       this.scene.add(eastWall);
       this.scene.add(westWall);
 
-      game.player1Paddle.object.material = new Three.MeshLambertMaterial({color: this.config.paddles.player1Color});
-      game.player2Paddle.object.material = new Three.MeshLambertMaterial({color: this.config.paddles.player2Color});
-      enableShadows(game.player1Paddle.object);
-      enableShadows(game.player2Paddle.object);
-      this.scene.add(game.player1Paddle.object);
-      this.scene.add(game.player2Paddle.object);
+      const {player1Paddle, player2Paddle} = createPaddles();
+      this.scene.add(player1Paddle);
+      this.scene.add(player2Paddle);
 
-      const ballMaterial = new Three.MeshPhongMaterial();
-      ballMaterial.map = makeTextureFromBase64Image(ballTexture);
-      game.ball.innerObject.material = ballMaterial;
-      enableShadows(game.ball.innerObject);
-      this.scene.add(game.ball.object);
+      const ball = createBall();
+      this.scene.add(ball.outerObj);
 
       this.scene.add(this.createPlayField(game));
 
+      this.addLighting();
+
+      this.gameObjects = {
+        ball,
+        player1Paddle,
+        player2Paddle,
+      };
+
       game.eventEmitter.on("ballHitPaddle", () => {
-        this.scoreboard.setSpeed(Math.hypot(game.ball.dx, game.ball.dy));
+        this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
       });
 
       game.eventEmitter.on("playerScored", () => {
@@ -164,30 +203,54 @@ private rendering = true;
       });
 
       game.eventEmitter.on("tick", () => {
+        if (this.gameObjects == null) {
+          throw Error("Cannot render before render has been initialized.");
+        }
+
         if (game.timeUntilServeSec > 0) {
           const timePassed = game.config.pauseAfterScoreSec - game.timeUntilServeSec;
           const serveProgress = timePassed / game.config.pauseAfterScoreSec;
           this.scoreboard.setServeProgress(serveProgress);
         }
+
+        // move ball
+
+        this.gameObjects.ball.outerObj.position.x = game.ball.position.x;
+        this.gameObjects.ball.outerObj.position.y = game.ball.position.y;
+
+        const distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
+
+        const angle = distanceTraveled / game.ball.radius;
+        const axisOfRotation = new Three.Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
+        const rotation = new Three.Matrix4();
+        rotation.makeRotationAxis(axisOfRotation, angle);
+        this.gameObjects.ball.innerObj.applyMatrix(rotation);
+
+        // update paddles
+        this.gameObjects.player1Paddle.position.x = game.player1Paddle.position.x;
+        this.gameObjects.player1Paddle.position.y = game.player1Paddle.position.y;
+        this.gameObjects.player1Paddle.rotation.z = game.player1Paddle.zRotationRads;
+
+        this.gameObjects.player2Paddle.position.x = game.player2Paddle.position.x;
+        this.gameObjects.player2Paddle.position.y = game.player2Paddle.position.y;
+        this.gameObjects.player2Paddle.rotation.z = game.player2Paddle.zRotationRads;
       });
 
       game.eventEmitter.on("ballServed", () => {
         this.scoreboard.showMeter(MeterType.Speed);
         this.scoreboard.setServeProgress(0);
       });
-
-      this.addLighting();
     }
   }
 
   private createPlayField(game: Pong3dGameEngine) {
     const createPart = (color: number, length: number, yOffset: number) => {
-      const geometry = new Three.BoxGeometry(game.config.playField.width, length, this.config.playField.height, 32, 32);
+      const geometry = new Three.BoxGeometry(game.config.playField.width, length, this.config.playField.depth, 32, 32);
       const material = new Three.MeshLambertMaterial({color});
       material.side = Three.DoubleSide;
       const part = new Three.Mesh(geometry, material);
       part.receiveShadow = true;
-      part.position.set(0, yOffset, 0);
+      part.position.set(0, yOffset, -this.config.playField.depth / 2);
 
       return part;
     };

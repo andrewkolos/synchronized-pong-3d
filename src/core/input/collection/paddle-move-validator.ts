@@ -1,5 +1,6 @@
 import * as Three from "three";
 import { Pong3dGameEngine } from "../../game-engine";
+import { Paddle } from "../../paddle";
 import { PaddleInput } from "../paddle-input";
 
 export enum InvalidMovementReason {
@@ -15,7 +16,7 @@ export interface MovementValidationResult {
 
 export class PaddleMoveValidator {
   public static validate(inputToValidate: PaddleInput, game: Pong3dGameEngine,
-                         playerPaddle: Three.Mesh): MovementValidationResult {
+                         playerPaddle: Paddle): MovementValidationResult {
 
     const validator = new PaddleMoveValidator(inputToValidate, game, playerPaddle);
     const invalidReasons: InvalidMovementReason[] = [];
@@ -45,7 +46,7 @@ export class PaddleMoveValidator {
   private nextX: number;
   private nextY: number;
 
-  private constructor(inputToValidate: PaddleInput, game: Pong3dGameEngine, playerPaddle: Three.Mesh) {
+  private constructor(inputToValidate: PaddleInput, game: Pong3dGameEngine, playerPaddle: Paddle) {
     this.playFieldWidth = game.config.playField.width;
     this.playFieldHeight = game.config.playField.height;
     this.neutralZoneHeight = game.config.playField.neutralZoneHeight;

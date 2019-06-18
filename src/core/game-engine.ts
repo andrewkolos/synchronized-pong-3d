@@ -51,46 +51,22 @@ export class Pong3dGameEngine {
   public constructor(config: Pong3dConfig) {
 
     const createPaddles = () => {
-      const createPaddle = (offset: number): Paddle => {
-        const { width, height, depth } = config.paddles;
-        const geometry = new Three.BoxGeometry(width, height, depth);
-        const paddle = new Three.Mesh(geometry);
-
-        paddle.position.set(0, offset, depth / 2);
-
-        return {
-          object: paddle,
-          speed: new Three.Vector2(),
-        };
-      };
-
+      const paddleWidth = config.paddles.width;
       const paddleHeight = config.paddles.height;
       const playFieldHeight = config.playField.height;
       const player1YPosOffset = - playFieldHeight / 2 + paddleHeight;
       const player2YPosOffset = - player1YPosOffset;
 
       return {
-        player1Paddle: createPaddle(player1YPosOffset),
-        player2Paddle: createPaddle(player2YPosOffset),
-      };
-    };
-    const createBall = () => {
-      const { radius, segmentCount } = config.ball;
-      const geometry = new Three.SphereGeometry(radius, segmentCount, segmentCount);
-      const innerBall = new Three.Mesh(geometry);
-      // tslint:disable-next-line: no-shadowed-variable
-      const ball = new Three.Group();
-      ball.position.set(0, 0, radius);
-      ball.add(innerBall);
-      return new Ball(ball, innerBall, config.ball.initDx, config.ball.initDy);
-    };
+        player1Paddle: new Paddle(paddleWidth, paddleHeight, new Three.Vector2(0, player1YPosOffset)),
+        player2Paddle: new Paddle(paddleWidth, paddleHeight, new Three.Vector2(0, player2YPosOffset)),
+      }
+    }
 
     const paddles = createPaddles();
-    const ball = createBall();
-
     this.player1Paddle = paddles.player1Paddle;
     this.player2Paddle = paddles.player2Paddle;
-    this.ball = ball;
+    this.ball = new Ball(config.ball);
 
     // Initialize game state.
     this._timeUntilServeSec = 3;
@@ -156,42 +132,42 @@ export class Pong3dGameEngine {
 
   private moveBallInPlay() {
 
-    const ballObject = this.ball.object;
-
+    const ball = this.ball;
     const isCollidingWithWall = ((): boolean => {
       const playFieldWidth = this.config.playField.width;
       const ballRadius = this.config.ball.radius;
 
-      return (ballObject.position.x < -(playFieldWidth / 2) + ballRadius ||
-        ballObject.position.x > playFieldWidth / 2 - ballRadius);
+      return (ball.position.x < -(playFieldWidth / 2) + ballRadius ||
+        ball.position.x > playFieldWidth / 2 - ballRadius);
     }).bind(this);
 
     const handleCollisionWithWall = (() => {
-      const ballIsAlreadyTravelingAwayFromWall = Math.sign(this.ball.dx) !== Math.sign(this.ball.object.position.x);
+      const ballIsAlreadyTravelingAwayFromWall =
+        Math.sign(this.ball.velocity.x) !== Math.sign(this.ball.position.x);
       if (!ballIsAlreadyTravelingAwayFromWall) {
-        this.ball.dx *= -1;
+        this.ball.velocity.x *= -1;
         this.eventEmitter.emit("ballHitWall");
       }
     }).bind(this);
 
-    const getRelativePosition = (object: Three.Object3D, relativeToObject: Three.Object3D) => {
-      const relXPos = object.position.x - relativeToObject.position.x;
-      const relYPos = object.position.y - relativeToObject.position.y;
+    const getRelativePosition = (ball: Ball, paddle: Paddle) => {
+      const relXPos = ball.position.x - paddle.position.x;
+      const relYPos = ball.position.y - paddle.position.y;
 
       return new Three.Vector2(relXPos, relYPos);
     };
 
     const isCollidingWithPaddle = (paddle: Paddle) => {
 
-      const ball = this.ball.object;
+      const ball = this.ball;
 
       const ballRadius = this.config.ball.radius;
       const paddleWidth = this.config.paddles.width;
       const paddleHeight = this.config.paddles.height;
 
       const origin = new Three.Vector2(0, 0);
-      const ballRelPos = getRelativePosition(ball, paddle.object);
-      const ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.object.rotation.z);
+      const ballRelPos = getRelativePosition(ball, paddle);
+      const ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.zRotationRads);
 
       const xDiff = Math.abs(ballRelPosDisregardingRotation.x) - ballRadius;
       const yDiff = Math.abs(ballRelPosDisregardingRotation.y) - ballRadius;
@@ -234,7 +210,7 @@ export class Pong3dGameEngine {
 
     const isScoring = (): Player | undefined => {
 
-      const ballYPosition = this.ball.object.position.y;
+      const ballYPosition = this.ball.position.y;
       const halfOfPlayFieldHeight = this.config.playField.height / 2;
       const ballDiameter = this.config.ball.radius * 2;
       if (ballYPosition > halfOfPlayFieldHeight + ballDiameter) {
@@ -248,24 +224,18 @@ export class Pong3dGameEngine {
     };
 
     const correctionFactor = 60 / this.config.game.tickRate;
-    const speedLimit = this.config.ball.speedLimit;
+    const speedLimit = this.config.ball.speedLimit * correctionFactor;
 
-    const velocity = new Three.Vector3(this.ball.dx, this.ball.dy, 0).multiplyScalar(correctionFactor);
-    let distanceTraveled = velocity.length();
+    const positionDelta = this.ball.velocity.clone().multiplyScalar(correctionFactor);
+    let distanceTraveled = positionDelta.length();
     if (distanceTraveled > speedLimit) {
-      velocity.normalize().multiplyScalar(speedLimit);
-      this.ball.dx = velocity.x;
-      this.ball.dy = velocity.y;
+      positionDelta.normalize().multiplyScalar(speedLimit);
+      this.ball.velocity.x = positionDelta.x;
+      this.ball.velocity.y = positionDelta.y;
       distanceTraveled = speedLimit;
     }
 
-    ballObject.position.add(velocity);
-
-    const angle = distanceTraveled / this.config.ball.radius;
-    const axisOfRotation = new Three.Vector3(-this.ball.dy, this.ball.dx, 0).normalize();
-    const rotation = new Three.Matrix4();
-    rotation.makeRotationAxis(axisOfRotation, angle);
-    this.ball.innerObject.applyMatrix(rotation);
+    ball.position.add(positionDelta);
 
     const collisionInfo = isCollidingWithAnyPaddle();
     const scorer = isScoring();
@@ -276,15 +246,15 @@ export class Pong3dGameEngine {
     } else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
 
       const aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
-      const delta = new Three.Vector2(this.ball.dx, this.ball.dy);
+      const delta = new Three.Vector2(ball.velocity.x, ball.velocity.y);
       const paddle = this.getPaddleByPlayer(collisionInfo.player);
 
-      const rot = paddle.object.rotation.z;
+      const rot = paddle.zRotationRads;
 
       if (collisionInfo.collisionType === CollisionType.Standard) {
         if (paddle === this.player1Paddle || !aiEnabled) {
-          delta.x -= paddle.speed.x * this.config.ball.speedIncreaseOnPaddleHit;
-          delta.y -= paddle.speed.y * this.config.ball.speedIncreaseOnPaddleHit;
+          delta.x -= paddle.velocity.x * this.config.ball.speedIncreaseOnPaddleHit;
+          delta.y -= paddle.velocity.y * this.config.ball.speedIncreaseOnPaddleHit;
           delta.rotateAround(new Three.Vector2(0, 0), -rot);
 
           delta.y *= -1;
@@ -304,13 +274,11 @@ export class Pong3dGameEngine {
         }
 
         // Prevent double-counted collision.
-        this.ball.object.position.add(new Three.Vector3(paddle.speed.x, paddle.speed.y));
+        ball.position.add(new Three.Vector2(paddle.velocity.x, paddle.velocity.y));
       }
 
-      this.ball.dx = delta.x;
-      this.ball.dy = delta.y;
-
-      this.ball.object.position.add(new Three.Vector3(this.ball.dx, this.ball.dy));
+      ball.velocity.set(delta.x, delta.y);
+      ball.position.add(ball.velocity);
 
       this.eventEmitter.emit("ballHitPaddle");
     } else if (scorer != null) {
@@ -321,8 +289,8 @@ export class Pong3dGameEngine {
 
       const initialYVelocityAfterServe = this.config.ball.initDy;
 
-      this.ball.dy = scorer === Player.Player1 ? initialYVelocityAfterServe : -initialYVelocityAfterServe;
-      this.ball.dx = continuousRandom(this.config.ball.minDx, this.config.ball.maxDx);
+      ball.velocity.y = scorer === Player.Player1 ? initialYVelocityAfterServe : -initialYVelocityAfterServe;
+      ball.velocity.x = continuousRandom(this.config.ball.minDx, this.config.ball.maxDx);
 
       this._timeUntilServeSec = this.config.pauseAfterScoreSec;
       if (scorer === Player.Player1) {
@@ -350,8 +318,8 @@ export class Pong3dGameEngine {
     }
 
     // tslint:disable-next-line: no-shadowed-variable
-    const ball = this.ball.object;
-    const player2PaddleObj = this.player2Paddle.object;
+    const ball = this.ball;
+    const player2PaddleObj = this.player2Paddle;
     const player2PaddleMinX = this.config.playField.width / 2 - this.config.paddles.width / 2;
     if (ball.position.x > player2PaddleObj.position.x && player2PaddleObj.position.x < player2PaddleMinX) {
       player2PaddleObj.position.x += this.config.aiPlayer.moveSpeed;
@@ -368,30 +336,28 @@ export class Pong3dGameEngine {
 
   private moveBallPreparingToServe() {
 
-    const ballObject = this.ball.object;
-
     const paddleHeight = this.config.paddles.height;
     const ballRadius = this.config.ball.radius;
 
-    const servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle.object : this.player2Paddle.object;
+    const servingPaddle = this.server === Player.Player1 ? this.player1Paddle : this.player2Paddle;
     const ballYPosOffsetPlayer1 = (paddleHeight / 2 + ballRadius * 2); // Move the ball in front of the paddle.
     const ballYPosOffsetPlayer2 = -ballYPosOffsetPlayer1;
 
     const ballYPosOffset = this.server === Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
 
-    ballObject.position.x = servingPaddleObj.position.x + ballYPosOffset *
-      Math.cos(servingPaddleObj.rotation.z + Math.PI / 2);
-    ballObject.position.y = servingPaddleObj.position.y + ballYPosOffset *
-      Math.sin(servingPaddleObj.rotation.z + Math.PI / 2);
+    this.ball.position.x = servingPaddle.position.x + ballYPosOffset *
+      Math.cos(servingPaddle.zRotationRads + Math.PI / 2);
+    this.ball.position.y = servingPaddle.position.y + ballYPosOffset *
+      Math.sin(servingPaddle.zRotationRads + Math.PI / 2);
 
   }
 
   private serveBall() {
     const initDy = this.config.ball.initDy;
 
-    const servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle.object : this.player2Paddle.object;
-    this.ball.dx = initDy * Math.cos(servingPaddleObj.rotation.z - Math.PI / 2);
-    this.ball.dy = initDy * Math.sin(servingPaddleObj.rotation.z - Math.PI / 2);
+    const servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle : this.player2Paddle;
+    this.ball.velocity.x = initDy * Math.cos(servingPaddleObj.zRotationRads - Math.PI / 2);
+    this.ball.velocity.y = initDy * Math.sin(servingPaddleObj.zRotationRads - Math.PI / 2);
 
     this.ballIsInPlay = true;
 
