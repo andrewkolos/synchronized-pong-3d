@@ -1,8 +1,9 @@
 import * as Three from "three";
 import { OrbitControls } from "three-orbitcontrols-ts";
+import { Ball } from "../../core/ball";
 import { Pong3dGameEngine } from "../../core/game-engine";
 import { Paddle } from "../../core/paddle";
-import { makeTextureFromBase64Image, vec3FromVec2 } from "../../util";
+import { makeTextureFromBase64Image } from "../../util";
 import ballTexture from "./images/ball";
 import { Pong3dThreeRendererConfig } from "./renderer-config";
 import { MeterType, Pong3dThreeScoreboard } from "./scoreboard/scoreboard";
@@ -202,7 +203,27 @@ export class Pong3dThreeRenderer {
         this.scoreboard.showMeter(MeterType.Speed);
       });
 
+      const updatePaddleObj = (obj: Three.Mesh, paddle: Paddle) => {
+        obj.position.x = paddle.position.x;
+        obj.position.y = paddle.position.y;
+        obj.rotation.z = paddle.zRotationRads;
+      };
+
+      const updateBall = (obj: {outerObj: Three.Group, innerObj: Three.Mesh}) => {
+        obj.outerObj.position.x = game.ball.position.x;
+        obj.outerObj.position.y = game.ball.position.y;
+
+        const distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
+
+        const angle = distanceTraveled / game.ball.radius;
+        const axisOfRotation = new Three.Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
+        const rotation = new Three.Matrix4();
+        rotation.makeRotationAxis(axisOfRotation, angle);
+        obj.innerObj.applyMatrix(rotation);
+      }
+
       game.eventEmitter.on("tick", () => {
+
         if (this.gameObjects == null) {
           throw Error("Cannot render before render has been initialized.");
         }
@@ -213,27 +234,10 @@ export class Pong3dThreeRenderer {
           this.scoreboard.setServeProgress(serveProgress);
         }
 
-        // move ball
+        updateBall(this.gameObjects.ball);
 
-        this.gameObjects.ball.outerObj.position.x = game.ball.position.x;
-        this.gameObjects.ball.outerObj.position.y = game.ball.position.y;
-
-        const distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
-
-        const angle = distanceTraveled / game.ball.radius;
-        const axisOfRotation = new Three.Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
-        const rotation = new Three.Matrix4();
-        rotation.makeRotationAxis(axisOfRotation, angle);
-        this.gameObjects.ball.innerObj.applyMatrix(rotation);
-
-        // update paddles
-        this.gameObjects.player1Paddle.position.x = game.player1Paddle.position.x;
-        this.gameObjects.player1Paddle.position.y = game.player1Paddle.position.y;
-        this.gameObjects.player1Paddle.rotation.z = game.player1Paddle.zRotationRads;
-
-        this.gameObjects.player2Paddle.position.x = game.player2Paddle.position.x;
-        this.gameObjects.player2Paddle.position.y = game.player2Paddle.position.y;
-        this.gameObjects.player2Paddle.rotation.z = game.player2Paddle.zRotationRads;
+        updatePaddleObj(this.gameObjects.player1Paddle, game.player1Paddle);
+        updatePaddleObj(this.gameObjects.player2Paddle, game.player2Paddle);
       });
 
       game.eventEmitter.on("ballServed", () => {

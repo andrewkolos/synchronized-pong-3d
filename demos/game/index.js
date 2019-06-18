@@ -94622,6 +94622,21 @@
                 game.eventEmitter.on("startingServe", function () {
                     _this.scoreboard.showMeter(MeterType.Speed);
                 });
+                var updatePaddleObj_1 = function (obj, paddle) {
+                    obj.position.x = paddle.position.x;
+                    obj.position.y = paddle.position.y;
+                    obj.rotation.z = paddle.zRotationRads;
+                };
+                var updateBall_1 = function (obj) {
+                    obj.outerObj.position.x = game.ball.position.x;
+                    obj.outerObj.position.y = game.ball.position.y;
+                    var distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
+                    var angle = distanceTraveled / game.ball.radius;
+                    var axisOfRotation = new Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
+                    var rotation = new Matrix4();
+                    rotation.makeRotationAxis(axisOfRotation, angle);
+                    obj.innerObj.applyMatrix(rotation);
+                };
                 game.eventEmitter.on("tick", function () {
                     if (_this.gameObjects == null) {
                         throw Error("Cannot render before render has been initialized.");
@@ -94631,22 +94646,9 @@
                         var serveProgress = timePassed / game.config.pauseAfterScoreSec;
                         _this.scoreboard.setServeProgress(serveProgress);
                     }
-                    // move ball
-                    _this.gameObjects.ball.outerObj.position.x = game.ball.position.x;
-                    _this.gameObjects.ball.outerObj.position.y = game.ball.position.y;
-                    var distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
-                    var angle = distanceTraveled / game.ball.radius;
-                    var axisOfRotation = new Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
-                    var rotation = new Matrix4();
-                    rotation.makeRotationAxis(axisOfRotation, angle);
-                    _this.gameObjects.ball.innerObj.applyMatrix(rotation);
-                    // update paddles
-                    _this.gameObjects.player1Paddle.position.x = game.player1Paddle.position.x;
-                    _this.gameObjects.player1Paddle.position.y = game.player1Paddle.position.y;
-                    _this.gameObjects.player1Paddle.rotation.z = game.player1Paddle.zRotationRads;
-                    _this.gameObjects.player2Paddle.position.x = game.player2Paddle.position.x;
-                    _this.gameObjects.player2Paddle.position.y = game.player2Paddle.position.y;
-                    _this.gameObjects.player2Paddle.rotation.z = game.player2Paddle.zRotationRads;
+                    updateBall_1(_this.gameObjects.ball);
+                    updatePaddleObj_1(_this.gameObjects.player1Paddle, game.player1Paddle);
+                    updatePaddleObj_1(_this.gameObjects.player2Paddle, game.player2Paddle);
                 });
                 game.eventEmitter.on("ballServed", function () {
                     _this.scoreboard.showMeter(MeterType.Speed);
