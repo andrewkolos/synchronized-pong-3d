@@ -13,7 +13,7 @@ export const basicConfig: Config = {
     width: 2,
     height: 0.125,
     depth: 1,
-    baseMoveSpeed: 0.6 * 1.5,
+    baseMoveSpeedPerMs: 0.006,
   },
   ball: {
     radius: 0.45,

@@ -26,14 +26,13 @@ export class PaddleInputValidator {
   /**
    * Validates a paddle input.
    * @param inputToValidate The input to validate.
+   * @param playerPaddle The player that the input is attempting to manipulate.
    * @param game The current state of the game.
-   * @param playerPaddle A reference to the paddle that the input is attempting
-   *  to manipulate.
-   * @returns The result of the validation, indicating whether or not the input is 
+
+   * @returns The result of the validation, indicating whether or not the input is
    * invalid and, if not, why not.
    */
-  public static validate(inputToValidate: PaddleInput, game: GameEngine,
-                         player: Player): MovementValidationResult {
+  public static validate(inputToValidate: PaddleInput, player: Player, game: GameEngine): MovementValidationResult {
 
     const playerPaddle = getPaddleByPlayer(game, player);
     const validator = new PaddleInputValidator(inputToValidate, game, playerPaddle);

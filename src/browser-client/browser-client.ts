@@ -3,7 +3,7 @@ import { Config } from "../core/config/config";
 import { Player } from "../core/enum/player";
 import { GameEngine } from "../core/game-engine";
 import { BrowserInputCollector,
-  BrowserInputCollectorContext } from "../core/input/collection/browser-input-collector";
+  BrowserInputCollectorContext } from "../core/input/collection/implementations/browser-input-collector";
 import { KeyCode } from "../core/input/collection/key-code";
 import { KeyMappings } from "../core/input/collection/key-mappings";
 import { PaddleInputApplicator } from "../core/input/paddle-input-applicator";
@@ -51,6 +51,7 @@ export class BrowserClient {
         keyMappings,
         game,
         player: options.player != null ? options.player : Player.Player1,
+        playerMoveSpeedPerMs: game.config.paddles.baseMoveSpeedPerMs,
       };
 
       return new BrowserInputCollector(context);

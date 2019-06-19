@@ -36,7 +36,7 @@ export interface Config {
     /** The speed at which each paddle is allowed to move, given in
      * distance per 1/60 of a second.
      */
-    baseMoveSpeed: number;
+    baseMoveSpeedPerMs: number;
   };
   ball: BallConfig;
   /** How many seconds until the ball is served after a player scores. */
