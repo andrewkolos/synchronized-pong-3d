@@ -48665,6 +48665,7 @@
         GameEngine.prototype.serveBall = function () {
             this.ball.sendTowardPlayer(this.server, this.config.ball.initialSpeedOnServe);
             this.ballIsInPlay = true;
+            this.eventEmitter.emit("ballServed");
         };
         GameEngine.prototype.isBallServingAtCurrentInstant = function () {
             return this._timeUntilServeSec <= 0;
@@ -48712,23 +48713,6 @@
     1:a[g[`${b}_ANALOG_LEFT`]]?-1:0;if(1===e||3===e)a[c]=a[g[`${b}_ANALOG_UP`]]?-1:a[g[`${b}_ANALOG_DOWN`]]?1:0;}});});a.UP=a.DPAD_UP||a.LEFT_ANALOG_UP;a.RIGHT=a.DPAD_RIGHT||a.LEFT_ANALOG_RIGHT;a.DOWN=a.DPAD_DOWN||a.LEFT_ANALOG_DOWN;a.LEFT=a.DPAD_LEFT||a.LEFT_ANALOG_LEFT;Object.keys(a).forEach((b)=>{if(void 0===a[b]||"string"===typeof a[b])a[b]=!1;});this.plugins.forEach((b)=>{b.onGetState&&(b=b.onGetState(a))&&(this.state=b);});return a}onInputsChange(a,b){"string"===typeof a&&(a=[a]);this.inputChangeMap[a]=
     {codes:a,callback:b};this._enabled&&!this.cancelInputChangeListener&&this._startInputChangeInterval();return ()=>{delete this.inputChangeMap[a];}}_startInputChangeInterval(){let a=setInterval(this._inputChangeIntervalHandler.bind(this),16);this.cancelInputChangeListener=()=>clearInterval(a);}_inputChangeIntervalHandler(){let a=this.getState(),b=[];Object.keys(a).forEach((c)=>{a[c]!==this.inputChangeOldState[c]&&b.push(c);});Object.keys(this.inputChangeMap).forEach((c)=>{this.inputChangeMap[c].codes.some((a)=>
     b.includes(a))&&this.inputChangeMap[c].callback(a);});this.inputChangeOldState=a;}}let A=new z;var ResponsiveGamepad=A;
-
-    var KeyboardManager = /** @class */ (function () {
-        function KeyboardManager() {
-            var _this = this;
-            this.keyDownStates = {};
-            document.body.addEventListener("keydown", function (e) {
-                _this.keyDownStates[e.keyCode] = true;
-            });
-            document.body.addEventListener("keyup", function (e) {
-                _this.keyDownStates[e.keyCode] = false;
-            });
-        }
-        KeyboardManager.prototype.isKeyDown = function (keycode) {
-            return this.keyDownStates[keycode];
-        };
-        return KeyboardManager;
-    }());
 
     var InvalidMovementReason;
     (function (InvalidMovementReason) {
@@ -48830,6 +48814,23 @@
         return PaddleInputCorrector;
     }());
 
+    var KeyboardManager = /** @class */ (function () {
+        function KeyboardManager() {
+            var _this = this;
+            this.keyDownStates = {};
+            document.body.addEventListener("keydown", function (e) {
+                _this.keyDownStates[e.keyCode] = true;
+            });
+            document.body.addEventListener("keyup", function (e) {
+                _this.keyDownStates[e.keyCode] = false;
+            });
+        }
+        KeyboardManager.prototype.isKeyDown = function (keycode) {
+            return this.keyDownStates[keycode];
+        };
+        return KeyboardManager;
+    }());
+
     var GAMEPAD_STICK_DEAD_ZONE_END = 0.1;
     /**
      * Collects inputs for a pong game using the browser.
@@ -48855,26 +48856,20 @@
             return correctedInput;
         };
         BrowserInputCollector.prototype.getInputFromControls = function (dt) {
-            // We prefer the gamepad, if the user is using it.
-            if (this.isGamepadActive()) {
-                return this.getInputFromGamepad(dt);
-            }
-            else {
+            // We prefer the keyboard, if the user is using it.
+            if (this.isKeyboardActive()) {
+                console.log('reading from keyboard');
                 return this.getInputFromKeyboard(dt);
             }
-        };
-        BrowserInputCollector.prototype.isGamepadActive = function () {
-            var inputState = ResponsiveGamepad.getState();
-            var gamePadConnected = Object.entries(inputState).length !== 0;
-            if (!gamePadConnected) {
-                return false;
+            else {
+                return this.getInputFromGamepad(dt);
             }
-            var deadZoneEnd = GAMEPAD_STICK_DEAD_ZONE_END;
-            var gamePadActive = Math.abs(inputState.LEFT_ANALOG_HORIZONTAL_AXIS) > deadZoneEnd ||
-                Math.abs(inputState.LEFT_ANALOG_VERTICAL_AXIS) > deadZoneEnd ||
-                Math.abs(inputState.RIGHT_ANALOG_HORIZONTAL_AXIS) > deadZoneEnd ||
-                Math.abs(inputState.RIGHT_ANALOG_VERTICAL_AXIS) > deadZoneEnd;
-            return gamePadActive;
+        };
+        BrowserInputCollector.prototype.isKeyboardActive = function () {
+            var _this = this;
+            return Object.values(this.mappings).some(function (key) {
+                return _this.isKeyDown(key);
+            });
         };
         BrowserInputCollector.prototype.getInputFromGamepad = function (dt) {
             var inputState = ResponsiveGamepad.getState();
@@ -94780,41 +94775,12 @@
                     _this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
                 });
                 game.eventEmitter.on("playerScored", function () {
-                    _this.scoreboard.setSpeed(0); // Clears speed meter.
-                    _this.scoreboard.showMeter(MeterType.ServeProgress);
                     _this.scoreboard.setScore(game.score.player1, game.score.player2);
                 });
                 game.eventEmitter.on("startingServe", function () {
-                    _this.scoreboard.showMeter(MeterType.Speed);
+                    _this.scoreboard.showMeter(MeterType.ServeProgress);
                 });
-                var updatePaddleObj_1 = function (obj, paddle) {
-                    obj.position.x = paddle.position.x;
-                    obj.position.y = paddle.position.y;
-                    obj.rotation.z = paddle.zRotationEulers;
-                };
-                var updateBall_1 = function (obj) {
-                    obj.outerObj.position.x = game.ball.position.x;
-                    obj.outerObj.position.y = game.ball.position.y;
-                    var distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
-                    var angle = distanceTraveled / game.ball.radius;
-                    var axisOfRotation = new Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
-                    var rotation = new Matrix4();
-                    rotation.makeRotationAxis(axisOfRotation, angle);
-                    obj.innerObj.applyMatrix(rotation);
-                };
-                game.eventEmitter.on("tick", function () {
-                    if (_this.gameObjects == null) {
-                        throw Error("Cannot render before render has been initialized.");
-                    }
-                    if (game.timeUntilServeSec > 0) {
-                        var timePassed = game.config.pauseAfterScoreSec - game.timeUntilServeSec;
-                        var serveProgress = timePassed / game.config.pauseAfterScoreSec;
-                        _this.scoreboard.setServeProgress(serveProgress);
-                    }
-                    updateBall_1(_this.gameObjects.ball);
-                    updatePaddleObj_1(_this.gameObjects.player1Paddle, game.player1Paddle);
-                    updatePaddleObj_1(_this.gameObjects.player2Paddle, game.player2Paddle);
-                });
+                game.eventEmitter.on("tick", function () { return _this.update(game); });
                 game.eventEmitter.on("ballServed", function () {
                     _this.scoreboard.showMeter(MeterType.Speed);
                     _this.scoreboard.setServeProgress(0);
@@ -94891,6 +94857,53 @@
             this.scene.add(hemisphereLight);
             this.scene.add(scoreboardLight);
         };
+        ThreeRenderer.prototype.update = function (game) {
+            var _this = this;
+            var updatePaddleObj = function (obj, paddle) {
+                obj.position.x = paddle.position.x;
+                obj.position.y = paddle.position.y;
+                obj.rotation.z = paddle.zRotationEulers;
+            };
+            var updateBall = function (obj) {
+                obj.outerObj.position.x = game.ball.position.x;
+                obj.outerObj.position.y = game.ball.position.y;
+                var distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
+                var angle = distanceTraveled / game.ball.radius;
+                var axisOfRotation = new Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
+                var rotation = new Matrix4();
+                rotation.makeRotationAxis(axisOfRotation, angle);
+                obj.innerObj.applyMatrix(rotation);
+            };
+            var updateScreenShake = function () {
+                var shakeFactor = (game.ball.velocity.length() - _this.config.screenShake.minSpeed) /
+                    (_this.config.screenShake.maxSpeed / _this.config.screenShake.minSpeed);
+                if (shakeFactor > 0) {
+                    var colorIntensity = Math.floor(0x77 * Math.sqrt(Math.min(shakeFactor, 1))); // Math.sqrt creates a curve.
+                    var bgColor = colorIntensity * 0x10000; // Moves value into red digits.
+                    _this.renderer.setClearColor(bgColor, 1);
+                    var shakeX = (Math.random() * 2 - 1) * _this.config.screenShake.maxShake * shakeFactor;
+                    var shakeY = (Math.random() * 2 - 1) * _this.config.screenShake.maxShake * shakeFactor;
+                    var shakeZ = (Math.random() * 2 - 1) * _this.config.screenShake.maxShake * shakeFactor;
+                    _this.cameraParent.position.set(shakeX, shakeY, shakeZ);
+                }
+                else {
+                    _this.renderer.setClearColor(_this.config.clearColor);
+                    _this.cameraParent.position.set(0, 0, 0);
+                }
+            };
+            if (this.gameObjects == null) {
+                throw Error("Cannot render before render has been initialized.");
+            }
+            if (game.timeUntilServeSec > 0) {
+                var timePassed = game.config.pauseAfterScoreSec - game.timeUntilServeSec;
+                var serveProgress = timePassed / game.config.pauseAfterScoreSec;
+                this.scoreboard.setServeProgress(serveProgress);
+            }
+            updateBall(this.gameObjects.ball);
+            updatePaddleObj(this.gameObjects.player1Paddle, game.player1Paddle);
+            updatePaddleObj(this.gameObjects.player2Paddle, game.player2Paddle);
+            updateScreenShake();
+        };
         return ThreeRenderer;
     }());
 
@@ -94930,6 +94943,9 @@
                 inputApplicator.applyInput(__assign({ player: Player.Player1 }, inputCollector.getPaddleMoveInput(dt)));
                 lastTickTime = currentTime;
             });
+            game.eventEmitter.on("ballHitPaddle", this.playBounceSound.bind(this));
+            game.eventEmitter.on("ballHitWall", this.playBounceSound.bind(this));
+            game.eventEmitter.on("playerScored", this.playApplause.bind(this));
             var renderer = (function () {
                 var rendererWidth = hostElement.clientWidth;
                 var rendererHeight = hostElement.clientHeight;
@@ -94951,6 +94967,10 @@
         };
         BrowserClient.prototype.setSize = function (width, height) {
             this.renderer.setSize(width, height);
+        };
+        BrowserClient.prototype.playBounceSound = function () {
+        };
+        BrowserClient.prototype.playApplause = function () {
         };
         return BrowserClient;
     }());

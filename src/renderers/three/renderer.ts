@@ -40,7 +40,7 @@ export class ThreeRenderer {
     };
 
     const createRenderer = (): Three.WebGLRenderer => {
-      const renderer = new Three.WebGLRenderer({antialias: true});
+      const renderer = new Three.WebGLRenderer({ antialias: true });
       renderer.setClearColor(config.clearColor, 1.0);
       renderer.setSize(config.width, config.height);
       renderer.shadowMap.enabled = true;
@@ -117,7 +117,7 @@ export class ThreeRenderer {
 
       const createWall = () => {
         const geo = new Three.BoxGeometry(wallWidth, playFieldHeight, wallHeight);
-        const mat = new Three.MeshLambertMaterial({color: this.config.wallColor});
+        const mat = new Three.MeshLambertMaterial({ color: this.config.wallColor });
         const wall = new Three.Mesh(geo, mat);
         enableShadows(wall);
         return wall;
@@ -125,7 +125,7 @@ export class ThreeRenderer {
 
       const eastWall = createWall();
       eastWall.position.x = -playFieldWidth / 2 - wallWidth / 2,
-      eastWall.position.z = wallHeight / 2 - playFieldDepth;
+        eastWall.position.z = wallHeight / 2 - playFieldDepth;
 
       const westWall = createWall();
       westWall.position.x = playFieldWidth / 2 + wallWidth / 2;
@@ -145,7 +145,7 @@ export class ThreeRenderer {
 
       enableShadows(innerObj);
       outerObj.add(innerObj);
-      return { outerObj, innerObj};
+      return { outerObj, innerObj };
     };
 
     const createPaddles = () => {
@@ -171,7 +171,7 @@ export class ThreeRenderer {
       this.scene.add(eastWall);
       this.scene.add(westWall);
 
-      const {player1Paddle, player2Paddle} = createPaddles();
+      const { player1Paddle, player2Paddle } = createPaddles();
       this.scene.add(player1Paddle);
       this.scene.add(player2Paddle);
 
@@ -193,51 +193,14 @@ export class ThreeRenderer {
       });
 
       game.eventEmitter.on("playerScored", () => {
-        this.scoreboard.setSpeed(0); // Clears speed meter.
-        this.scoreboard.showMeter(MeterType.ServeProgress);
         this.scoreboard.setScore(game.score.player1, game.score.player2);
       });
 
       game.eventEmitter.on("startingServe", () => {
-        this.scoreboard.showMeter(MeterType.Speed);
+        this.scoreboard.showMeter(MeterType.ServeProgress);
       });
 
-      const updatePaddleObj = (obj: Three.Mesh, paddle: Paddle) => {
-        obj.position.x = paddle.position.x;
-        obj.position.y = paddle.position.y;
-        obj.rotation.z = paddle.zRotationEulers;
-      };
-
-      const updateBall = (obj: {outerObj: Three.Group, innerObj: Three.Mesh}) => {
-        obj.outerObj.position.x = game.ball.position.x;
-        obj.outerObj.position.y = game.ball.position.y;
-
-        const distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
-
-        const angle = distanceTraveled / game.ball.radius;
-        const axisOfRotation = new Three.Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
-        const rotation = new Three.Matrix4();
-        rotation.makeRotationAxis(axisOfRotation, angle);
-        obj.innerObj.applyMatrix(rotation);
-      }
-
-      game.eventEmitter.on("tick", () => {
-
-        if (this.gameObjects == null) {
-          throw Error("Cannot render before render has been initialized.");
-        }
-
-        if (game.timeUntilServeSec > 0) {
-          const timePassed = game.config.pauseAfterScoreSec - game.timeUntilServeSec;
-          const serveProgress = timePassed / game.config.pauseAfterScoreSec;
-          this.scoreboard.setServeProgress(serveProgress);
-        }
-
-        updateBall(this.gameObjects.ball);
-
-        updatePaddleObj(this.gameObjects.player1Paddle, game.player1Paddle);
-        updatePaddleObj(this.gameObjects.player2Paddle, game.player2Paddle);
-      });
+      game.eventEmitter.on("tick", () => this.update(game));
 
       game.eventEmitter.on("ballServed", () => {
         this.scoreboard.showMeter(MeterType.Speed);
@@ -249,7 +212,7 @@ export class ThreeRenderer {
   private createPlayField(game: GameEngine) {
     const createPart = (color: number, length: number, yOffset: number) => {
       const geometry = new Three.BoxGeometry(game.config.playField.width, length, this.config.playField.depth, 32, 32);
-      const material = new Three.MeshLambertMaterial({color});
+      const material = new Three.MeshLambertMaterial({ color });
       material.side = Three.DoubleSide;
       const part = new Three.Mesh(geometry, material);
       part.receiveShadow = true;
@@ -329,4 +292,62 @@ export class ThreeRenderer {
     this.scene.add(hemisphereLight);
     this.scene.add(scoreboardLight);
   }
+
+  private update(game: GameEngine) {
+    const updatePaddleObj = (obj: Three.Mesh, paddle: Paddle) => {
+      obj.position.x = paddle.position.x;
+      obj.position.y = paddle.position.y;
+      obj.rotation.z = paddle.zRotationEulers;
+    };
+
+    const updateBall = (obj: { outerObj: Three.Group, innerObj: Three.Mesh }) => {
+      obj.outerObj.position.x = game.ball.position.x;
+      obj.outerObj.position.y = game.ball.position.y;
+
+      const distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
+
+      const angle = distanceTraveled / game.ball.radius;
+      const axisOfRotation = new Three.Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
+      const rotation = new Three.Matrix4();
+      rotation.makeRotationAxis(axisOfRotation, angle);
+      obj.innerObj.applyMatrix(rotation);
+    };
+
+    const updateScreenShake = () => {
+      const shakeFactor = (game.ball.velocity.length() - this.config.screenShake.minSpeed) /
+        (this.config.screenShake.maxSpeed / this.config.screenShake.minSpeed);
+
+      if (shakeFactor > 0) {
+        const colorIntensity = Math.floor(0x77 * Math.sqrt(Math.min(shakeFactor, 1))); // Math.sqrt creates a curve.
+        const bgColor = colorIntensity * 0x10000; // Moves value into red digits.
+        this.renderer.setClearColor(bgColor, 1);
+
+        const shakeX = (Math.random() * 2 - 1) * this.config.screenShake.maxShake * shakeFactor;
+        const shakeY = (Math.random() * 2 - 1) * this.config.screenShake.maxShake * shakeFactor;
+        const shakeZ = (Math.random() * 2 - 1) * this.config.screenShake.maxShake * shakeFactor;
+        this.cameraParent.position.set(shakeX, shakeY, shakeZ);
+      } else {
+        this.renderer.setClearColor(this.config.clearColor);
+        this.cameraParent.position.set(0, 0, 0);
+      }
+    };
+
+    if (this.gameObjects == null) {
+      throw Error("Cannot render before render has been initialized.");
+    }
+
+    if (game.timeUntilServeSec > 0) {
+      const timePassed = game.config.pauseAfterScoreSec - game.timeUntilServeSec;
+      const serveProgress = timePassed / game.config.pauseAfterScoreSec;
+      this.scoreboard.setServeProgress(serveProgress);
+    }
+
+    updateBall(this.gameObjects.ball);
+
+    updatePaddleObj(this.gameObjects.player1Paddle, game.player1Paddle);
+    updatePaddleObj(this.gameObjects.player2Paddle, game.player2Paddle);
+
+    updateScreenShake();
+  }
+
 }

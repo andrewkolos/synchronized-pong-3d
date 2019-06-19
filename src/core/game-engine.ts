@@ -171,6 +171,7 @@ export class GameEngine {
   private serveBall() {
     this.ball.sendTowardPlayer(this.server, this.config.ball.initialSpeedOnServe);
     this.ballIsInPlay = true;
+    this.eventEmitter.emit("ballServed");
   }
 
   private isBallServingAtCurrentInstant() {

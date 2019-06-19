@@ -67,6 +67,10 @@ export class BrowserClient {
       lastTickTime = currentTime;
     });
 
+    game.eventEmitter.on("ballHitPaddle", this.playBounceSound.bind(this));
+    game.eventEmitter.on("ballHitWall", this.playBounceSound.bind(this));
+    game.eventEmitter.on("playerScored", this.playApplause.bind(this));
+
     const renderer = (() => {
       const rendererWidth = hostElement.clientWidth;
       const rendererHeight = hostElement.clientHeight;
@@ -93,5 +97,13 @@ export class BrowserClient {
 
   public setSize(width: number, height: number) {
     this.renderer.setSize(width, height);
+  }
+
+  private playBounceSound() {
+
+  }
+
+  private playApplause() {
+    
   }
 }

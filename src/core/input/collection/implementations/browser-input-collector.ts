@@ -1,5 +1,4 @@
 import { ResponsiveGamepad, ResponsiveGamepadState } from "responsive-gamepad";
-import { KeyboardManager } from "../../../../keyboard";
 import { getPaddleByPlayer } from "../../../common";
 import { Player } from "../../../enum/player";
 import { GameEngine } from "../../../game-engine";
@@ -8,6 +7,7 @@ import { KeyCode } from "../key-code";
 import { KeyMappings } from "../key-mappings";
 import { PaddleInputCollector } from "../paddle-input-collector";
 import { PaddleInputCorrector } from "../paddle-input-corrector";
+import { KeyboardManager } from "./../../keyboard";
 
 export interface BrowserInputCollectorContext {
   keyMappings: KeyMappings;
@@ -52,26 +52,20 @@ export class BrowserInputCollector implements PaddleInputCollector {
 
   private getInputFromControls(dt: number): PaddleInput {
 
-    // We prefer the gamepad, if the user is using it.
-    if (this.isGamepadActive()) {
-      return this.getInputFromGamepad(dt);
-    } else {
+    // We prefer the keyboard, if the user is using it.
+    if (this.isKeyboardActive()) {
+      console.log('reading from keyboard');
       return this.getInputFromKeyboard(dt);
+    } else {
+      return this.getInputFromGamepad(dt);
+
     }
   }
 
-  private isGamepadActive(): boolean {
-    const inputState = ResponsiveGamepad.getState() as ResponsiveGamepadState;
-    const gamePadConnected = Object.entries(inputState).length !== 0;
-    if (!gamePadConnected) {
-      return false;
-    }
-    const deadZoneEnd = GAMEPAD_STICK_DEAD_ZONE_END;
-    const gamePadActive = Math.abs(inputState.LEFT_ANALOG_HORIZONTAL_AXIS) > deadZoneEnd ||
-                          Math.abs(inputState.LEFT_ANALOG_VERTICAL_AXIS) > deadZoneEnd ||
-                          Math.abs(inputState.RIGHT_ANALOG_HORIZONTAL_AXIS) > deadZoneEnd ||
-                          Math.abs(inputState.RIGHT_ANALOG_VERTICAL_AXIS) > deadZoneEnd;
-    return gamePadActive;
+  private isKeyboardActive(): boolean {
+    return Object.values(this.mappings).some((key: KeyCode) => {
+      return this.isKeyDown(key);
+    });
   }
 
   private getInputFromGamepad(dt: number): PaddleInput {
@@ -93,7 +87,7 @@ export class BrowserInputCollector implements PaddleInputCollector {
       dx: Math.abs(positionHorizontalAxis) > deadZoneEnd ? positionHorizontalAxis * this.playerMoveSpeedPerMs * dt : 0,
       dy: Math.abs(positionVerticalAxis) > deadZoneEnd ? - positionVerticalAxis * this.playerMoveSpeedPerMs * dt : 0,
       dzRotation: Math.abs(Math.hypot(rotationHorizontalAxis, -rotationVerticalAxis)) > deadZoneEnd ? dzRotation : 0,
-    }
+    };
 
   }
 
