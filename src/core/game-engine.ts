@@ -158,6 +158,7 @@ export class GameEngine {
     this.ball.velocity.set(0, 0);
     this.server = server;
     this._timeUntilServeSec = this.config.pauseAfterScoreSec;
+    this.eventEmitter.emit("startingServe");
   }
 
   private movePlayer2Paddle() {

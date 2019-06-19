@@ -54,7 +54,6 @@ export class BrowserInputCollector implements PaddleInputCollector {
 
     // We prefer the keyboard, if the user is using it.
     if (this.isKeyboardActive()) {
-      console.log('reading from keyboard');
       return this.getInputFromKeyboard(dt);
     } else {
       return this.getInputFromGamepad(dt);

@@ -193,6 +193,7 @@ export class ThreeRenderer {
       });
 
       game.eventEmitter.on("playerScored", () => {
+        this.scoreboard.setSpeed(0);
         this.scoreboard.setScore(game.score.player1, game.score.player2);
       });
 

@@ -10,9 +10,10 @@ import { PaddleInputApplicator } from "../core/input/paddle-input-applicator";
 import { makeSimpleThreeRendererConfig } from "../renderers/three/basic-renderer-config";
 import { ThreeRenderer } from "../renderers/three/renderer";
 import { ThreeRendererConfig } from "../renderers/three/renderer-config";
+import { AudioManager } from "./audio/audio-manager";
 
 export interface BrowserClientOptions {
-  gameConfig: Partial<Config>;
+  gameConfig: Config;
   keyMappings: KeyMappings;
   player: Player;
   rendererConfig: Partial<ThreeRendererConfig>;
@@ -23,11 +24,9 @@ export class BrowserClient {
   private game: GameEngine;
   private renderer: ThreeRenderer;
 
-  public constructor(hostElement: HTMLElement, options?: Partial<BrowserClientOptions>) {
+  private audioManager: AudioManager;
 
-    if (options == null) {
-      options = {};
-    }
+  public constructor(hostElement: HTMLElement, options: Partial<BrowserClientOptions>) {
 
     const game = (() => {
       const baseConfig = basicConfig;
@@ -83,6 +82,7 @@ export class BrowserClient {
 
     this.game = game;
     this.renderer = renderer;
+    this.audioManager = new AudioManager(game.config.ball.speedLimit);
   }
 
   public startGame() {
@@ -100,10 +100,10 @@ export class BrowserClient {
   }
 
   private playBounceSound() {
-
+    this.audioManager.playBounce(this.game.ball.velocity.length());
   }
 
   private playApplause() {
-    
+    this.audioManager.playCheer();
   }
 }
