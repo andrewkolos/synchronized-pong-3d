@@ -6,7 +6,7 @@ import { BrowserInputCollector,
   BrowserInputCollectorContext } from "../core/input/collection/browser-input-collector";
 import { KeyCode } from "../core/input/collection/key-code";
 import { KeyMappings } from "../core/input/collection/key-mappings";
-import { InputApplicator } from "../core/input/input-applicator";
+import { PaddleInputApplicator } from "../core/input/paddle-input-applicator";
 import { makeSimpleThreeRendererConfig } from "../renderers/three/basic-renderer-config";
 import { ThreeRenderer } from "../renderers/three/renderer";
 import { ThreeRendererConfig } from "../renderers/three/renderer-config";
@@ -50,13 +50,13 @@ export class BrowserClient {
       const context: BrowserInputCollectorContext = {
         keyMappings,
         game,
-        playerPaddle: options.player === Player.Player2 ? game.player2Paddle : game.player1Paddle,
+        player: options.player != null ? options.player : Player.Player1,
       };
 
       return new BrowserInputCollector(context);
     })();
 
-    const inputApplicator = new InputApplicator(game);
+    const inputApplicator = new PaddleInputApplicator(game);
 
     let lastTickTime = new Date().getTime();
     game.eventEmitter.on("tick", () => {

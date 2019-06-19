@@ -1,6 +1,5 @@
 import * as Three from "three";
 import { OrbitControls } from "three-orbitcontrols-ts";
-import { Ball } from "../../core/ball";
 import { GameEngine } from "../../core/game-engine";
 import { Paddle } from "../../core/paddle";
 import { makeTextureFromBase64Image } from "../../util";
@@ -206,7 +205,7 @@ export class ThreeRenderer {
       const updatePaddleObj = (obj: Three.Mesh, paddle: Paddle) => {
         obj.position.x = paddle.position.x;
         obj.position.y = paddle.position.y;
-        obj.rotation.z = paddle.zRotationRads;
+        obj.rotation.z = paddle.zRotationEulers;
       };
 
       const updateBall = (obj: {outerObj: Three.Group, innerObj: Three.Mesh}) => {

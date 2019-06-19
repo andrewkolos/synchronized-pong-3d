@@ -1,5 +1,5 @@
 import { InputCollectionStrategy, InputForEntity } from "@akolos/ts-client-server-game-synchronization";
-import { InputCollector } from "../../core/input/collection/input-collector";
+import { PaddleInputCollector } from "../../core/input/collection/paddle-input-collector";
 
 export interface BrowserInputCollectionStrategyContext {
   playerEntityId: string;
@@ -7,7 +7,7 @@ export interface BrowserInputCollectionStrategyContext {
 
 export class BrowserInputCollectionStrategy implements InputCollectionStrategy {
 
-  constructor(private playerEntityId: string, private inputCollector: InputCollector) {}
+  constructor(private playerEntityId: string, private inputCollector: PaddleInputCollector) {}
 
   public getInputs(dt: number): InputForEntity[] {
     const input: InputForEntity = {

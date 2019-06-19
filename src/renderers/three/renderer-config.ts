@@ -1,4 +1,4 @@
-import Three, { Vector3 } from 'three';
+import Three, { Vector3 } from "three";
 
 export interface MeterConfig {
   scale: number;

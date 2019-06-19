@@ -1,5 +1,9 @@
 // tslint:disable-next-line: no-var-requires
 
+/**
+ * Wraps a browser key code. Contains utility methods for translating between
+ * characters and their respective key codes.
+ */
 export class KeyCode {
 
   public static fromKeyCode(keyCode: number) {

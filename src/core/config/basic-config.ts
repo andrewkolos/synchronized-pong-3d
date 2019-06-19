@@ -17,14 +17,9 @@ export const basicConfig: Config = {
   },
   ball: {
     radius: 0.45,
-    segmentCount: 64,
-    iFrames: 15,
     speedLimit: 1,
-    speedIncreaseOnPaddleHit: 0.5,
-    maxDx: 0.14,
-    minDx: 0.04,
-    initDx: 0.08,
-    initDy: 0.10,
+    speedIncreaseOnPaddleHitRatio: 0.5,
+    initialSpeedOnServe: 0.1,
   },
   pauseAfterScoreSec: 2,
 };

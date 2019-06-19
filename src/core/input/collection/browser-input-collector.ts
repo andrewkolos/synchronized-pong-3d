@@ -1,32 +1,39 @@
-import * as Three from "three";
 import { KeyboardManager } from "../../../keyboard";
+import { Player } from "../../enum/player";
 import { GameEngine } from "../../game-engine";
-import { Paddle } from "../../paddle";
 import { PaddleInput } from "../paddle-input";
-import { InputCollector } from "./input-collector";
 import { KeyCode } from "./key-code";
 import { KeyMappings } from "./key-mappings";
-import { InvalidMovementReason, PaddleMoveValidator } from "./paddle-move-validator";
+import { PaddleInputCollector } from "./paddle-input-collector";
+import { InvalidMovementReason, PaddleInputValidator } from "./paddle-input-validator";
 
 export interface BrowserInputCollectorContext {
   keyMappings: KeyMappings;
   game: GameEngine;
-  playerPaddle: Paddle;
+  player: Player;
 }
 
-export class BrowserInputCollector implements InputCollector {
+/**
+ * Collects inputs for a pong game using the browser.
+ */
+export class BrowserInputCollector implements PaddleInputCollector {
 
   private mappings: KeyMappings;
   private keyboardManager = new KeyboardManager();
   private game: GameEngine;
-  private playerPaddle: Paddle;
+  private player: Player;
 
   constructor(context: BrowserInputCollectorContext) {
     this.mappings = context.keyMappings;
     this.game = context.game;
-    this.playerPaddle = context.playerPaddle;
+    this.player =  context.player;
   }
 
+  /**
+   * Creates an input message based on keyboard/gamepad inputs.
+   * @param dt The number of milliseconds that this
+   * @returns paddle move input
+   */
   public getPaddleMoveInput(dt: number): PaddleInput {
     const rawInput = this.getInputFromControls(dt);
     const correctedInput = this.correctInput(rawInput);
@@ -68,7 +75,7 @@ export class BrowserInputCollector implements InputCollector {
   }
 
   private correctInput(rawInput: PaddleInput): PaddleInput {
-    const validationResult = PaddleMoveValidator.validate(rawInput, this.game, this.playerPaddle);
+    const validationResult = PaddleInputValidator.validate(rawInput, this.game, this.player);
 
     const inputAfterValidation: PaddleInput = {
       dx: rawInput.dx,

@@ -44,14 +44,9 @@
         },
         ball: {
             radius: 0.45,
-            segmentCount: 64,
-            iFrames: 15,
             speedLimit: 1,
-            speedIncreaseOnPaddleHit: 0.5,
-            maxDx: 0.14,
-            minDx: 0.04,
-            initDx: 0.08,
-            initDy: 0.10,
+            speedIncreaseOnPaddleHitRatio: 0.5,
+            initialSpeedOnServe: 0.1,
         },
         pauseAfterScoreSec: 2,
     };
@@ -48311,27 +48306,19 @@
 
     };
 
-    var Ball = /** @class */ (function () {
-        function Ball(config) {
-            this.radius = config.radius;
-            this.velocity = new Vector2();
-            this.position = new Vector2();
-            this.collidingWithPaddle = false;
-            this.collidingWithWall = false;
+    function getPaddleByPlayer(game, player) {
+        return player === Player.Player1 ? game.player1Paddle : game.player2Paddle;
+    }
+    function getPlayerByPaddle(game, paddle) {
+        switch (paddle) {
+            case game.player1Paddle:
+                return Player.Player1;
+            case game.player2Paddle:
+                return Player.Player2;
+            default:
+                throw Error("Paddle does not belong to either player.");
         }
-        return Ball;
-    }());
-
-    var Paddle = /** @class */ (function () {
-        function Paddle(width, height, position, speed) {
-            this.width = width;
-            this.height = height;
-            this.zRotationRads = 0;
-            this.position = position != null ? position : new Vector2();
-            this.velocity = speed != null ? speed : new Vector2();
-        }
-        return Paddle;
-    }());
+    }
 
     var CollisionType;
     (function (CollisionType) {
@@ -48340,8 +48327,218 @@
         CollisionType[CollisionType["LeftEdge"] = 2] = "LeftEdge";
         CollisionType[CollisionType["RightEdge"] = 3] = "RightEdge";
     })(CollisionType || (CollisionType = {}));
+    var Ball = /** @class */ (function () {
+        function Ball(game, config) {
+            this.game = game;
+            this.radius = config.radius;
+            this.velocity = new Vector2();
+            this.position = new Vector2();
+            this.collidingWithPaddle = false;
+            this.collidingWithWall = false;
+        }
+        /**
+         * Moves ball using its current velocity and position/orientation of
+         * the game's paddles and walls.
+         */
+        Ball.prototype.advance = function () {
+            var game = this.game;
+            var positionDelta = this.getDelta();
+            this.position.add(positionDelta);
+            var collisionInfo = this.isCollidingWithAnyPaddle();
+            if (this.isCollidingWithWall()) {
+                this.handleCollisionWithWall();
+                if (this.onWallBounce != null) {
+                    this.onWallBounce();
+                }
+            }
+            else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
+                var aiEnabled = game.config.aiPlayer != null && game.config.aiPlayer.enabled;
+                var delta = new Vector2(this.velocity.x, this.velocity.y);
+                var paddle = getPaddleByPlayer(game, collisionInfo.player);
+                var rot = paddle.zRotationEulers;
+                if (collisionInfo.collisionType === CollisionType.Standard) {
+                    if (paddle === game.player1Paddle || !aiEnabled) {
+                        delta.x -= paddle.velocity.x * game.config.ball.speedIncreaseOnPaddleHitRatio;
+                        delta.y -= paddle.velocity.y * game.config.ball.speedIncreaseOnPaddleHitRatio;
+                        delta.rotateAround(new Vector2(0, 0), -rot);
+                        delta.y *= -1;
+                        delta.rotateAround(new Vector2(0, 0), rot);
+                    }
+                    else if (game.config.aiPlayer != null) {
+                        delta.y *= -1;
+                        delta.y -= game.config.aiPlayer.speedIncreaseOnPaddleHit;
+                    }
+                }
+                else {
+                    delta.x = Math.hypot(delta.x, delta.y);
+                    delta.y = 0;
+                    delta.rotateAround(new Vector2(), collisionInfo.collisionType === CollisionType.RightEdge ? rot : rot);
+                    if (collisionInfo.collisionType === CollisionType.LeftEdge) {
+                        delta.multiplyScalar(-1);
+                    }
+                    // Prevent double-counted collision.
+                    this.position.add(new Vector2(paddle.velocity.x, paddle.velocity.y));
+                }
+                this.velocity.set(delta.x, delta.y);
+                this.position.add(this.velocity);
+                if (this.onPaddleBounce != null) {
+                    this.onPaddleBounce();
+                }
+            }
+        };
+        /**
+         * Teleports the ball to directly in front of a player's paddle.
+         * @param player The player that the ball should teleport to.
+         */
+        Ball.prototype.teleportToPlayer = function (player) {
+            var ballRadius = this.radius;
+            var paddle = getPaddleByPlayer(this.game, player);
+            var paddleHeight = paddle.height;
+            var ballYPosOffsetPlayer1 = (paddleHeight / 2 + ballRadius * 2); // Move the ball in front of the paddle.
+            var ballYPosOffsetPlayer2 = -ballYPosOffsetPlayer1;
+            var ballYPosOffset = player === Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
+            this.position.x = paddle.position.x + ballYPosOffset *
+                Math.cos(paddle.zRotationEulers + Math.PI / 2);
+            this.position.y = paddle.position.y + ballYPosOffset *
+                Math.sin(paddle.zRotationEulers + Math.PI / 2);
+        };
+        /**
+         * Sets the ball's velocity to travel towards a player's paddle at a given speed.
+         * @param player The player that the ball should start traveling towards.
+         * @param speed The speed that the ball should travel at.
+         */
+        Ball.prototype.sendTowardPlayer = function (player, speed) {
+            var servingPaddleObj = getPaddleByPlayer(this.game, player);
+            this.velocity.x = speed * Math.cos(servingPaddleObj.zRotationEulers - Math.PI / 2);
+            this.velocity.y = speed * Math.sin(servingPaddleObj.zRotationEulers - Math.PI / 2);
+        };
+        Ball.prototype.getDelta = function () {
+            var correctionFactor = 60 / this.game.config.game.tickRate;
+            var speedLimit = this.game.config.ball.speedLimit * correctionFactor;
+            var positionDelta = this.game.ball.velocity.clone().multiplyScalar(correctionFactor);
+            var distanceTraveled = positionDelta.length();
+            if (distanceTraveled > speedLimit) {
+                positionDelta.normalize().multiplyScalar(speedLimit);
+                this.game.ball.velocity.x = positionDelta.x;
+                this.game.ball.velocity.y = positionDelta.y;
+                distanceTraveled = speedLimit;
+            }
+            return positionDelta;
+        };
+        Ball.prototype.isCollidingWithWall = function () {
+            var playFieldWidth = this.game.config.playField.width;
+            return (this.position.x < -(playFieldWidth / 2) + this.radius ||
+                this.position.x > playFieldWidth / 2 - this.radius);
+        };
+        Ball.prototype.handleCollisionWithWall = function () {
+            var ballIsAlreadyTravelingAwayFromWall = Math.sign(this.velocity.x) !== Math.sign(this.position.x);
+            if (!ballIsAlreadyTravelingAwayFromWall) {
+                this.velocity.x *= -1;
+            }
+        };
+        Ball.prototype.isCollidingWithAnyPaddle = function () {
+            var _this = this;
+            var player;
+            var collisionType = CollisionType.None;
+            [this.game.player1Paddle, this.game.player2Paddle].forEach(function (p) {
+                var c = _this.isCollidingWithPaddle(p);
+                if (c !== CollisionType.None) {
+                    player = getPlayerByPaddle(_this.game, p);
+                    collisionType = c;
+                }
+            });
+            this.game.ball.collidingWithPaddle = player != null;
+            return {
+                player: player,
+                collisionType: collisionType,
+            };
+        };
+        Ball.prototype.isCollidingWithPaddle = function (paddle) {
+            var paddleWidth = this.game.config.paddles.width;
+            var paddleHeight = this.game.config.paddles.height;
+            var origin = new Vector2(0, 0);
+            var ballRelPos = this.getRelativePosition(this, paddle);
+            var ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.zRotationEulers);
+            var xDiff = Math.abs(ballRelPosDisregardingRotation.x) - this.radius;
+            var yDiff = Math.abs(ballRelPosDisregardingRotation.y) - this.radius;
+            if (xDiff < paddleWidth / 2 && yDiff < paddleHeight && !this.collidingWithPaddle) {
+                if (Math.abs(xDiff) > (paddleWidth / 2 * 0.70) && Math.abs(yDiff) < this.radius) {
+                    if (ballRelPos.x > 0) {
+                        return CollisionType.RightEdge;
+                    }
+                    else {
+                        return CollisionType.LeftEdge;
+                    }
+                }
+                else {
+                    return CollisionType.Standard;
+                }
+            }
+            else {
+                return CollisionType.None;
+            }
+        };
+        Ball.prototype.getRelativePosition = function (ball, paddle) {
+            var relXPos = ball.position.x - paddle.position.x;
+            var relYPos = ball.position.y - paddle.position.y;
+            return new Vector2(relXPos, relYPos);
+        };
+        return Ball;
+    }());
+
+    var Paddle = /** @class */ (function () {
+        /**
+         * Creates an instance of paddle.
+         * @param width The width of the paddle.
+         * @param height The height of the paddle.
+         * @param [position] The initial position of the paddle. Defaults to (0, 0).
+         * @param [velocity] The initial velocity of the paddle. Defaults to (0, 0).
+         */
+        function Paddle(width, height, position, velocity) {
+            this.width = width;
+            this.height = height;
+            this.zRotationEulers = 0;
+            this.position = position != null ? position : new Vector2();
+            this.velocity = velocity != null ? velocity : new Vector2();
+        }
+        return Paddle;
+    }());
+
+    var AiController = /** @class */ (function () {
+        function AiController() {
+        }
+        AiController.move = function (game, player) {
+            if (game.config.aiPlayer == null) {
+                throw Error("AI config is missing");
+            }
+            // tslint:disable-next-line: no-shadowed-variable
+            var ball = game.ball;
+            var paddle = getPaddleByPlayer(game, player);
+            var paddleMinX = game.config.playField.width / 2 - game.config.paddles.width / 2;
+            var paddleMaxX = -paddleMinX;
+            if (ball.position.x > paddle.position.x && paddle.position.x < paddleMinX) {
+                paddle.position.x += game.config.aiPlayer.moveSpeed;
+                if (ball.position.x < paddle.position.x) {
+                    paddle.position.x = ball.position.x;
+                }
+            }
+            else if (ball.position.x > paddleMaxX) {
+                paddle.position.x -= game.config.aiPlayer.moveSpeed;
+                if (ball.position.x > paddle.position.x) {
+                    paddle.position.x = ball.position.x;
+                }
+            }
+        };
+        return AiController;
+    }());
+
     var GameEngine = /** @class */ (function () {
+        /**
+         * Creates an instance of a pong game.
+         * @param config The configuration describing properties of the game.
+         */
         function GameEngine(config) {
+            var _this = this;
             this.eventEmitter = new TypedEventEmitter();
             this.gameLoop = new GameLoop(this.tick.bind(this));
             var createPaddles = function () {
@@ -48358,7 +48555,9 @@
             var paddles = createPaddles();
             this.player1Paddle = paddles.player1Paddle;
             this.player2Paddle = paddles.player2Paddle;
-            this.ball = new Ball(config.ball);
+            this.ball = new Ball(this, config.ball);
+            this.ball.onPaddleBounce = function () { return _this.eventEmitter.emit("ballHitPaddle"); };
+            this.ball.onWallBounce = function () { return _this.eventEmitter.emit("ballHitWall"); };
             // Initialize game state.
             this._timeUntilServeSec = 3;
             this.ballIsInPlay = false;
@@ -48383,37 +48582,33 @@
             enumerable: true,
             configurable: true
         });
+        /**
+         * Starts the game.
+         */
         GameEngine.prototype.start = function () {
             this.gameLoop.start(this.config.game.tickRate);
         };
+        /**
+         * Stops the game. Game state is retained.
+         */
         GameEngine.prototype.stop = function () {
             this.gameLoop.stop();
         };
-        GameEngine.prototype.getPaddleByPlayer = function (player) {
-            return player === Player.Player1 ? this.player1Paddle : this.player2Paddle;
-        };
-        GameEngine.prototype.getPlayerByPaddle = function (paddle) {
-            switch (paddle) {
-                case this.player1Paddle:
-                    return Player.Player1;
-                case this.player2Paddle:
-                    return Player.Player2;
-                default:
-                    throw Error("Paddle does not belong to either player.");
-            }
-        };
         GameEngine.prototype.tick = function () {
             this.moveBall();
+            if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
+                this.movePlayer2Paddle();
+            }
             this.eventEmitter.emit("tick");
         };
-        /**
-         * Moves the ball.
-         */
         GameEngine.prototype.moveBall = function () {
             if (this.ballIsInPlay) {
-                this.moveBallInPlay();
-                if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
-                    this.movePlayer2Paddle();
+                var scorer = this.isBallScoring();
+                if (scorer != null) {
+                    this.handleScore(scorer);
+                }
+                else {
+                    this.moveBallInPlay();
                 }
             }
             else if (this.isBallBeingHeldByServer()) {
@@ -48421,203 +48616,55 @@
             }
             else if (this.isBallServingAtCurrentInstant()) {
                 this.serveBall();
-                this.eventEmitter.emit("ballServed");
             }
             if (this._timeUntilServeSec > 0) {
                 this._timeUntilServeSec -= 1 / this.config.game.tickRate;
             }
         };
         GameEngine.prototype.moveBallInPlay = function () {
-            var _this = this;
-            var ball = this.ball;
-            var isCollidingWithWall = (function () {
-                var playFieldWidth = _this.config.playField.width;
-                var ballRadius = _this.config.ball.radius;
-                return (ball.position.x < -(playFieldWidth / 2) + ballRadius ||
-                    ball.position.x > playFieldWidth / 2 - ballRadius);
-            }).bind(this);
-            var handleCollisionWithWall = (function () {
-                var ballIsAlreadyTravelingAwayFromWall = Math.sign(_this.ball.velocity.x) !== Math.sign(_this.ball.position.x);
-                if (!ballIsAlreadyTravelingAwayFromWall) {
-                    _this.ball.velocity.x *= -1;
-                    _this.eventEmitter.emit("ballHitWall");
-                }
-            }).bind(this);
-            var getRelativePosition = function (ball, paddle) {
-                var relXPos = ball.position.x - paddle.position.x;
-                var relYPos = ball.position.y - paddle.position.y;
-                return new Vector2(relXPos, relYPos);
-            };
-            var isCollidingWithPaddle = function (paddle) {
-                var ball = _this.ball;
-                var ballRadius = _this.config.ball.radius;
-                var paddleWidth = _this.config.paddles.width;
-                var paddleHeight = _this.config.paddles.height;
-                var origin = new Vector2(0, 0);
-                var ballRelPos = getRelativePosition(ball, paddle);
-                var ballRelPosDisregardingRotation = ballRelPos.rotateAround(origin, -paddle.zRotationRads);
-                var xDiff = Math.abs(ballRelPosDisregardingRotation.x) - ballRadius;
-                var yDiff = Math.abs(ballRelPosDisregardingRotation.y) - ballRadius;
-                if (xDiff < paddleWidth / 2 && yDiff < paddleHeight && !_this.ball.collidingWithPaddle) {
-                    if (Math.abs(xDiff) > (paddleWidth / 2 * 0.70) && Math.abs(yDiff) < _this.config.ball.radius) {
-                        if (ballRelPos.x > 0) {
-                            return CollisionType.RightEdge;
-                        }
-                        else {
-                            return CollisionType.LeftEdge;
-                        }
-                    }
-                    else {
-                        return CollisionType.Standard;
-                    }
-                }
-                else {
-                    return CollisionType.None;
-                }
-            };
-            var isCollidingWithAnyPaddle = function () {
-                var player;
-                var collisionType = CollisionType.None;
-                [_this.player1Paddle, _this.player2Paddle].forEach(function (p) {
-                    var c = isCollidingWithPaddle(p);
-                    if (c !== CollisionType.None) {
-                        player = _this.getPlayerByPaddle(p);
-                        collisionType = c;
-                    }
-                });
-                _this.ball.collidingWithPaddle = player != null;
-                return {
-                    player: player,
-                    collisionType: collisionType,
-                };
-            };
-            var isScoring = function () {
-                var ballYPosition = _this.ball.position.y;
-                var halfOfPlayFieldHeight = _this.config.playField.height / 2;
-                var ballDiameter = _this.config.ball.radius * 2;
-                if (ballYPosition > halfOfPlayFieldHeight + ballDiameter) {
-                    return Player.Player1;
-                }
-                else if (ballYPosition < -halfOfPlayFieldHeight - ballDiameter) {
-                    return Player.Player2;
-                }
-                else {
-                    return undefined;
-                }
-            };
-            var correctionFactor = 60 / this.config.game.tickRate;
-            var speedLimit = this.config.ball.speedLimit * correctionFactor;
-            var positionDelta = this.ball.velocity.clone().multiplyScalar(correctionFactor);
-            var distanceTraveled = positionDelta.length();
-            if (distanceTraveled > speedLimit) {
-                positionDelta.normalize().multiplyScalar(speedLimit);
-                this.ball.velocity.x = positionDelta.x;
-                this.ball.velocity.y = positionDelta.y;
-                distanceTraveled = speedLimit;
+            this.ball.advance();
+        };
+        GameEngine.prototype.isBallScoring = function () {
+            var ballYPosition = this.ball.position.y;
+            var halfOfPlayFieldHeight = this.config.playField.height / 2;
+            var ballDiameter = this.config.ball.radius * 2;
+            if (ballYPosition > halfOfPlayFieldHeight + ballDiameter) {
+                return Player.Player1;
             }
-            ball.position.add(positionDelta);
-            var collisionInfo = isCollidingWithAnyPaddle();
-            var scorer = isScoring();
-            if (isCollidingWithWall()) {
-                handleCollisionWithWall();
-                this.eventEmitter.emit("ballHitWall");
+            else if (ballYPosition < -halfOfPlayFieldHeight - ballDiameter) {
+                return Player.Player2;
             }
-            else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
-                var aiEnabled = this.config.aiPlayer != null && this.config.aiPlayer.enabled;
-                var delta = new Vector2(ball.velocity.x, ball.velocity.y);
-                var paddle = this.getPaddleByPlayer(collisionInfo.player);
-                var rot = paddle.zRotationRads;
-                if (collisionInfo.collisionType === CollisionType.Standard) {
-                    if (paddle === this.player1Paddle || !aiEnabled) {
-                        delta.x -= paddle.velocity.x * this.config.ball.speedIncreaseOnPaddleHit;
-                        delta.y -= paddle.velocity.y * this.config.ball.speedIncreaseOnPaddleHit;
-                        delta.rotateAround(new Vector2(0, 0), -rot);
-                        delta.y *= -1;
-                        delta.rotateAround(new Vector2(0, 0), rot);
-                    }
-                    else if (this.config.aiPlayer != null) {
-                        delta.y *= -1;
-                        delta.y -= this.config.aiPlayer.speedIncreaseOnPaddleHit;
-                    }
-                }
-                else {
-                    delta.x = Math.hypot(delta.x, delta.y);
-                    delta.y = 0;
-                    delta.rotateAround(new Vector2(), collisionInfo.collisionType === CollisionType.RightEdge ? rot : rot);
-                    if (collisionInfo.collisionType === CollisionType.LeftEdge) {
-                        delta.multiplyScalar(-1);
-                    }
-                    // Prevent double-counted collision.
-                    ball.position.add(new Vector2(paddle.velocity.x, paddle.velocity.y));
-                }
-                ball.velocity.set(delta.x, delta.y);
-                ball.position.add(ball.velocity);
-                this.eventEmitter.emit("ballHitPaddle");
+            else {
+                return undefined;
             }
-            else if (scorer != null) {
-                var continuousRandom = function (min, max) {
-                    return Math.random() * (max - min) + min;
-                };
-                var initialYVelocityAfterServe = this.config.ball.initDy;
-                ball.velocity.y = scorer === Player.Player1 ? initialYVelocityAfterServe : -initialYVelocityAfterServe;
-                ball.velocity.x = continuousRandom(this.config.ball.minDx, this.config.ball.maxDx);
-                this._timeUntilServeSec = this.config.pauseAfterScoreSec;
-                if (scorer === Player.Player1) {
-                    this._score.player1 += 1;
-                }
-                else if (scorer === Player.Player2) {
-                    this._score.player2 += 1;
-                }
-                var server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
-                this.startServing(server);
-                this.eventEmitter.emit("playerScored", scorer, this._score);
+        };
+        GameEngine.prototype.handleScore = function (scorer) {
+            this._timeUntilServeSec = this.config.pauseAfterScoreSec;
+            if (scorer === Player.Player1) {
+                this._score.player1 += 1;
             }
+            else if (scorer === Player.Player2) {
+                this._score.player2 += 1;
+            }
+            var server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
+            this.startServing(server);
+            this.eventEmitter.emit("playerScored", scorer, this._score);
         };
         GameEngine.prototype.startServing = function (server) {
             this.ballIsInPlay = false;
+            this.ball.velocity.set(0, 0);
             this.server = server;
             this._timeUntilServeSec = this.config.pauseAfterScoreSec;
         };
         GameEngine.prototype.movePlayer2Paddle = function () {
-            if (this.config.aiPlayer == null) {
-                throw Error("AI config is missing");
-            }
-            // tslint:disable-next-line: no-shadowed-variable
-            var ball = this.ball;
-            var player2PaddleObj = this.player2Paddle;
-            var player2PaddleMinX = this.config.playField.width / 2 - this.config.paddles.width / 2;
-            if (ball.position.x > player2PaddleObj.position.x && player2PaddleObj.position.x < player2PaddleMinX) {
-                player2PaddleObj.position.x += this.config.aiPlayer.moveSpeed;
-                if (ball.position.x < player2PaddleObj.position.x) {
-                    player2PaddleObj.position.x = ball.position.x;
-                }
-            }
-            else if (ball.position.x > -player2PaddleMinX) {
-                player2PaddleObj.position.x -= this.config.aiPlayer.moveSpeed;
-                if (ball.position.x > player2PaddleObj.position.x) {
-                    player2PaddleObj.position.x = ball.position.x;
-                }
-            }
+            AiController.move(this, Player.Player2);
         };
         GameEngine.prototype.moveBallPreparingToServe = function () {
-            var paddleHeight = this.config.paddles.height;
-            var ballRadius = this.config.ball.radius;
-            var servingPaddle = this.server === Player.Player1 ? this.player1Paddle : this.player2Paddle;
-            var ballYPosOffsetPlayer1 = (paddleHeight / 2 + ballRadius * 2); // Move the ball in front of the paddle.
-            var ballYPosOffsetPlayer2 = -ballYPosOffsetPlayer1;
-            var ballYPosOffset = this.server === Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
-            this.ball.position.x = servingPaddle.position.x + ballYPosOffset *
-                Math.cos(servingPaddle.zRotationRads + Math.PI / 2);
-            this.ball.position.y = servingPaddle.position.y + ballYPosOffset *
-                Math.sin(servingPaddle.zRotationRads + Math.PI / 2);
+            this.ball.teleportToPlayer(this.server);
         };
         GameEngine.prototype.serveBall = function () {
-            var initDy = this.config.ball.initDy;
-            var servingPaddleObj = this.server === Player.Player1 ? this.player1Paddle : this.player2Paddle;
-            this.ball.velocity.x = initDy * Math.cos(servingPaddleObj.zRotationRads - Math.PI / 2);
-            this.ball.velocity.y = initDy * Math.sin(servingPaddleObj.zRotationRads - Math.PI / 2);
+            this.ball.sendTowardPlayer(this.server, this.config.ball.initialSpeedOnServe);
             this.ballIsInPlay = true;
-            this.moveBall(); // Prevent ball from getting stuck on a moving paddle.
         };
         GameEngine.prototype.isBallServingAtCurrentInstant = function () {
             return this._timeUntilServeSec <= 0;
@@ -48651,8 +48698,13 @@
         InvalidMovementReason[InvalidMovementReason["NeutralZoneInfraction"] = 1] = "NeutralZoneInfraction";
         InvalidMovementReason[InvalidMovementReason["LeavingPlayField"] = 2] = "LeavingPlayField";
     })(InvalidMovementReason || (InvalidMovementReason = {}));
-    var PaddleMoveValidator = /** @class */ (function () {
-        function PaddleMoveValidator(inputToValidate, game, playerPaddle) {
+    /**
+     * Validates a paddle input message, determining if it's valid per the game's rules.
+     * If an input is not valid, the validator will give reasons indicating all the ways
+     * in which the input is invalid.
+     */
+    var PaddleInputValidator = /** @class */ (function () {
+        function PaddleInputValidator(inputToValidate, game, playerPaddle) {
             this.playFieldWidth = game.config.playField.width;
             this.playFieldHeight = game.config.playField.height;
             this.neutralZoneHeight = game.config.playField.neutralZoneHeight;
@@ -48661,8 +48713,18 @@
             this.nextX = playerPaddle.position.x + inputToValidate.dx;
             this.nextY = playerPaddle.position.y + inputToValidate.dy;
         }
-        PaddleMoveValidator.validate = function (inputToValidate, game, playerPaddle) {
-            var validator = new PaddleMoveValidator(inputToValidate, game, playerPaddle);
+        /**
+         * Validates a paddle input.
+         * @param inputToValidate The input to validate.
+         * @param game The current state of the game.
+         * @param playerPaddle A reference to the paddle that the input is attempting
+         *  to manipulate.
+         * @returns The result of the validation, indicating whether or not the input is
+         * invalid and, if not, why not.
+         */
+        PaddleInputValidator.validate = function (inputToValidate, game, player) {
+            var playerPaddle = getPaddleByPlayer(game, player);
+            var validator = new PaddleInputValidator(inputToValidate, game, playerPaddle);
             var invalidReasons = [];
             if (validator.isClippingWithWall()) {
                 invalidReasons.push(InvalidMovementReason.CollisionWithWall);
@@ -48679,32 +48741,40 @@
                 invalidReasons: invalidReasons,
             };
         };
-        PaddleMoveValidator.prototype.isClippingWithWall = function () {
+        PaddleInputValidator.prototype.isClippingWithWall = function () {
             var isClippingWithEastWall = this.nextX <= -(this.playFieldWidth / 2) + this.paddleWidth / 2;
             var isClippingWithWestWall = this.nextX >= this.playFieldWidth / 2 - this.paddleWidth / 2;
             return isClippingWithEastWall || isClippingWithWestWall;
         };
-        PaddleMoveValidator.prototype.isViolatingNeutralZone = function () {
+        PaddleInputValidator.prototype.isViolatingNeutralZone = function () {
             return this.nextY > -(this.neutralZoneHeight) / 2 - this.paddleWidth / 2 &&
                 this.nextY < this.playFieldHeight / 2 + this.paddleWidth / 2;
         };
-        PaddleMoveValidator.prototype.isLeavingPlayField = function () {
+        PaddleInputValidator.prototype.isLeavingPlayField = function () {
             var southBound = -(this.playFieldHeight / 2) + (this.paddleHeight / 2);
             var northBound = (this.playFieldHeight / 2) - (this.paddleHeight / 2);
             var isLeavingFieldThroughBottom = this.nextY <= southBound;
             var isLeavingFieldThroughTop = this.nextY >= northBound;
             return isLeavingFieldThroughBottom || isLeavingFieldThroughTop;
         };
-        return PaddleMoveValidator;
+        return PaddleInputValidator;
     }());
 
+    /**
+     * Collects inputs for a pong game using the browser.
+     */
     var BrowserInputCollector = /** @class */ (function () {
         function BrowserInputCollector(context) {
             this.keyboardManager = new KeyboardManager();
             this.mappings = context.keyMappings;
             this.game = context.game;
-            this.playerPaddle = context.playerPaddle;
+            this.player = context.player;
         }
+        /**
+         * Creates an input message based on keyboard/gamepad inputs.
+         * @param dt The number of milliseconds that this
+         * @returns paddle move input
+         */
         BrowserInputCollector.prototype.getPaddleMoveInput = function (dt) {
             var rawInput = this.getInputFromControls(dt);
             var correctedInput = this.correctInput(rawInput);
@@ -48739,7 +48809,7 @@
             return input;
         };
         BrowserInputCollector.prototype.correctInput = function (rawInput) {
-            var validationResult = PaddleMoveValidator.validate(rawInput, this.game, this.playerPaddle);
+            var validationResult = PaddleInputValidator.validate(rawInput, this.game, this.player);
             var inputAfterValidation = {
                 dx: rawInput.dx,
                 dy: rawInput.dy,
@@ -48771,6 +48841,10 @@
     }());
 
     // tslint:disable-next-line: no-var-requires
+    /**
+     * Wraps a browser key code. Contains utility methods for translating between
+     * characters and their respective key codes.
+     */
     var KeyCode = /** @class */ (function () {
         function KeyCode(keyCode) {
             this.keyCode = keyCode;
@@ -48861,21 +48935,25 @@
         return String.fromCharCode(input).toLowerCase();
     }
 
-    /* Applies input to a Pong 3d game. */
-    var InputApplicator = /** @class */ (function () {
-        function InputApplicator(game) {
+    /* Applies (player) paddle input to a Pong 3d game. */
+    var PaddleInputApplicator = /** @class */ (function () {
+        function PaddleInputApplicator(game) {
             this.game = game;
         }
-        InputApplicator.prototype.applyInput = function (input) {
+        /**
+         * Applies an input to a game instance.
+         * @param input The input to apply to a paddle.
+         */
+        PaddleInputApplicator.prototype.applyInput = function (input) {
             var paddle = this.getPlayersPaddle(input.player);
             paddle.position.add(new Vector2(input.dx, input.dy));
             paddle.velocity.setX(input.dx).setY(input.dy);
-            paddle.zRotationRads += input.dzRotation;
+            paddle.zRotationEulers += input.dzRotation;
         };
-        InputApplicator.prototype.getPlayersPaddle = function (player) {
+        PaddleInputApplicator.prototype.getPlayersPaddle = function (player) {
             return player === Player.Player1 ? this.game.player1Paddle : this.game.player2Paddle;
         };
-        return InputApplicator;
+        return PaddleInputApplicator;
     }());
 
     var player1Color = 0x0D47A1;
@@ -94625,7 +94703,7 @@
                 var updatePaddleObj_1 = function (obj, paddle) {
                     obj.position.x = paddle.position.x;
                     obj.position.y = paddle.position.y;
-                    obj.rotation.z = paddle.zRotationRads;
+                    obj.rotation.z = paddle.zRotationEulers;
                 };
                 var updateBall_1 = function (obj) {
                     obj.outerObj.position.x = game.ball.position.x;
@@ -94752,11 +94830,11 @@
                 var context = {
                     keyMappings: keyMappings,
                     game: game,
-                    playerPaddle: options.player === Player.Player2 ? game.player2Paddle : game.player1Paddle,
+                    player: options.player != null ? options.player : Player.Player1,
                 };
                 return new BrowserInputCollector(context);
             })();
-            var inputApplicator = new InputApplicator(game);
+            var inputApplicator = new PaddleInputApplicator(game);
             var lastTickTime = new Date().getTime();
             game.eventEmitter.on("tick", function () {
                 var currentTime = new Date().getTime();
