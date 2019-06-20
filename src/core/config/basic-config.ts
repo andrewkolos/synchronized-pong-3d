@@ -13,13 +13,13 @@ export const basicConfig: Config = {
     width: 2,
     height: 0.125,
     depth: 1,
-    baseMoveSpeedPerMs: 0.006,
+    baseMoveSpeedPerMs: 0.0075,
   },
   ball: {
     radius: 0.45,
     speedLimit: 1,
-    speedIncreaseOnPaddleHitRatio: 0.5,
-    initialSpeedOnServe: 0.1,
+    speedIncreaseOnPaddleHitRatio: 0.45,
+    initialSpeedOnServe: 0.12,
   },
   pauseAfterScoreSec: 2,
 };

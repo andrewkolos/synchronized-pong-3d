@@ -40,13 +40,13 @@
             width: 2,
             height: 0.125,
             depth: 1,
-            baseMoveSpeedPerMs: 0.006,
+            baseMoveSpeedPerMs: 0.009,
         },
         ball: {
             radius: 0.45,
             speedLimit: 1,
-            speedIncreaseOnPaddleHitRatio: 0.5,
-            initialSpeedOnServe: 0.1,
+            speedIncreaseOnPaddleHitRatio: 0.45,
+            initialSpeedOnServe: 0.12,
         },
         pauseAfterScoreSec: 2,
     };
@@ -94775,6 +94775,7 @@
                     _this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
                 });
                 game.eventEmitter.on("playerScored", function () {
+                    _this.scoreboard.setSpeed(0);
                     _this.scoreboard.setScore(game.score.player1, game.score.player2);
                 });
                 game.eventEmitter.on("startingServe", function () {
