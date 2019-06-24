@@ -24,7 +24,7 @@ export const basicConfig: Config = {
   pauseAfterScoreSec: 2,
 };
 
-export const basicConfigWithAiOpponent: Config = {
+export const basicConfigWithAiOpponent = {
   ...basicConfig,
   aiPlayer: {
     enabled: true,

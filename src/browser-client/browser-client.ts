@@ -4,8 +4,8 @@ import { Player } from "../core/enum/player";
 import { GameEngine } from "../core/game-engine";
 import { BrowserInputCollector,
   BrowserInputCollectorContext } from "../core/input/collection/implementations/browser-input-collector";
-import { KeyCode } from "../core/input/collection/key-code";
 import { KeyMappings } from "../core/input/collection/key-mappings";
+import { simpleKeyMappings } from "../core/input/collection/simple-key-mappings";
 import { PaddleInputApplicator } from "../core/input/paddle-input-applicator";
 import { makeSimpleThreeRendererConfig } from "../renderers/three/basic-renderer-config";
 import { ThreeRenderer } from "../renderers/three/renderer";
@@ -21,7 +21,7 @@ export interface BrowserClientOptions {
 
 export class BrowserClient {
 
-  private game: GameEngine;
+  public readonly game: GameEngine;
   private renderer: ThreeRenderer;
 
   private audioManager: AudioManager;
@@ -37,14 +37,7 @@ export class BrowserClient {
 
     const inputCollector = (() => {
 
-      const keyMappings: KeyMappings = options.keyMappings || {
-        movePaddleForward: KeyCode.fromKeyName("w"),
-        movePaddleLeft: KeyCode.fromKeyName("a"),
-        movePaddleBackward: KeyCode.fromKeyName("s"),
-        movePaddleRight: KeyCode.fromKeyName("d"),
-        rotatePaddleLeft: KeyCode.fromKeyName("q"),
-        rotatePaddleRight: KeyCode.fromKeyName("e"),
-      };
+      const keyMappings: KeyMappings = options.keyMappings || simpleKeyMappings;
 
       const context: BrowserInputCollectorContext = {
         keyMappings,

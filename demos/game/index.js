@@ -40,7 +40,7 @@
             width: 2,
             height: 0.125,
             depth: 1,
-            baseMoveSpeedPerMs: 0.009,
+            baseMoveSpeedPerMs: 0.0075,
         },
         ball: {
             radius: 0.45,
@@ -48,7 +48,7 @@
             speedIncreaseOnPaddleHitRatio: 0.45,
             initialSpeedOnServe: 0.12,
         },
-        pauseAfterScoreSec: 2,
+        pauseAfterScoreSec: 0.000001,
     };
     var basicConfigWithAiOpponent = __assign({}, basicConfig, { aiPlayer: {
             enabled: true,

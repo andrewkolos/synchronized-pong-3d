@@ -1,57 +1,44 @@
-import { ClientEntitySynchronizer, ClientEntitySynchronizerContext,
-  InputCollectionStrategy, SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
+import { ConnectionToServer, InputCollectionStrategy } from "@akolos/ts-client-server-game-synchronization";
+import { EntityId } from "networked/entity synchronization/entity-ids";
 import { GameEngine } from "../core/game-engine";
 import { Paddle } from "../core/paddle";
-import { EntityFactory } from "./client/entity-factory";
 import { BallEntity } from "./entities/ball";
 import { PaddleEntity } from "./entities/paddle";
-import { LocalServerConnection } from "./local/local-server-connection";
+import { PongEntity } from "./entities/pong-entity";
 
-export interface NetworkAdapterContext {
-  serverConnection: LocalServerConnection;
+export interface EntityGameSynchronizerContext {
   serverUpdateRate: number;
   inputCollectionStrategy: InputCollectionStrategy;
+  connectionToServer: ConnectionToServer;
 }
 
-export class NetworkAdapter {
+export class EntityGameSynchronizer {
 
-  public constructor(gameToSync: GameEngine, context: NetworkAdapterContext) {
-    const entityFactory = new EntityFactory();
-
-    const syncContext: ClientEntitySynchronizerContext = {
-      entityFactory,
-      inputCollector: context.inputCollectionStrategy,
-      serverConnection: context.serverConnection,
-      serverUpdateRateInHz: context.serverUpdateRate,
-    };
-
-    const synchronizer = new ClientEntitySynchronizer(syncContext);
-    synchronizer.eventEmitter.on("synchronized", () => {
-      synchronizer.entities.getEntities().forEach((value: SyncableEntity<any, any>) => {
-        switch (value.id) {
-          case "player1":
-            const player1 = value as PaddleEntity;
-            this.applySyncPaddleStateToGame(player1, gameToSync.player1Paddle);
-            break;
-          case "player2":
-            const player2 = value as PaddleEntity;
-            this.applySyncPaddleStateToGame(player2, gameToSync.player2Paddle);
-            break;
-          case "ball":
-            const ball = value as BallEntity;
-            gameToSync.ball.object.position.x = ball.state.x;
-            gameToSync.ball.object.position.y = ball.state.y;
-            gameToSync.ball.dx = ball.state.dx;
-            gameToSync.ball.dy = ball.state.dy;
-            break;
-        }
-      });
+  public static syncGame(gameToSync: GameEngine, entities: PongEntity[]) {
+    entities.forEach((value: PongEntity) => {
+      switch (value.id) {
+        case EntityId.P1:
+          const player1 = value as PaddleEntity;
+          this.applySyncPaddleStateToGame(player1, gameToSync.player1Paddle);
+          break;
+        case EntityId.P2:
+          const player2 = value as PaddleEntity;
+          this.applySyncPaddleStateToGame(player2, gameToSync.player2Paddle);
+          break;
+        case EntityId.Ball:
+          const ball = value as BallEntity;
+          gameToSync.ball.position.x = ball.state.x;
+          gameToSync.ball.position.y = ball.state.y;
+          gameToSync.ball.velocity.x = ball.state.dx;
+          gameToSync.ball.velocity.y = ball.state.dy;
+          break;
+      }
     });
   }
 
-  private applySyncPaddleStateToGame(syncPaddle: PaddleEntity, gamePaddle: Paddle): void {
-    gamePaddle.object.position.x = syncPaddle.state.x;
-    gamePaddle.object.position.y = syncPaddle.state.y;
-    gamePaddle.object.rotation.z = syncPaddle.state.zRot;
+  private static applySyncPaddleStateToGame(syncPaddle: PaddleEntity, gamePaddle: Paddle): void {
+    gamePaddle.position.x = syncPaddle.state.x;
+    gamePaddle.position.y = syncPaddle.state.y;
+    gamePaddle.zRotationEulers = syncPaddle.state.zRot;
   }
 }

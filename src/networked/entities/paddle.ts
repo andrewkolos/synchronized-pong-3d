@@ -13,6 +13,11 @@ export interface PaddleState {
 }
 
 export class PaddleEntity extends SyncableEntity<PaddleInput, PaddleState> {
+
+  public constructor(id: string, initialState: PaddleState) {
+    super(id, initialState);
+  }
+
   public calcNextStateFromInput(currentState: PaddleState, input: PaddleInput) {
     return {
       x: currentState.x + input.dx,

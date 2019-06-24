@@ -7,7 +7,7 @@ import { GameEngineEvents } from "./game-engine-events";
 import { Paddle } from "./paddle";
 import { AiController } from "./paddle-ai";
 
-interface Score {
+export interface Score {
   player1: number;
   player2: number;
 }
