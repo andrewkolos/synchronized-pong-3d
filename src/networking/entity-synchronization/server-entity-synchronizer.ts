@@ -1,5 +1,5 @@
 import { EntityStateBroadcastMessage, ServerEntitySynchronizer } from "@akolos/ts-client-server-game-synchronization";
-import { Player } from "core/enum/player";
+import { Player } from "game-core/enum/player";
 import { ClientId } from "../client-id";
 import { PaddleEntity, PaddleInput, PaddleState } from "../entities/paddle";
 

@@ -1,7 +1,7 @@
 import * as Three from "three";
 import { OrbitControls } from "three-orbitcontrols-ts";
-import { GameEngine } from "../../core/game-engine";
-import { Paddle } from "../../core/paddle";
+import { GameEngine } from "../../game-core/game-engine";
+import { Paddle } from "../../game-core/paddle";
 import { makeTextureFromBase64Image } from "../../common";
 import ballTexture from "./images/ball";
 import { ThreeRendererConfig } from "./renderer-config";

@@ -7,7 +7,7 @@ import { KeyCode } from "../key-code";
 import { KeyMappings } from "../key-mappings";
 import { PaddleInputCollector } from "../paddle-input-collector";
 import { PaddleInputCorrector } from "../paddle-input-corrector";
-import { KeyboardManager } from "./../../keyboard";
+import { KeyboardManager } from "../../keyboard";
 
 export interface BrowserInputCollectorContext {
   keyMappings: KeyMappings;

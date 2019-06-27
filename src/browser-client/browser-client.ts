@@ -1,12 +1,12 @@
-import { basicConfig } from "../core/config/basic-config";
-import { Config } from "../core/config/config";
-import { Player } from "../core/enum/player";
-import { GameEngine } from "../core/game-engine";
+import { basicConfig } from "../game-core/config/basic-config";
+import { Config } from "../game-core/config/config";
+import { Player } from "../game-core/enum/player";
+import { GameEngine } from "../game-core/game-engine";
 import { BrowserInputCollector,
-  BrowserInputCollectorContext } from "../core/input/collection/implementations/browser-input-collector";
-import { KeyMappings } from "../core/input/collection/key-mappings";
-import { simpleKeyMappings } from "../core/input/collection/simple-key-mappings";
-import { PaddleInputApplicator } from "../core/input/paddle-input-applicator";
+  BrowserInputCollectorContext } from "../game-core/input/collection/implementations/browser-input-collector";
+import { KeyMappings } from "../game-core/input/collection/key-mappings";
+import { simpleKeyMappings } from "../game-core/input/collection/simple-key-mappings";
+import { PaddleInputApplicator } from "../game-core/input/paddle-input-applicator";
 import { makeSimpleThreeRendererConfig } from "../renderers/three/basic-renderer-config";
 import { ThreeRenderer } from "../renderers/three/renderer";
 import { ThreeRendererConfig } from "../renderers/three/renderer-config";

@@ -1,29 +1,20 @@
-import { ConnectionToServer, InputCollectionStrategy } from "@akolos/ts-client-server-game-synchronization";
-import { EntityId } from "networked/entity synchronization/entity-ids";
-import { GameEngine } from "../core/game-engine";
-import { Paddle } from "../core/paddle";
+import { EntityId } from "networking/entity-synchronization/entity-ids";
+import { GameEngine } from "../game-core/game-engine";
+import { Paddle } from "../game-core/paddle";
 import { BallEntity } from "./entities/ball";
 import { PaddleEntity } from "./entities/paddle";
 import { PongEntity } from "./entities/pong-entity";
 
-export interface EntityGameSynchronizerContext {
-  serverUpdateRate: number;
-  inputCollectionStrategy: InputCollectionStrategy;
-  connectionToServer: ConnectionToServer;
-}
-
-export class EntityGameSynchronizer {
-
-  public static syncGame(gameToSync: GameEngine, entities: PongEntity[]) {
+export function syncGameStateWithEntities(gameToSync: GameEngine, entities: PongEntity[]) {
     entities.forEach((value: PongEntity) => {
       switch (value.id) {
         case EntityId.P1:
           const player1 = value as PaddleEntity;
-          this.applySyncPaddleStateToGame(player1, gameToSync.player1Paddle);
+          applySyncPaddleStateToGame(player1, gameToSync.player1Paddle);
           break;
         case EntityId.P2:
           const player2 = value as PaddleEntity;
-          this.applySyncPaddleStateToGame(player2, gameToSync.player2Paddle);
+          applySyncPaddleStateToGame(player2, gameToSync.player2Paddle);
           break;
         case EntityId.Ball:
           const ball = value as BallEntity;
@@ -36,9 +27,8 @@ export class EntityGameSynchronizer {
     });
   }
 
-  private static applySyncPaddleStateToGame(syncPaddle: PaddleEntity, gamePaddle: Paddle): void {
+function applySyncPaddleStateToGame(syncPaddle: PaddleEntity, gamePaddle: Paddle): void {
     gamePaddle.position.x = syncPaddle.state.x;
     gamePaddle.position.y = syncPaddle.state.y;
     gamePaddle.zRotationEulers = syncPaddle.state.zRot;
-  }
 }

@@ -1,6 +1,6 @@
-import { getPaddleByPlayer } from "../../../core/common";
-import { Player } from "../../../core/enum/player";
-import { GameEngine } from "../../../core/game-engine";
+import { getPaddleByPlayer } from "../../common";
+import { Player } from "../../enum/player";
+import { GameEngine } from "../../game-engine";
 import { PaddleInput } from "../paddle-input";
 import { PaddleInputCollector } from "./paddle-input-collector";
 

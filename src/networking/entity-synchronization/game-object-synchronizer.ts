@@ -1,7 +1,7 @@
 import { ClientEntitySynchronizer, ServerEntitySynchronizer,
         SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
-import { GameEngine } from "../../core/game-engine";
-import { Paddle } from "../../core/paddle";
+import { GameEngine } from "../../game-core/game-engine";
+import { Paddle } from "../../game-core/paddle";
 import { BallEntity } from "../entities/ball";
 import { PaddleEntity } from "../entities/paddle";
 import { EntityId } from "./entity-ids";

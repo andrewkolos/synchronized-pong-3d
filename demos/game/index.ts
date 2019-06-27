@@ -1,5 +1,5 @@
 import { BrowserClient } from "../../src/browser-client/browser-client";
-import { basicConfigWithAiOpponent } from "../../src/core/config/basic-config";
+import { basicConfigWithAiOpponent } from "../../src/game-core/config/basic-config";
 
 const rendererElement = document.getElementById("game");
 rendererElement!.style.height = `${window.innerHeight}px`;

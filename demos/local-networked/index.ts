@@ -1,16 +1,16 @@
 import { ClientEntitySynchronizer, InMemoryClientServerNetwork } from "@akolos/ts-client-server-game-synchronization";
 import { BrowserClient } from "../../src/browser-client/browser-client";
-import { basicConfig, basicConfigWithAiOpponent } from "../../src/core/config/basic-config";
-import { Player } from "../../src/core/enum/player";
-import { GameEngine } from "../../src/core/game-engine";
-import { AiPaddleInputCollector } from "../../src/core/input/collection/ai-paddle-input-collector";
-import { BrowserInputCollector } from "../../src/core/input/collection/implementations/browser-input-collector";
-import { simpleKeyMappings } from "../../src/core/input/collection/simple-key-mappings";
-import { ClientId } from "../../src/networked/client-id";
-import { PongInputCollectionStrategy } from "../../src/networked/client/pong-input-collection-strategy";
-import { PongEntityFactory } from "../../src/networked/entity synchronization/entity-factory";
-import { GameObjectSynchronizer } from "../../src/networked/entity synchronization/game-object-synchronizer";
-import { PongServerEntitySynchronizer } from "../../src/networked/entity synchronization/server-entity-synchronizer";
+import { basicConfig, basicConfigWithAiOpponent } from "../../src/game-core/config/basic-config";
+import { Player } from "../../src/game-core/enum/player";
+import { GameEngine } from "../../src/game-core/game-engine";
+import { AiPaddleInputCollector } from "../../src/game-core/input/collection/ai-paddle-input-collector";
+import { BrowserInputCollector } from "../../src/game-core/input/collection/implementations/browser-input-collector";
+import { simpleKeyMappings } from "../../src/game-core/input/collection/simple-key-mappings";
+import { ClientId } from "../../src/networking/client-id";
+import { PongInputCollectionStrategy } from "../../src/networking/client/pong-input-collection-strategy";
+import { PongEntityFactory } from "../../src/networking/entity-synchronization/entity-factory";
+import { GameObjectSynchronizer } from "../../src/networking/entity-synchronization/game-object-synchronizer";
+import { PongServerEntitySynchronizer } from "../../src/networking/entity-synchronization/server-entity-synchronizer";
 import { makeSimpleThreeRendererConfig } from "../../src/renderers/three/basic-renderer-config";
 import { ThreeRenderer } from "../../src/renderers/three/renderer";
 

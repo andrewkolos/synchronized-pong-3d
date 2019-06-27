@@ -1,4 +1,4 @@
-import { getPaddleByPlayer } from "core/common";
+import { getPaddleByPlayer } from "game-core/common";
 import * as Three from "three";
 import { Player } from "../enum/player";
 import { GameEngine } from "../game-engine";
