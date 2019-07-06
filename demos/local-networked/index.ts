@@ -7,7 +7,7 @@ import { BrowserInputCollector, BrowserInputCollectorContext } from "../../src/g
 import { ClientId } from "../../src/networking/client-id";
 import { makeSimpleThreeRendererConfig } from "../../src/renderers/three/basic-renderer-config";
 import { ThreeRenderer } from "../../src/renderers/three/renderer";
-import { PongGameClientSideSynchronizer, GameClientServerConnectionInfo } from 'networking/client/game-client';
+import { PongGameClientSideSynchronizer, GameClientServerConnectionInfo } from 'networking/client/client-side-synchronizer';
 import { PaddleInputCollector } from 'game-core/input/collection/paddle-input-collector';
 import { simpleP1KeyMappings, simpleP2KeyMappings } from 'game-core/input/collection/key-mappings';
 import { PongGameServer, PongGameServerConfig } from 'networking/server/game-server';
