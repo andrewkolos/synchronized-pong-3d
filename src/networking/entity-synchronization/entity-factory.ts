@@ -2,9 +2,10 @@ import { EntityFactory, SyncableEntity } from "@akolos/ts-client-server-game-syn
 import { BallEntity } from "../entities/ball";
 import { PaddleEntity } from "../entities/paddle";
 import { EntityId } from "./entity-ids";
+import { PongEntity } from 'networking/entities/pong-entity';
 
-export class PongEntityFactory implements EntityFactory {
-  public fromStateMessage(entityId: string, state: any): SyncableEntity<any, any> {
+export class PongEntityFactory implements EntityFactory<PongEntity> {
+  public fromStateMessage(entityId: string, state: any): PongEntity {
     switch (entityId) {
       case EntityId.P1:
       case EntityId.P2:

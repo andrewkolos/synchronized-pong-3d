@@ -42,7 +42,7 @@ export interface Config {
   /** How many seconds until the ball is served after a player scores. */
   pauseAfterScoreSec: number;
   aiPlayer?: {
-    enabled: true;
+    enabled: boolean;
     moveSpeed: number;
     speedIncreaseOnPaddleHit: number;
   };

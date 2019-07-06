@@ -2,13 +2,14 @@ import { EntityStateBroadcastMessage, ServerEntitySynchronizer } from "@akolos/t
 import { Player } from "game-core/enum/player";
 import { ClientId } from "../client-id";
 import { PaddleEntity, PaddleInput, PaddleState } from "../entities/paddle";
+import { PongEntity } from "networking/entities/pong-entity";
 
 interface PlayerMovementInfo {
   distanceCoveredInPast50Ms: number;
   lastInputSeenAt: Date;
 }
 
-export class PongServerEntitySynchronizer extends ServerEntitySynchronizer {
+export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongEntity, ClientId> {
 
   private player1?: PaddleEntity;
   private player2?: PaddleEntity;
@@ -22,7 +23,7 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer {
     this.paddleMaxSpeedPerMs = paddleMaxSpeedPerMs;
   }
 
-  protected getIdForNewClient() {
+  protected getIdForNewClient(): ClientId {
     if (this.player1 == null) {
       return ClientId.P1;
     }
@@ -64,7 +65,7 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer {
     this.entities.addEntity(playerEntity);
   }
 
-  protected getStatesToBroadcastToClients(): EntityStateBroadcastMessage[] {
+  protected getStatesToBroadcastToClients(): Array<EntityStateBroadcastMessage<PongEntity>> {
     const connectedPlayers = [];
     if (this.player1 != null) {
       connectedPlayers.push(this.player1);
@@ -73,7 +74,7 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer {
       connectedPlayers.push(this.player2);
     }
 
-    return connectedPlayers.map((player: PaddleEntity): EntityStateBroadcastMessage => {
+    return connectedPlayers.map((player: PaddleEntity): EntityStateBroadcastMessage<PongEntity> => {
       return {
         entityId: player.id,
         state: player.state,

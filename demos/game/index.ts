@@ -1,10 +1,15 @@
 import { BrowserClient } from "../../src/browser-client/browser-client";
 import { basicConfigWithAiOpponent } from "../../src/game-core/config/basic-config";
+import { GameEngine } from 'game-core/game-engine';
+import { Player } from 'game-core/enum/player';
+import { simpleP1KeyMappings } from 'game-core/input/collection/key-mappings';
 
-const rendererElement = document.getElementById("game");
+const rendererElement = document.getElementById("game")!;
 rendererElement!.style.height = `${window.innerHeight}px`;
-const client = new BrowserClient(rendererElement!, {gameConfig: basicConfigWithAiOpponent});
-client.startGame();
+const game = new GameEngine(basicConfigWithAiOpponent);
+const client = new BrowserClient(game, rendererElement, {input: {player: Player.Player1, keyMappings: simpleP1KeyMappings}});
+game.start();
+client.start();
 
 window.addEventListener("resize", () => {
   rendererElement!.style.height = `${window.innerHeight}px`;

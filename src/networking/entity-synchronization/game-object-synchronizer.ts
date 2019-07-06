@@ -1,12 +1,13 @@
-import { ClientEntitySynchronizer, ServerEntitySynchronizer,
-        SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
+import { SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
 import { GameEngine } from "../../game-core/game-engine";
 import { Paddle } from "../../game-core/paddle";
 import { BallEntity } from "../entities/ball";
 import { PaddleEntity } from "../entities/paddle";
 import { EntityId } from "./entity-ids";
+import { PongClientEntitySynchronizer } from "./client-entity-synchronizer";
+import { PongServerEntitySynchronizer } from "./server-entity-synchronizer";
 
-type EntitySynchronizer = ClientEntitySynchronizer | ServerEntitySynchronizer;
+type EntitySynchronizer = PongClientEntitySynchronizer | PongServerEntitySynchronizer;
 
 export class GameObjectSynchronizer {
 

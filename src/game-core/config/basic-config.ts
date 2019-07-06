@@ -30,5 +30,5 @@ export const basicConfigWithAiOpponent = {
     enabled: true,
     moveSpeed: 0.06 * 2.1,
     speedIncreaseOnPaddleHit: 0.02,
-  }
+  },
 };

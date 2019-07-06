@@ -19,25 +19,20 @@ export class GameEngine {
   public player2Paddle: Paddle;
   public ball: Ball;
 
-  public get score(): Readonly<Score> {
-    return this._score;
-  }
-
-  public get timeUntilServeSec(): number {
-    return this._timeUntilServeSec;
-  }
-
   /** Game configuration info. */
   public config: Readonly<Config>;
 
   public eventEmitter: TypedEventEmitter<GameEngineEvents> = new TypedEventEmitter();
 
-  // Private game state info.
-  private _score: Score;
-  private _timeUntilServeSec: number;
-  private ballIsInPlay: boolean;
+  public score: Score;
+
+  public timeUntilServeSec: number;
+  /**
+   * Whether or not the ball is currently in play (i.e. the ball is live and moving).
+   */
+  public ballIsInPlay: boolean;
   /** The player that is currently serving the ball (or who just served if the ball is still in play). */
-  private server: Player;
+  public server: Player;
 
   private gameLoop = new GameLoop(this.tick.bind(this));
 
@@ -68,10 +63,10 @@ export class GameEngine {
     this.ball.onWallBounce = () => this.eventEmitter.emit("ballHitWall");
 
     // Initialize game state.
-    this._timeUntilServeSec = 3;
+    this.timeUntilServeSec = 3;
     this.ballIsInPlay = false;
     this.server = Math.random() >= 0.5 ? Player.Player1 : Player.Player2;
-    this._score = {
+    this.score = {
       player1: 0,
       player2: 0,
     };
@@ -116,8 +111,8 @@ export class GameEngine {
       this.serveBall();
     }
 
-    if (this._timeUntilServeSec > 0) {
-      this._timeUntilServeSec -= 1 / this.config.game.tickRate;
+    if (this.timeUntilServeSec > 0) {
+      this.timeUntilServeSec -= 1 / this.config.game.tickRate;
     }
 
   }
@@ -140,24 +135,24 @@ export class GameEngine {
   }
 
   private handleScore(scorer: Player) {
-    this._timeUntilServeSec = this.config.pauseAfterScoreSec;
+    this.timeUntilServeSec = this.config.pauseAfterScoreSec;
     if (scorer === Player.Player1) {
-      this._score.player1 += 1;
+      this.score.player1 += 1;
     } else if (scorer === Player.Player2) {
-      this._score.player2 += 1;
+      this.score.player2 += 1;
     }
 
     const server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
     this.startServing(server);
 
-    this.eventEmitter.emit("playerScored", scorer, this._score);
+    this.eventEmitter.emit("playerScored", scorer, this.score);
   }
 
   private startServing(server: Player) {
     this.ballIsInPlay = false;
     this.ball.velocity.set(0, 0);
     this.server = server;
-    this._timeUntilServeSec = this.config.pauseAfterScoreSec;
+    this.timeUntilServeSec = this.config.pauseAfterScoreSec;
     this.eventEmitter.emit("startingServe");
   }
 
@@ -176,11 +171,14 @@ export class GameEngine {
   }
 
   private isBallServingAtCurrentInstant() {
-    return this._timeUntilServeSec <= 0;
+    return this.timeUntilServeSec <= 0;
   }
 
-  private isBallBeingHeldByServer() {
-    return this._timeUntilServeSec > 0;
+  /**
+   * Determines if a player is holding a ball, and it is soon to be served.
+   */
+  public isBallBeingHeldByServer() {
+    return this.timeUntilServeSec > 0;
   }
 
 }

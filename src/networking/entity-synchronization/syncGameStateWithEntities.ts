@@ -1,9 +1,9 @@
 import { EntityId } from "networking/entity-synchronization/entity-ids";
-import { GameEngine } from "../game-core/game-engine";
-import { Paddle } from "../game-core/paddle";
-import { BallEntity } from "./entities/ball";
-import { PaddleEntity } from "./entities/paddle";
-import { PongEntity } from "./entities/pong-entity";
+import { GameEngine } from "../../game-core/game-engine";
+import { Paddle } from "../../game-core/paddle";
+import { BallEntity } from "../entities/ball";
+import { PaddleEntity } from "../entities/paddle";
+import { PongEntity } from "../entities/pong-entity";
 
 export function syncGameStateWithEntities(gameToSync: GameEngine, entities: PongEntity[]) {
     entities.forEach((value: PongEntity) => {
