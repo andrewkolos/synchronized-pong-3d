@@ -17,7 +17,7 @@ export class GameObjectSynchronizer {
 
   public start() {
     this.onSyncCallback = () => this.sync();
-    this.entitySyncer.eventEmitter.on("synchronized", this.onSyncCallback);
+    this.entitySyncer.eventEmitter.on("synchronized", this.onSyncCallback.bind(this));
   }
 
   public stop() {
@@ -30,7 +30,7 @@ export class GameObjectSynchronizer {
   private sync() {
     const gameToSync = this.gameToSync;
 
-    this.entitySyncer.entities.getEntities().forEach((value: SyncableEntity<unknown, unknown>) => {
+    this.entitySyncer.entities.asArray().forEach((value: SyncableEntity<unknown, unknown>) => {
       switch (value.id) {
         case EntityId.P1:
           const player1 = value as PaddleEntity;
@@ -55,5 +55,7 @@ export class GameObjectSynchronizer {
     gamePaddle.position.x = syncPaddle.state.x;
     gamePaddle.position.y = syncPaddle.state.y;
     gamePaddle.zRotationEulers = syncPaddle.state.zRot;
+    gamePaddle.velocity.x = syncPaddle.state.velX;
+    gamePaddle.velocity.y = syncPaddle.state.velY;
   }
 }

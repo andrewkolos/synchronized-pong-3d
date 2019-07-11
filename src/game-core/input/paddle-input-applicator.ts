@@ -25,7 +25,4 @@ export class PaddleInputApplicator {
     PaddleInputApplicator.applyInput(this.game, input);
   }
 
-  private getPlayersPaddle(player: Player) {
-    return player === Player.Player1 ? this.game.player1Paddle : this.game.player2Paddle;
-  }
 }

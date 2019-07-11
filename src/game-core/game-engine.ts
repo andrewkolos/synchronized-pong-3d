@@ -2,7 +2,7 @@ import { GameLoop, TypedEventEmitter } from "@akolos/ts-client-server-game-synch
 import * as Three from "three";
 import { Ball } from "./ball";
 import { Config } from "./config/config";
-import { Player } from "./enum/player";
+import { Player, validatePlayerVal } from "./enum/player";
 import { GameEngineEvents } from "./game-engine-events";
 import { Paddle } from "./paddle";
 import { AiController } from "./paddle-ai";
@@ -88,6 +88,13 @@ export class GameEngine {
     this.gameLoop.stop();
   }
 
+  /**
+   * Determines if a player is holding a ball, and it is soon to be served.
+   */
+  public isBallBeingHeldByServer() {
+    return this.timeUntilServeSec > 0;
+  }
+
   private tick() {
     this.moveBall();
     if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
@@ -135,6 +142,8 @@ export class GameEngine {
   }
 
   private handleScore(scorer: Player) {
+    validatePlayerVal(scorer);
+
     this.timeUntilServeSec = this.config.pauseAfterScoreSec;
     if (scorer === Player.Player1) {
       this.score.player1 += 1;
@@ -172,13 +181,6 @@ export class GameEngine {
 
   private isBallServingAtCurrentInstant() {
     return this.timeUntilServeSec <= 0;
-  }
-
-  /**
-   * Determines if a player is holding a ball, and it is soon to be served.
-   */
-  public isBallBeingHeldByServer() {
-    return this.timeUntilServeSec > 0;
   }
 
 }

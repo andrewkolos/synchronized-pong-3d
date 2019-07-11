@@ -1,26 +1,51 @@
 import { EntityStateBroadcastMessage, ServerEntitySynchronizer } from "@akolos/ts-client-server-game-synchronization";
-import { Player } from "game-core/enum/player";
 import { ClientId } from "../client-id";
-import { PaddleEntity, PaddleInput, PaddleState } from "../entities/paddle";
+import { PaddleEntity, PaddleEntityInput, PaddleEntityState } from "../entities/paddle";
 import { PongEntity } from "networking/entities/pong-entity";
+import { BallEntity, BallState } from "networking/entities/ball";
+import { EntityId } from "./entity-ids";
+import { Player, validatePlayerVal } from "game-core/enum/player";
 
-interface PlayerMovementInfo {
+interface PlayerInfo {
+  paddleEntity?: PaddleEntity;
   distanceCoveredInPast50Ms: number;
   lastInputSeenAt: Date;
 }
 
 export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongEntity, ClientId> {
 
-  private player1?: PaddleEntity;
-  private player2?: PaddleEntity;
+  public player1?: PaddleEntity;
+  public player2?: PaddleEntity;
+  public ballEntity: BallEntity;
 
   private paddleMaxSpeedPerMs: number;
 
-  private movementInfoByPlayer: Map<PaddleEntity, PlayerMovementInfo> = new Map();
+  private movementInfoByPlayer: Map<PaddleEntity, PlayerInfo> = new Map();
 
   public constructor(paddleMaxSpeedPerMs: number) {
     super();
     this.paddleMaxSpeedPerMs = paddleMaxSpeedPerMs;
+
+    this.ballEntity = new BallEntity(EntityId.Ball, {
+      dx: 0,
+      dy: 0,
+      x: 0,
+      y: 0,
+    });
+  }
+
+  public setPaddleState(player: Player, state: PaddleEntityState) {
+    validatePlayerVal(player);
+
+    const paddle = player === Player.Player1 ? this.player1 : this.player2;
+
+    if (paddle != null) {
+      paddle.state = state;
+    }
+  }
+
+  public setBallState(state: BallState) {
+    this.ballEntity.state = state;
   }
 
   protected getIdForNewClient(): ClientId {
@@ -34,13 +59,15 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongE
   }
 
   protected handleClientConnection(newClientId: ClientId): void {
-    const initialState: PaddleState = {
+
+    const initialState: PaddleEntityState = {
       x: 0,
       y: 0,
+      velX: 0,
+      velY: 0,
       zRot: 0,
     };
 
-    const player = newClientId === ClientId.P1 ? Player.Player1 : Player.Player2;
     const playerEntity = new PaddleEntity(newClientId, initialState);
 
     const infoObj = {
@@ -48,21 +75,26 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongE
       lastInputSeenAt: new Date(),
     };
 
+    this.movementInfoByPlayer.set(playerEntity, infoObj);
+
     switch (newClientId) {
       case ClientId.P1:
-      case ClientId.P2:
-        this.movementInfoByPlayer.set(playerEntity, infoObj);
-      case ClientId.P1:
+        if (this.player1 != null) {
+          throw Error("Client attempted to connect as P1 when P1 client has already been assigned an entity.");
+        }
         this.player1 = playerEntity;
         break;
       case ClientId.P2:
+        if (this.player2 != null) {
+          throw Error("Client attempted to connect as P2 when P2 client has already been assigned an entity.");
+        }
         this.player2 = playerEntity;
         break;
       default:
-        throw Error(`Received unexpected client ID: ${newClientId}`);
+        throw Error(`Received unexpected client ID: ${newClientId}.`);
     }
 
-    this.entities.addEntity(playerEntity);
+    this.addPlayerEntity(playerEntity, newClientId);
   }
 
   protected getStatesToBroadcastToClients(): Array<EntityStateBroadcastMessage<PongEntity>> {
@@ -82,7 +114,7 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongE
     });
   }
 
-  protected validateInput(entity: PaddleEntity, input: PaddleInput): boolean {
+  protected validateInput(entity: PaddleEntity, input: PaddleEntityInput): boolean {
     const movementInfo = this.movementInfoByPlayer.get(entity);
     if (movementInfo == null) {
       return false;

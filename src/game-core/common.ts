@@ -1,8 +1,9 @@
-import { Player } from "./enum/player";
+import { Player, validatePlayerVal } from "./enum/player";
 import { GameEngine } from "./game-engine";
 import { Paddle } from "./paddle";
 
 export function getPaddleByPlayer(game: GameEngine, player: Player): Paddle {
+  validatePlayerVal(player);
   return player === Player.Player1 ? game.player1Paddle : game.player2Paddle;
 }
 

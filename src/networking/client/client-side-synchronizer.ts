@@ -16,6 +16,7 @@ export interface GameClientServerConnectionInfo {
   clientId: string;
   entityUpdateRateHz: number;
   serverUpdateRateInHz: number;
+  gameMessageProcessingRate: number;
 }
 
 interface ServerSyncInfo {
@@ -68,7 +69,7 @@ export class PongGameClientSideSynchronizer {
     const gameObjectAndEntitySyncer = new GameObjectSynchronizer(this.game, entitySyncer);
     const entityUpdateRateHz = connectionInfo.entityUpdateRateHz;
     const gameMessageBuffer = connectionInfo.router.getFilteredMessageBuffer(MessageType.Game);
-    const gameMessageSyncer = new PongGameMessageSyncer(this.game, gameMessageBuffer, entityUpdateRateHz);
+    const gameMessageSyncer = new PongGameMessageSyncer(this.game, gameMessageBuffer, connectionInfo.gameMessageProcessingRate);
 
     const server: ServerSyncInfo = {
       entitySyncer,

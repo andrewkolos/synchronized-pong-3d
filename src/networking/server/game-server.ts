@@ -1,8 +1,6 @@
 import { Config } from "game-core/config/config";
 import { GameEngine } from "game-core/game-engine";
-import { arePongEntities } from "networking/entity-synchronization/arePongEntities";
 import { PongServerEntitySynchronizer } from "../entity-synchronization/server-entity-synchronizer";
-import { syncGameStateWithEntities } from "../entity-synchronization/syncGameStateWithEntities";
 import { PongRouterToClient } from "networking/client-server-communication/connections/router-to-client";
 import { MessageType } from "networking/client-server-communication/message-type";
 import { MessageBuffer } from "@akolos/ts-client-server-game-synchronization";
@@ -11,7 +9,12 @@ import { PaddleServingMessage } from "networking/client-server-communication/mes
 import { ServerGameMessageKind } from "networking/client-server-communication/messages/sent-from-server/server-game-message-kind";
 import { ScoreMessage } from "networking/client-server-communication/messages/sent-from-server/score-message";
 import { IntervalRunner } from "misc/interval-runner";
-import { ClientId } from 'networking/client-id';
+import { ClientId } from "networking/client-id";
+import { Player } from "game-core/enum/player";
+import { getPaddleByPlayer } from "game-core/common";
+import { PaddleEntityState } from "networking/entities/paddle";
+import { BallState } from "networking/entities/ball";
+import { GameObjectSynchronizer } from 'networking/entity-synchronization/game-object-synchronizer';
 
 export interface PongGameServerConfig {
   gameConfig: Config;
@@ -28,20 +31,25 @@ export class PongGameServer {
   public readonly game: GameEngine;
 
   private readonly entitySyncer: PongServerEntitySynchronizer;
+
   private entityBroadcastRateHz: number;
   private readonly gameStateBroadcaster: IntervalRunner;
   private readonly gameBroadcastBuffers: Array<MessageBuffer<never, ServerGameMessage>> = [];
 
+  //private readonly gameObjectSyncer: GameObjectSynchronizer;
+
   public constructor(config: PongGameServerConfig) {
 
-    const {gameConfig, entityBroadcastRateHz: entitySyncRateHz, gameBroadcastRateHz: gameSyncRateHz } = config;
+    const { gameConfig, entityBroadcastRateHz: entitySyncRateHz, gameBroadcastRateHz: gameSyncRateHz } = config;
 
     this.game = new GameEngine(gameConfig);
     this.entitySyncer = new PongServerEntitySynchronizer(gameConfig.paddles.baseMoveSpeedPerMs);
     this.entityBroadcastRateHz = entitySyncRateHz;
     this.gameStateBroadcaster = new IntervalRunner(() => this.broadcastGameState(), gameSyncRateHz);
 
-    this.entitySyncer.eventEmitter.on("synchronized", () => this.syncGameAndEntitySyncer());
+    this.entitySyncer.eventEmitter.on("beforeSynchronization", () => this.syncGameAndEntitySyncer());
+
+ //   this.gameObjectSyncer = new GameObjectSynchronizer(this.game, this.entitySyncer);
   }
 
   /**
@@ -49,15 +57,16 @@ export class PongGameServer {
    */
   public start() {
     this.game.start();
-
     this.gameStateBroadcaster.start();
     this.entitySyncer.start(this.entityBroadcastRateHz);
+//    this.gameObjectSyncer.start();
   }
 
   public stop() {
     this.game.stop();
     this.gameStateBroadcaster.stop();
     this.entitySyncer.stop();
+ //   this.gameObjectSyncer.stop();
   }
 
   public connectClient(router: PongRouterToClient): ClientId {
@@ -85,7 +94,7 @@ export class PongGameServer {
         servingPlayer: this.game.server,
         timeUntilServeSec: this.game.timeUntilServeSec,
       };
-      messagesToSend.push();
+      messagesToSend.push(message);
     }
 
     const scoreMessage: ScoreMessage = {
@@ -99,12 +108,29 @@ export class PongGameServer {
   }
 
   private syncGameAndEntitySyncer() {
-    const entities = this.entitySyncer.entities.getEntities();
-    if (arePongEntities(entities)) {
-      syncGameStateWithEntities(this.game, entities);
-    } else {
-      throw Error ("Unknown entity was given by the entity synchronizer.");
-    }
+   this.syncPlayer(Player.Player1);
+   this.syncPlayer(Player.Player2);
+
+    const ballState: BallState = {
+      x: this.game.ball.position.x,
+      y: this.game.ball.position.y,
+      dx: this.game.ball.velocity.x,
+      dy: this.game.ball.velocity.y,
+    };
+
+    this.entitySyncer.setBallState(ballState);
   }
 
+  private syncPlayer(player: Player) {
+    const gamePaddle = getPaddleByPlayer(this.game, player);
+    const state: PaddleEntityState = {
+      x: gamePaddle.position.x,
+      y: gamePaddle.position.y,
+      velX: gamePaddle.velocity.x,
+      velY: gamePaddle.velocity.y,
+      zRot: gamePaddle.zRotationEulers,
+    };
+
+    this.entitySyncer.setPaddleState(player, state);
+  }
 }

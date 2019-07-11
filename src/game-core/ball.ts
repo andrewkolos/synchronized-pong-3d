@@ -1,7 +1,7 @@
 import * as Three from "three";
 import { getPaddleByPlayer, getPlayerByPaddle } from "./common";
 import { BallConfig } from "./config/config";
-import { Player } from "./enum/player";
+import { Player, validatePlayerVal } from "./enum/player";
 import { GameEngine } from "./game-engine";
 import { Paddle } from "./paddle";
 
@@ -99,6 +99,8 @@ export class Ball {
    * @param player The player that the ball should teleport to.
    */
   public teleportToPlayer(player: Player) {
+    validatePlayerVal(player);
+
     const ballRadius = this.radius;
 
     const paddle = getPaddleByPlayer(this.game, player);

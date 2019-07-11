@@ -1,7 +1,7 @@
 import { SimpleMessageRouter, InMemoryClientServerNetwork, PickSendType } from "@akolos/ts-client-server-game-synchronization";
 import { BrowserClient } from "../../src/browser-client/browser-client";
 import { basicConfig } from "../../src/game-core/config/basic-config";
-import { Player } from "../../src/game-core/enum/player";
+import { Player, validatePlayerVal } from "../../src/game-core/enum/player";
 import { GameEngine } from "../../src/game-core/game-engine";
 import { BrowserInputCollector, BrowserInputCollectorContext } from "../../src/game-core/input/collection/implementations/browser-input-collector";
 import { ClientId } from "../../src/networking/client-id";
@@ -12,13 +12,10 @@ import { PaddleInputCollector } from 'game-core/input/collection/paddle-input-co
 import { simpleP1KeyMappings, simpleP2KeyMappings } from 'game-core/input/collection/key-mappings';
 import { PongGameServer, PongGameServerConfig } from 'networking/server/game-server';
 import { ClientMessageTypeMap, ServerMessageTypeMap } from 'networking/client-server-communication/pong-send-to-client-type-map';
+import { ClientMessageCategorizer, ServerMessageCategorizer } from 'networking/client-server-communication/connections/message-categorizers';
 
-// player1RendererElement!.style.height = `${window.innerHeight}px`;
-
-const SERVER_UPDATE_RATE = 60;
 const SERVER_ENTITY_BROADCAST_RATE = 60;
 const CLIENT_ENTITY_SYNC_RATE = 60;
-const CLIENT_TICK_RATE = 240;
 const CLIENT_GAME_SYNC_RATE = 15;
 const SERVER_GAME_BROADCAST_RATE = 15;
 
@@ -36,11 +33,20 @@ const network = (() => {
   return new InMemoryClientServerNetwork<ClientSendType, ServerSendType>();
 })();
 
+network.eventEmitter.on('serverSentMessageSent', (message: any) => {
+
+});
+
+network.eventEmitter.on('clientSentMessageSent', (message: any) => {
+
+});
+
 function createPongClient(game: GameEngine, player: Player): PongGameClientSideSynchronizer {
+  validatePlayerVal(player);
 
   function openClientConnectionOnServer(): ClientId {
     const connectionToClient = network.getNewClientConnection();
-    const routerToClient = new SimpleMessageRouter<ServerMessageTypeMap>(connectionToClient);
+    const routerToClient = new SimpleMessageRouter<ServerMessageTypeMap>(new ServerMessageCategorizer(), connectionToClient);
     return server.connectClient(routerToClient);
   }
 
@@ -52,17 +58,25 @@ function createPongClient(game: GameEngine, player: Player): PongGameClientSideS
   };
 
   const inputCollector: PaddleInputCollector = new BrowserInputCollector(inputCollectorContext);
-  const context: GameClientServerConnectionInfo = {
+
+  const serverInfo: GameClientServerConnectionInfo = {
     clientId: openClientConnectionOnServer(),
     entityUpdateRateHz: CLIENT_ENTITY_SYNC_RATE,
-    router: new SimpleMessageRouter<ClientMessageTypeMap>(network.getNewConnectionToServer(0)),
+    router: new SimpleMessageRouter<ClientMessageTypeMap>(new ClientMessageCategorizer(), network.getNewConnectionToServer(0)),
     serverUpdateRateInHz: SERVER_ENTITY_BROADCAST_RATE,
+    gameMessageProcessingRate: CLIENT_GAME_SYNC_RATE,
   };
 
-  return new PongGameClientSideSynchronizer(game, inputCollector, context);
+  return new PongGameClientSideSynchronizer(game, inputCollector, serverInfo);
 }
 
-function createBrowserClient(renderElementId: string, player: Player) {
+interface CompleteClient {
+  game: GameEngine;
+  renderElement: HTMLElement;
+  syncer: PongGameClientSideSynchronizer;
+  browserClient: BrowserClient;
+}
+function createClient(renderElementId: string, player: Player): CompleteClient {
 
   const renderElement = document.getElementById(renderElementId)!;
 
@@ -78,13 +92,17 @@ function createBrowserClient(renderElementId: string, player: Player) {
   };
 }
 
-const client1 = createBrowserClient("player1", Player.Player1);
-const client2 = createBrowserClient("player2", Player.Player2);
+const client1 = createClient("player1", Player.Player1);
+const client2 = createClient("player2", Player.Player2);
 
-client1.game.start();
-client1.browserClient.start();
-client2.game.start();
-client2.browserClient.start();
+function startClient(client: CompleteClient) {
+  client.game.start();
+  client.browserClient.start();
+  client.syncer.start();
+}
+
+startClient(client1);
+startClient(client2);
 
 server.start();
 
@@ -95,7 +113,7 @@ const topTwoRenderHeights = window.innerHeight * 0.5;
 const bottomRenderWidth = window.innerWidth;
 const bottomRenderHeight = window.innerHeight * 0.5;
 
-const serverRenderer = new ThreeRenderer(makeSimpleThreeRendererConfig(bottomRenderWidth, bottomRenderHeight));
+const serverRenderer = new ThreeRenderer({...makeSimpleThreeRendererConfig(bottomRenderWidth, bottomRenderHeight), ...{clearColor: 0x000022}});
 const domElement = serverRenderer.getRendererDomElement();
 const serverRendererElement = document.getElementById("server")!;
 serverRendererElement!.appendChild(domElement);

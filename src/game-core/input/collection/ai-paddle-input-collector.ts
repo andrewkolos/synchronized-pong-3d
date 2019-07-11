@@ -15,7 +15,7 @@ export class AiPaddleInputCollector implements PaddleInputCollector {
       throw Error("AI config is missing");
     }
 
-    const input = {
+    const input: PaddleInput = {
       dx: 0,
       dy: 0,
       dzRotation: 0,

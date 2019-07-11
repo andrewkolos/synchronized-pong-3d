@@ -28,7 +28,7 @@
          * Gets all entities in the game.
          * @returns The entities in the game world.
          */
-        getEntities() {
+        asArray() {
             return Array.from(this.entities.values());
         }
     }
@@ -188,7 +188,7 @@
          *
          */
         processServerMessages() {
-            const isFirstTimeSeeingEntity = (entityId) => !this.entities.getEntities().some((ge) => ge.id === entityId);
+            const isFirstTimeSeeingEntity = (entityId) => !this.entities.asArray().some((ge) => ge.id === entityId);
             while (this.server.hasNext()) {
                 const stateMessage = this.server.receive();
                 if (isFirstTimeSeeingEntity(stateMessage.entityId)) {
@@ -272,7 +272,7 @@
         interpolateEntities() {
             const now = new Date().getTime();
             const renderTimestamp = now - (1000.0 / this.serverUpdateRateInHz);
-            this.entities.getEntities().forEach((entity) => {
+            this.entities.asArray().forEach((entity) => {
                 if (this.playerEntityIds.includes(entity.id)) {
                     // No point in interpolating an entity that belongs to this client.
                     return;
@@ -378,6 +378,12 @@
             this.handleClientConnection(newClientId);
             return newClientId;
         }
+        getEntities() {
+            return this.entities.asArray();
+        }
+        addNonPlayerEntity(entity) {
+            this.entities.addEntity(entity);
+        }
         addPlayerEntity(entity, playerClientId) {
             this.entities.addEntity(entity);
             const client = this.clients.get(playerClientId);
@@ -411,6 +417,7 @@
             }
         }
         update() {
+            this.eventEmitter.emit("beforeSynchronization");
             this.processInputs();
             this.sendWorldState();
             this.eventEmitter.emit("synchronized");
@@ -492,17 +499,16 @@
      */
     class InMemoryClientServerNetwork {
         constructor() {
+            this.eventEmitter = new TypedEventEmitter();
             this.clientSentMessageQueues = [];
             this.serverSentMessageQueues = [];
             this.clientSentMessageReadyTimes = new Map();
             this.serverSentMessageSendTimes = new Map();
             this.serverSentMessageReferenceCounts = new Map();
-            this.eventEmitter = new TypedEventEmitter();
-            // tslint:disable-next-line: member-ordering
-            this.on = this.eventEmitter.on.bind(this.eventEmitter);
         }
+        // tslint:disable-next-line: member-ordering
         /**
-         * Get a connection to the server.
+         * Gives a new connection to the server.
          */
         getNewConnectionToServer(lagMs) {
             const that = this;
@@ -597,8 +603,10 @@
      * @template TypeMap @inheritdoc
      */
     class SimpleMessageRouter {
-        constructor(buffer) {
+        constructor(categorizer, buffer) {
+            this.categorizer = categorizer;
             this.buffer = buffer;
+            this.collections = {};
         }
         getFilteredMessageBuffer(bufferType) {
             return {
@@ -607,7 +615,8 @@
                 },
                 hasNext: () => {
                     this.receiveAndOrganizeAllMessages();
-                    return this.collections[bufferType] != null && this.collections[bufferType].length > 0;
+                    const collection = this.collections[bufferType];
+                    return collection != null && collection.length > 0;
                 },
                 receive: () => {
                     this.receiveAndOrganizeAllMessages();
@@ -622,11 +631,11 @@
         receiveAndOrganizeAllMessages() {
             while (this.buffer.hasNext()) {
                 const message = this.buffer.receive();
-                const kind = message.kind;
-                if (this.collections[kind] == null) {
-                    this.collections[kind] = [];
+                const category = this.categorizer.assignMessageCategory(message);
+                if (this.collections[category] == null) {
+                    this.collections[category] = [];
                 }
-                this.collections[kind].push(message);
+                this.collections[category].push(message);
             }
         }
     }
@@ -636,6 +645,11 @@
         Player[Player["Player1"] = 0] = "Player1";
         Player[Player["Player2"] = 1] = "Player2";
     })(Player || (Player = {}));
+    function validatePlayerVal(player) {
+        if (player !== Player.Player1 && player !== Player.Player2) {
+            throw Error("Invalid Player value!");
+        }
+    }
 
     function d(a){for(var b=1;b<arguments.length;b++){var c=null!=arguments[b]?arguments[b]:{},e=Object.keys(c);"function"===typeof Object.getOwnPropertySymbols&&(e=e.concat(Object.getOwnPropertySymbols(c).filter(function(a){return Object.getOwnPropertyDescriptor(c,a).enumerable})));e.forEach(function(b){var e=c[b];b in a?Object.defineProperty(a,b,{value:e,enumerable:!0,configurable:!0,writable:!0}):a[b]=e;});}return a}
     let g={DPAD_UP:"DPAD_UP",DPAD_RIGHT:"DPAD_RIGHT",DPAD_DOWN:"DPAD_DOWN",DPAD_LEFT:"DPAD_LEFT",LEFT_ANALOG_HORIZONTAL_AXIS:"LEFT_ANALOG_HORIZONTAL_AXIS",LEFT_ANALOG_VERTICAL_AXIS:"LEFT_ANALOG_VERTICAL_AXIS",LEFT_ANALOG_UP:"LEFT_ANALOG_UP",LEFT_ANALOG_RIGHT:"LEFT_ANALOG_RIGHT",LEFT_ANALOG_DOWN:"LEFT_ANALOG_DOWN",LEFT_ANALOG_LEFT:"LEFT_ANALOG_LEFT",LEFT_ANALOG_PRESS:"LEFT_ANALOG_PRESS",RIGHT_ANALOG_HORIZONTAL_AXIS:"RIGHT_ANALOG_HORIZONTAL_AXIS",RIGHT_ANALOG_VERTICAL_AXIS:"RIGHT_ANALOG_VERTICAL_AXIS",
@@ -676,6 +690,7 @@
     b.includes(a))&&this.inputChangeMap[c].callback(a);});this.inputChangeOldState=a;}}let A=new z;var ResponsiveGamepad=A;
 
     function getPaddleByPlayer(game, player) {
+        validatePlayerVal(player);
         return player === Player.Player1 ? game.player1Paddle : game.player2Paddle;
     }
     function getPlayerByPaddle(game, paddle) {
@@ -889,6 +904,7 @@
     }
 
     function getPaddleByPlayer$1(game, player) {
+        validatePlayerVal(player);
         return player === Player.Player1 ? game.player1Paddle : game.player2Paddle;
     }
 
@@ -49318,9 +49334,6 @@
         applyInput(input) {
             PaddleInputApplicator.applyInput(this.game, input);
         }
-        getPlayersPaddle(player) {
-            return player === Player.Player1 ? this.game.player1Paddle : this.game.player2Paddle;
-        }
     }
 
     const player1Color = 0x0D47A1;
@@ -95386,6 +95399,7 @@
          * @param player The player that the ball should teleport to.
          */
         teleportToPlayer(player) {
+            validatePlayerVal(player);
             const ballRadius = this.radius;
             const paddle = getPaddleByPlayer(this.game, player);
             const paddleHeight = paddle.height;
@@ -95569,6 +95583,12 @@
         stop() {
             this.gameLoop.stop();
         }
+        /**
+         * Determines if a player is holding a ball, and it is soon to be served.
+         */
+        isBallBeingHeldByServer() {
+            return this.timeUntilServeSec > 0;
+        }
         tick() {
             this.moveBall();
             if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
@@ -95614,6 +95634,7 @@
             }
         }
         handleScore(scorer) {
+            validatePlayerVal(scorer);
             this.timeUntilServeSec = this.config.pauseAfterScoreSec;
             if (scorer === Player.Player1) {
                 this.score.player1 += 1;
@@ -95646,12 +95667,6 @@
         isBallServingAtCurrentInstant() {
             return this.timeUntilServeSec <= 0;
         }
-        /**
-         * Determines if a player is holding a ball, and it is soon to be served.
-         */
-        isBallBeingHeldByServer() {
-            return this.timeUntilServeSec > 0;
-        }
     }
 
     class BallEntity extends SyncableEntity {
@@ -95677,16 +95692,23 @@
             return {
                 x: currentState.x + input.dx,
                 y: currentState.y + input.dy,
+                velX: input.dx,
+                velY: input.dy,
                 zRot: currentState.zRot + input.dzRot,
             };
         }
         interpolate(state1, state2, timeRatio) {
             return {
-                x: (state2.x - state1.x) * timeRatio,
-                y: (state2.y - state1.y) * timeRatio,
-                zRot: (state2.zRot - state2.zRot) * timeRatio,
+                x: interpolateLinearly(state2.x, state1.x, timeRatio),
+                y: interpolateLinearly(state2.y, state1.y, timeRatio),
+                velX: interpolateLinearly(state2.velX, state1.velX, timeRatio),
+                velY: interpolateLinearly(state2.velY, state1.velY, timeRatio),
+                zRot: interpolateLinearly(state2.zRot, state1.zRot, timeRatio),
             };
         }
+    }
+    function interpolateLinearly(value1, value2, timeRatio) {
+        return value1 + ((value2 - value1) * timeRatio);
     }
 
     var EntityId;
@@ -95718,9 +95740,16 @@
         getInputs(dt) {
             const input = {
                 entityId: this.playerEntityId,
-                input: this.inputCollector.getPaddleMoveInput(dt),
+                input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
             };
             return [input];
+        }
+        adaptInput(input) {
+            return {
+                dx: input.dx,
+                dy: input.dy,
+                dzRot: input.dzRotation,
+            };
         }
     }
 
@@ -95731,7 +95760,7 @@
         }
         start() {
             this.onSyncCallback = () => this.sync();
-            this.entitySyncer.eventEmitter.on("synchronized", this.onSyncCallback);
+            this.entitySyncer.eventEmitter.on("synchronized", this.onSyncCallback.bind(this));
         }
         stop() {
             if (this.onSyncCallback != null) {
@@ -95741,7 +95770,7 @@
         }
         sync() {
             const gameToSync = this.gameToSync;
-            this.entitySyncer.entities.getEntities().forEach((value) => {
+            this.entitySyncer.entities.asArray().forEach((value) => {
                 switch (value.id) {
                     case EntityId.P1:
                         const player1 = value;
@@ -95765,6 +95794,8 @@
             gamePaddle.position.x = syncPaddle.state.x;
             gamePaddle.position.y = syncPaddle.state.y;
             gamePaddle.zRotationEulers = syncPaddle.state.zRot;
+            gamePaddle.velocity.x = syncPaddle.state.velX;
+            gamePaddle.velocity.y = syncPaddle.state.velY;
         }
     }
 
@@ -95821,7 +95852,7 @@
             const gameObjectAndEntitySyncer = new GameObjectSynchronizer(this.game, entitySyncer);
             const entityUpdateRateHz = connectionInfo.entityUpdateRateHz;
             const gameMessageBuffer = connectionInfo.router.getFilteredMessageBuffer("game" /* Game */);
-            const gameMessageSyncer = new PongGameMessageSyncer(this.game, gameMessageBuffer, entityUpdateRateHz);
+            const gameMessageSyncer = new PongGameMessageSyncer(this.game, gameMessageBuffer, connectionInfo.gameMessageProcessingRate);
             const server = {
                 entitySyncer,
                 gameObjectAndEntitySyncer,
@@ -96001,6 +96032,12 @@
         stop() {
             this.gameLoop.stop();
         }
+        /**
+         * Determines if a player is holding a ball, and it is soon to be served.
+         */
+        isBallBeingHeldByServer() {
+            return this.timeUntilServeSec > 0;
+        }
         tick() {
             this.moveBall();
             if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
@@ -96046,6 +96083,7 @@
             }
         }
         handleScore(scorer) {
+            validatePlayerVal(scorer);
             this.timeUntilServeSec = this.config.pauseAfterScoreSec;
             if (scorer === Player.Player1) {
                 this.score.player1 += 1;
@@ -96078,13 +96116,13 @@
         isBallServingAtCurrentInstant() {
             return this.timeUntilServeSec <= 0;
         }
-        /**
-         * Determines if a player is holding a ball, and it is soon to be served.
-         */
-        isBallBeingHeldByServer() {
-            return this.timeUntilServeSec > 0;
-        }
     }
+
+    var ClientId;
+    (function (ClientId) {
+        ClientId["P1"] = "p1";
+        ClientId["P2"] = "p2";
+    })(ClientId || (ClientId = {}));
 
     class BallEntity$1 extends SyncableEntity {
         // tslint:disable-next-line: variable-name
@@ -96101,49 +96139,38 @@
         }
     }
 
-    class PaddleEntity$1 extends SyncableEntity {
-        constructor(id, initialState) {
-            super(id, initialState);
-        }
-        calcNextStateFromInput(currentState, input) {
-            return {
-                x: currentState.x + input.dx,
-                y: currentState.y + input.dy,
-                zRot: currentState.zRot + input.dzRot,
-            };
-        }
-        interpolate(state1, state2, timeRatio) {
-            return {
-                x: (state2.x - state1.x) * timeRatio,
-                y: (state2.y - state1.y) * timeRatio,
-                zRot: (state2.zRot - state2.zRot) * timeRatio,
-            };
-        }
-    }
-
-    function arePongEntities(entities) {
-        return entities.every((entity) => {
-            return entity instanceof PaddleEntity$1 || entity instanceof BallEntity$1;
-        });
-    }
-
     var Player$1;
     (function (Player) {
         Player[Player["Player1"] = 0] = "Player1";
         Player[Player["Player2"] = 1] = "Player2";
     })(Player$1 || (Player$1 = {}));
-
-    var ClientId;
-    (function (ClientId) {
-        ClientId["P1"] = "p1";
-        ClientId["P2"] = "p2";
-    })(ClientId || (ClientId = {}));
+    function validatePlayerVal$1(player) {
+        if (player !== Player$1.Player1 && player !== Player$1.Player2) {
+            throw Error("Invalid Player value!");
+        }
+    }
 
     class PongServerEntitySynchronizer extends ServerEntitySynchronizer {
         constructor(paddleMaxSpeedPerMs) {
             super();
             this.movementInfoByPlayer = new Map();
             this.paddleMaxSpeedPerMs = paddleMaxSpeedPerMs;
+            this.ballEntity = new BallEntity$1(EntityId.Ball, {
+                dx: 0,
+                dy: 0,
+                x: 0,
+                y: 0,
+            });
+        }
+        setPaddleState(player, state) {
+            validatePlayerVal$1(player);
+            const paddle = player === Player$1.Player1 ? this.player1 : this.player2;
+            if (paddle != null) {
+                paddle.state = state;
+            }
+        }
+        setBallState(state) {
+            this.ballEntity.state = state;
         }
         getIdForNewClient() {
             if (this.player1 == null) {
@@ -96158,28 +96185,33 @@
             const initialState = {
                 x: 0,
                 y: 0,
+                velX: 0,
+                velY: 0,
                 zRot: 0,
             };
-            const player = newClientId === ClientId.P1 ? Player$1.Player1 : Player$1.Player2;
             const playerEntity = new PaddleEntity(newClientId, initialState);
             const infoObj = {
                 distanceCoveredInPast50Ms: 0,
                 lastInputSeenAt: new Date(),
             };
+            this.movementInfoByPlayer.set(playerEntity, infoObj);
             switch (newClientId) {
                 case ClientId.P1:
-                case ClientId.P2:
-                    this.movementInfoByPlayer.set(playerEntity, infoObj);
-                case ClientId.P1:
+                    if (this.player1 != null) {
+                        throw Error("Client attempted to connect as P1 when P1 client has already been assigned an entity.");
+                    }
                     this.player1 = playerEntity;
                     break;
                 case ClientId.P2:
+                    if (this.player2 != null) {
+                        throw Error("Client attempted to connect as P2 when P2 client has already been assigned an entity.");
+                    }
                     this.player2 = playerEntity;
                     break;
                 default:
-                    throw Error(`Received unexpected client ID: ${newClientId}`);
+                    throw Error(`Received unexpected client ID: ${newClientId}.`);
             }
-            this.entities.addEntity(playerEntity);
+            this.addPlayerEntity(playerEntity, newClientId);
         }
         getStatesToBroadcastToClients() {
             const connectedPlayers = [];
@@ -96207,40 +96239,6 @@
             const movementAvailable = this.paddleMaxSpeedPerMs * 50 * availableMovementRatio;
             return distanceTraveled <= movementAvailable;
         }
-    }
-
-    var EntityId$1;
-    (function (EntityId) {
-        EntityId["Ball"] = "ball";
-        EntityId["P1"] = "p1";
-        EntityId["P2"] = "p2";
-    })(EntityId$1 || (EntityId$1 = {}));
-
-    function syncGameStateWithEntities(gameToSync, entities) {
-        entities.forEach((value) => {
-            switch (value.id) {
-                case EntityId$1.P1:
-                    const player1 = value;
-                    applySyncPaddleStateToGame(player1, gameToSync.player1Paddle);
-                    break;
-                case EntityId$1.P2:
-                    const player2 = value;
-                    applySyncPaddleStateToGame(player2, gameToSync.player2Paddle);
-                    break;
-                case EntityId$1.Ball:
-                    const ball = value;
-                    gameToSync.ball.position.x = ball.state.x;
-                    gameToSync.ball.position.y = ball.state.y;
-                    gameToSync.ball.velocity.x = ball.state.dx;
-                    gameToSync.ball.velocity.y = ball.state.dy;
-                    break;
-            }
-        });
-    }
-    function applySyncPaddleStateToGame(syncPaddle, gamePaddle) {
-        gamePaddle.position.x = syncPaddle.state.x;
-        gamePaddle.position.y = syncPaddle.state.y;
-        gamePaddle.zRotationEulers = syncPaddle.state.zRot;
     }
 
     /**
@@ -96282,6 +96280,7 @@
      * (i.e. score, server).
      */
     class PongGameServer {
+        //private readonly gameObjectSyncer: GameObjectSynchronizer;
         constructor(config) {
             this.gameBroadcastBuffers = [];
             const { gameConfig, entityBroadcastRateHz: entitySyncRateHz, gameBroadcastRateHz: gameSyncRateHz } = config;
@@ -96289,7 +96288,8 @@
             this.entitySyncer = new PongServerEntitySynchronizer(gameConfig.paddles.baseMoveSpeedPerMs);
             this.entityBroadcastRateHz = entitySyncRateHz;
             this.gameStateBroadcaster = new IntervalRunner$1(() => this.broadcastGameState(), gameSyncRateHz);
-            this.entitySyncer.eventEmitter.on("synchronized", () => this.syncGameAndEntitySyncer());
+            this.entitySyncer.eventEmitter.on("beforeSynchronization", () => this.syncGameAndEntitySyncer());
+            //   this.gameObjectSyncer = new GameObjectSynchronizer(this.game, this.entitySyncer);
         }
         /**
          * Start the server, starting the internal game and the state synchronizers.
@@ -96298,11 +96298,13 @@
             this.game.start();
             this.gameStateBroadcaster.start();
             this.entitySyncer.start(this.entityBroadcastRateHz);
+            //    this.gameObjectSyncer.start();
         }
         stop() {
             this.game.stop();
             this.gameStateBroadcaster.stop();
             this.entitySyncer.stop();
+            //   this.gameObjectSyncer.stop();
         }
         connectClient(router) {
             const entitySyncBuffer = router.getFilteredMessageBuffer("entity" /* Entity */);
@@ -96324,7 +96326,7 @@
                     servingPlayer: this.game.server,
                     timeUntilServeSec: this.game.timeUntilServeSec,
                 };
-                messagesToSend.push();
+                messagesToSend.push(message);
             }
             const scoreMessage = {
                 kind: "score" /* Score */,
@@ -96334,18 +96336,58 @@
             return messagesToSend;
         }
         syncGameAndEntitySyncer() {
-            const entities = this.entitySyncer.entities.getEntities();
-            if (arePongEntities(entities)) {
-                syncGameStateWithEntities(this.game, entities);
+            this.syncPlayer(Player$1.Player1);
+            this.syncPlayer(Player$1.Player2);
+            const ballState = {
+                x: this.game.ball.position.x,
+                y: this.game.ball.position.y,
+                dx: this.game.ball.velocity.x,
+                dy: this.game.ball.velocity.y,
+            };
+            this.entitySyncer.setBallState(ballState);
+        }
+        syncPlayer(player) {
+            const gamePaddle = getPaddleByPlayer$1(this.game, player);
+            const state = {
+                x: gamePaddle.position.x,
+                y: gamePaddle.position.y,
+                velX: gamePaddle.velocity.x,
+                velY: gamePaddle.velocity.y,
+                zRot: gamePaddle.zRotationEulers,
+            };
+            this.entitySyncer.setPaddleState(player, state);
+        }
+    }
+
+    class ClientMessageCategorizer {
+        assignMessageCategory(message) {
+            switch (message.kind) {
+                case "score" /* Score */:
+                case "servingPlayerInfo" /* ServingPlayerInfo */:
+                    return "game" /* Game */;
+                case "entityState" /* State */:
+                    return "entity" /* Entity */;
+                default:
+                    throw Error("Unable to categorize client message.");
             }
-            else {
-                throw Error("Unknown entity was given by the entity synchronizer.");
+        }
+    }
+    class ServerMessageCategorizer {
+        assignMessageCategory(message) {
+            switch (message.kind) {
+                case "disconnect" /* Disconnect */:
+                    return "connection" /* Connection */;
+                case "entityInput" /* Input */:
+                    return "entity" /* Entity */;
+                default:
+                    throw Error("Unable to categorize server message.");
             }
         }
     }
 
     const SERVER_ENTITY_BROADCAST_RATE = 60;
     const CLIENT_ENTITY_SYNC_RATE = 60;
+    const CLIENT_GAME_SYNC_RATE = 15;
     const SERVER_GAME_BROADCAST_RATE = 15;
     const serverConfig = {
         entityBroadcastRateHz: SERVER_ENTITY_BROADCAST_RATE,
@@ -96356,10 +96398,15 @@
     const network = (() => {
         return new InMemoryClientServerNetwork();
     })();
+    network.eventEmitter.on('serverSentMessageSent', (message) => {
+    });
+    network.eventEmitter.on('clientSentMessageSent', (message) => {
+    });
     function createPongClient(game, player) {
+        validatePlayerVal(player);
         function openClientConnectionOnServer() {
             const connectionToClient = network.getNewClientConnection();
-            const routerToClient = new SimpleMessageRouter(connectionToClient);
+            const routerToClient = new SimpleMessageRouter(new ServerMessageCategorizer(), connectionToClient);
             return server.connectClient(routerToClient);
         }
         const inputCollectorContext = {
@@ -96369,15 +96416,16 @@
             playerMoveSpeedPerMs: basicConfig.paddles.baseMoveSpeedPerMs,
         };
         const inputCollector = new BrowserInputCollector(inputCollectorContext);
-        const context = {
+        const serverInfo = {
             clientId: openClientConnectionOnServer(),
             entityUpdateRateHz: CLIENT_ENTITY_SYNC_RATE,
-            router: new SimpleMessageRouter(network.getNewConnectionToServer(0)),
+            router: new SimpleMessageRouter(new ClientMessageCategorizer(), network.getNewConnectionToServer(0)),
             serverUpdateRateInHz: SERVER_ENTITY_BROADCAST_RATE,
+            gameMessageProcessingRate: CLIENT_GAME_SYNC_RATE,
         };
-        return new PongGameClientSideSynchronizer(game, inputCollector, context);
+        return new PongGameClientSideSynchronizer(game, inputCollector, serverInfo);
     }
-    function createBrowserClient(renderElementId, player) {
+    function createClient(renderElementId, player) {
         const renderElement = document.getElementById(renderElementId);
         const game = new GameEngine(basicConfig);
         const syncer = createPongClient(game, player);
@@ -96389,19 +96437,22 @@
             browserClient,
         };
     }
-    const client1 = createBrowserClient("player1", Player.Player1);
-    const client2 = createBrowserClient("player2", Player.Player2);
-    client1.game.start();
-    client1.browserClient.start();
-    client2.game.start();
-    client2.browserClient.start();
+    const client1 = createClient("player1", Player.Player1);
+    const client2 = createClient("player2", Player.Player2);
+    function startClient(client) {
+        client.game.start();
+        client.browserClient.start();
+        client.syncer.start();
+    }
+    startClient(client1);
+    startClient(client2);
     server.start();
     // RENDERING //
     const topTwoRenderWidths = window.innerWidth * 0.5 - 15;
     const topTwoRenderHeights = window.innerHeight * 0.5;
     const bottomRenderWidth = window.innerWidth;
     const bottomRenderHeight = window.innerHeight * 0.5;
-    const serverRenderer = new ThreeRenderer(makeSimpleThreeRendererConfig(bottomRenderWidth, bottomRenderHeight));
+    const serverRenderer = new ThreeRenderer(Object.assign({}, makeSimpleThreeRendererConfig(bottomRenderWidth, bottomRenderHeight), { clearColor: 0x000022 }));
     const domElement = serverRenderer.getRendererDomElement();
     const serverRendererElement = document.getElementById("server");
     serverRendererElement.appendChild(domElement);
