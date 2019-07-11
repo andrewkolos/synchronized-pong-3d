@@ -12,6 +12,11 @@ interface PlayerInfo {
   lastInputSeenAt: Date;
 }
 
+interface InitialPaddleLocations {
+  player1Y: number;
+  player2Y: number;
+}
+
 export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongEntity, ClientId> {
 
   public player1?: PaddleEntity;
@@ -22,9 +27,12 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongE
 
   private movementInfoByPlayer: Map<PaddleEntity, PlayerInfo> = new Map();
 
-  public constructor(paddleMaxSpeedPerMs: number) {
+  private readonly initialPaddleLocations: InitialPaddleLocations;
+
+  public constructor(paddleMaxSpeedPerMs: number, initialPaddleLocations: InitialPaddleLocations) {
     super();
     this.paddleMaxSpeedPerMs = paddleMaxSpeedPerMs;
+    this.initialPaddleLocations = initialPaddleLocations;
 
     this.ballEntity = new BallEntity(EntityId.Ball, {
       dx: 0,
@@ -39,9 +47,10 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongE
 
     const paddle = player === Player.Player1 ? this.player1 : this.player2;
 
-    if (paddle != null) {
-      paddle.state = state;
+    if (paddle == null) {
+      throw Error("Attempted to set state for paddle before player connected");
     }
+    paddle.state = state;
   }
 
   public setBallState(state: BallState) {
@@ -62,7 +71,7 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongE
 
     const initialState: PaddleEntityState = {
       x: 0,
-      y: 0,
+      y: newClientId === ClientId.P1 ? this.initialPaddleLocations.player1Y : this.initialPaddleLocations.player2Y,
       velX: 0,
       velY: 0,
       zRot: 0,
@@ -111,6 +120,9 @@ export class PongServerEntitySynchronizer extends ServerEntitySynchronizer<PongE
         entityId: player.id,
         state: player.state,
       };
+    }).concat({
+      entityId: EntityId.Ball,
+      state: this.ballEntity.state,
     });
   }
 

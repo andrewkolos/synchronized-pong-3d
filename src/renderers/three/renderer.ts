@@ -1,6 +1,6 @@
 import * as Three from "three";
 import { OrbitControls } from "three-orbitcontrols-ts";
-import { GameEngine } from "../../game-core/game-engine";
+import { GameEngine, Score } from "../../game-core/game-engine";
 import { Paddle } from "../../game-core/paddle";
 import ballTexture from "./images/ball";
 import { ThreeRendererConfig } from "./renderer-config";
@@ -192,9 +192,8 @@ export class ThreeRenderer {
         this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
       });
 
-      game.eventEmitter.on("playerScored", () => {
-        this.scoreboard.setSpeed(0);
-        this.scoreboard.setScore(game.score.player1, game.score.player2);
+      game.eventEmitter.on("scoreChanged", (_previousScore: Score, currentScore: Score) => {
+        this.handleScoreChange(currentScore);
       });
 
       game.eventEmitter.on("startingServe", () => {
@@ -349,6 +348,11 @@ export class ThreeRenderer {
     updatePaddleObj(this.gameObjects.player2Paddle, game.player2Paddle);
 
     updateScreenShake();
+  }
+
+  private handleScoreChange(currentScore: Score) {
+    this.scoreboard.setSpeed(0);
+    this.scoreboard.setScore(currentScore.player1, currentScore.player2);
   }
 
 }

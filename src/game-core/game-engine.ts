@@ -3,13 +3,23 @@ import * as Three from "three";
 import { Ball } from "./ball";
 import { Config } from "./config/config";
 import { Player, validatePlayerVal } from "./enum/player";
-import { GameEngineEvents } from "./game-engine-events";
 import { Paddle } from "./paddle";
 import { AiController } from "./paddle-ai";
+import { cloneDumbObject } from 'misc/cloneDumbObject';
 
 export interface Score {
   player1: number;
   player2: number;
+}
+
+export interface GameEngineEvents {
+  tick: () => void;
+  startingServe: () => void;
+  ballServed: () => void;
+  ballHitPaddle: () => void;
+  ballHitWall: () => void;
+  playerScored: (scorer: Player, score: { player1: number, player2: number }) => void;
+  scoreChanged(previousScore: Score, currentScore: Score): void;
 }
 
 export class GameEngine {
@@ -144,6 +154,8 @@ export class GameEngine {
   private handleScore(scorer: Player) {
     validatePlayerVal(scorer);
 
+    const previousScore = cloneDumbObject(this.score);
+
     this.timeUntilServeSec = this.config.pauseAfterScoreSec;
     if (scorer === Player.Player1) {
       this.score.player1 += 1;
@@ -155,6 +167,8 @@ export class GameEngine {
     this.startServing(server);
 
     this.eventEmitter.emit("playerScored", scorer, this.score);
+    const currentScore = cloneDumbObject(this.score);
+    this.eventEmitter.emit("scoreChanged", previousScore, currentScore);
   }
 
   private startServing(server: Player) {

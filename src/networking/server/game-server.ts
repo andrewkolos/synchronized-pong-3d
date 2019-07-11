@@ -36,20 +36,21 @@ export class PongGameServer {
   private readonly gameStateBroadcaster: IntervalRunner;
   private readonly gameBroadcastBuffers: Array<MessageBuffer<never, ServerGameMessage>> = [];
 
-  //private readonly gameObjectSyncer: GameObjectSynchronizer;
+  private readonly gameObjectSyncer: GameObjectSynchronizer;
 
   public constructor(config: PongGameServerConfig) {
 
     const { gameConfig, entityBroadcastRateHz: entitySyncRateHz, gameBroadcastRateHz: gameSyncRateHz } = config;
 
     this.game = new GameEngine(gameConfig);
-    this.entitySyncer = new PongServerEntitySynchronizer(gameConfig.paddles.baseMoveSpeedPerMs);
+    this.entitySyncer = new PongServerEntitySynchronizer(gameConfig.paddles.baseMoveSpeedPerMs, {
+      player1Y: this.game.player1Paddle.position.y, player2Y: this.game.player2Paddle.position.y});
     this.entityBroadcastRateHz = entitySyncRateHz;
     this.gameStateBroadcaster = new IntervalRunner(() => this.broadcastGameState(), gameSyncRateHz);
 
     this.entitySyncer.eventEmitter.on("beforeSynchronization", () => this.syncGameAndEntitySyncer());
 
- //   this.gameObjectSyncer = new GameObjectSynchronizer(this.game, this.entitySyncer);
+    this.gameObjectSyncer = new GameObjectSynchronizer(this.game, this.entitySyncer);
   }
 
   /**
@@ -59,14 +60,14 @@ export class PongGameServer {
     this.game.start();
     this.gameStateBroadcaster.start();
     this.entitySyncer.start(this.entityBroadcastRateHz);
-//    this.gameObjectSyncer.start();
+    this.gameObjectSyncer.start();
   }
 
   public stop() {
     this.game.stop();
     this.gameStateBroadcaster.stop();
     this.entitySyncer.stop();
- //   this.gameObjectSyncer.stop();
+    this.gameObjectSyncer.stop();
   }
 
   public connectClient(router: PongRouterToClient): ClientId {
@@ -108,9 +109,6 @@ export class PongGameServer {
   }
 
   private syncGameAndEntitySyncer() {
-   this.syncPlayer(Player.Player1);
-   this.syncPlayer(Player.Player2);
-
     const ballState: BallState = {
       x: this.game.ball.position.x,
       y: this.game.ball.position.y,
@@ -119,18 +117,5 @@ export class PongGameServer {
     };
 
     this.entitySyncer.setBallState(ballState);
-  }
-
-  private syncPlayer(player: Player) {
-    const gamePaddle = getPaddleByPlayer(this.game, player);
-    const state: PaddleEntityState = {
-      x: gamePaddle.position.x,
-      y: gamePaddle.position.y,
-      velX: gamePaddle.velocity.x,
-      velY: gamePaddle.velocity.y,
-      zRot: gamePaddle.zRotationEulers,
-    };
-
-    this.entitySyncer.setPaddleState(player, state);
   }
 }

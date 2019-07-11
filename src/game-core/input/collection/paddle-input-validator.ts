@@ -81,7 +81,7 @@ export class PaddleInputValidator {
 
   private isViolatingNeutralZone(): boolean {
     return this.nextY > -(this.neutralZoneHeight) / 2 - this.paddleWidth / 2 &&
-      this.nextY < this.playFieldHeight / 2 + this.paddleWidth / 2;
+      this.nextY < this.neutralZoneHeight / 2 + this.paddleWidth / 2;
   }
 
   private isLeavingPlayField(): boolean {

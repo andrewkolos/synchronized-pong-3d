@@ -1,8 +1,9 @@
 import { InputCollectionStrategy, InputForEntity, PickInput } from "@akolos/ts-client-server-game-synchronization";
 import { PaddleInputCollector } from "../../game-core/input/collection/paddle-input-collector";
 import { PongEntity } from "networking/entities/pong-entity";
-import { PaddleInput } from "game-core/input/paddle-input";
+import { PaddleInput, NullPaddleInput } from "game-core/input/paddle-input";
 import { PaddleEntity } from "networking/entities/paddle";
+import { compareDumbObjects } from 'misc/compareDumbObjects';
 
 export interface PongInputCollectionStrategyContext {
   playerEntityId: string;
@@ -13,12 +14,18 @@ export class PongInputCollectionStrategy implements InputCollectionStrategy<Pong
   constructor(private playerEntityId: string, private inputCollector: PaddleInputCollector) {}
 
   public getInputs(dt: number): Array<InputForEntity<PongEntity>> {
-    const input: InputForEntity<PongEntity> = {
-      entityId: this.playerEntityId,
-      input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
-    };
+    const rawInput = this.inputCollector.getPaddleMoveInput(dt);
 
-    return [input];
+    if (!compareDumbObjects(rawInput, NullPaddleInput)) {
+      const inputForPlayerEntity: InputForEntity<PongEntity> = {
+        entityId: this.playerEntityId,
+        input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
+      };
+
+      return [inputForPlayerEntity];
+    }
+
+    return [];
   }
 
   private adaptInput(input: PaddleInput): PickInput<PaddleEntity> {

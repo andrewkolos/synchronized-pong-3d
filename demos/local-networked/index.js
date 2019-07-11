@@ -50,7 +50,7 @@
         }
         dispatchEvent(type, ...args) {
             this.handlers.filter(handler => handler[0] === type).forEach(handler => {
-                handler[1](args);
+                handler[1](...args);
             });
         }
         clearEventListeners() {
@@ -760,7 +760,7 @@
         }
         isViolatingNeutralZone() {
             return this.nextY > -(this.neutralZoneHeight) / 2 - this.paddleWidth / 2 &&
-                this.nextY < this.playFieldHeight / 2 + this.paddleWidth / 2;
+                this.nextY < this.neutralZoneHeight / 2 + this.paddleWidth / 2;
         }
         isLeavingPlayField() {
             const southBound = -(this.playFieldHeight / 2) + (this.paddleHeight / 2);
@@ -826,6 +826,7 @@
             this.game = context.game;
             this.player = context.player;
             this.playerMoveSpeedPerMs = context.playerMoveSpeedPerMs;
+            this.gamepadDisabled = context.disableGamepad === false ? false : true;
             ResponsiveGamepad.enable();
         }
         /**
@@ -844,8 +845,15 @@
             if (this.isKeyboardActive()) {
                 return this.getInputFromKeyboard(dt);
             }
-            else {
+            else if (!this.gamepadDisabled) {
                 return this.getInputFromGamepad(dt);
+            }
+            else {
+                return {
+                    dx: 0,
+                    dy: 0,
+                    dzRotation: 0,
+                };
             }
         }
         isKeyboardActive() {
@@ -95057,9 +95065,8 @@
                 game.eventEmitter.on("ballHitPaddle", () => {
                     this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
                 });
-                game.eventEmitter.on("playerScored", () => {
-                    this.scoreboard.setSpeed(0);
-                    this.scoreboard.setScore(game.score.player1, game.score.player2);
+                game.eventEmitter.on("scoreChanged", (_previousScore, currentScore) => {
+                    this.handleScoreChange(currentScore);
                 });
                 game.eventEmitter.on("startingServe", () => {
                     this.scoreboard.showMeter(MeterType.ServeProgress);
@@ -95184,6 +95191,10 @@
             updatePaddleObj(this.gameObjects.player1Paddle, game.player1Paddle);
             updatePaddleObj(this.gameObjects.player2Paddle, game.player2Paddle);
             updateScreenShake();
+        }
+        handleScoreChange(currentScore) {
+            this.scoreboard.setSpeed(0);
+            this.scoreboard.setScore(currentScore.player1, currentScore.player2);
         }
     }
 
@@ -95536,6 +95547,20 @@
         constructor() { }
     }
 
+    // tslint:disable-next-line: interface-over-type-literal
+    function cloneDumbObject(source) {
+        const isDumbObject = Object.values(source).every((value) => {
+            const type = typeof value;
+            return type !== "object" && type !== "function";
+        });
+        if (!isDumbObject) {
+            throw Error("Object cannot contain non-value types.");
+        }
+        const obj = {};
+        Object.assign(obj, source);
+        return obj;
+    }
+
     class GameEngine {
         /**
          * Creates an instance of a pong game.
@@ -95635,6 +95660,7 @@
         }
         handleScore(scorer) {
             validatePlayerVal(scorer);
+            const previousScore = cloneDumbObject(this.score);
             this.timeUntilServeSec = this.config.pauseAfterScoreSec;
             if (scorer === Player.Player1) {
                 this.score.player1 += 1;
@@ -95645,6 +95671,8 @@
             const server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
             this.startServing(server);
             this.eventEmitter.emit("playerScored", scorer, this.score);
+            const currentScore = cloneDumbObject(this.score);
+            this.eventEmitter.emit("scoreChanged", previousScore, currentScore);
         }
         startServing(server) {
             this.ballIsInPlay = false;
@@ -95669,18 +95697,23 @@
         }
     }
 
+    function interpolateStatesLinearly(state1, state2, timeRatio) {
+        const newState = {};
+        Object.keys(state1).forEach((key) => {
+            if (typeof state1[key] === "number") {
+                newState[key] = state1[key] + (state2[key] - state1[key]) * timeRatio;
+            }
+        });
+        return newState;
+    }
+
     class BallEntity extends SyncableEntity {
         // tslint:disable-next-line: variable-name
         calcNextStateFromInput(_currentState, input) {
             return input;
         }
         interpolate(state1, state2, timeRatio) {
-            return {
-                x: (state1.x - state2.x) * timeRatio,
-                y: (state1.y - state2.y) * timeRatio,
-                dx: (state1.dx - state2.dx) * timeRatio,
-                dy: (state1.dy - state1.dy) * timeRatio,
-            };
+            return interpolateStatesLinearly(state1, state2, timeRatio);
         }
     }
 
@@ -95698,17 +95731,8 @@
             };
         }
         interpolate(state1, state2, timeRatio) {
-            return {
-                x: interpolateLinearly(state2.x, state1.x, timeRatio),
-                y: interpolateLinearly(state2.y, state1.y, timeRatio),
-                velX: interpolateLinearly(state2.velX, state1.velX, timeRatio),
-                velY: interpolateLinearly(state2.velY, state1.velY, timeRatio),
-                zRot: interpolateLinearly(state2.zRot, state1.zRot, timeRatio),
-            };
+            return interpolateStatesLinearly(state1, state2, timeRatio);
         }
-    }
-    function interpolateLinearly(value1, value2, timeRatio) {
-        return value1 + ((value2 - value1) * timeRatio);
     }
 
     var EntityId;
@@ -95732,17 +95756,38 @@
         }
     }
 
+    const NullPaddleInput = {
+        dx: 0,
+        dy: 0,
+        dzRotation: 0,
+    };
+
+    function compareDumbObjects(o1, o2) {
+        const isDumbObject = Object.values(o1).every((value) => {
+            const type = typeof value;
+            return type !== "object" && type !== "function";
+        });
+        if (!isDumbObject) {
+            throw Error("Object cannot contain non-value types.");
+        }
+        return JSON.stringify(o1) === JSON.stringify(o2);
+    }
+
     class PongInputCollectionStrategy {
         constructor(playerEntityId, inputCollector) {
             this.playerEntityId = playerEntityId;
             this.inputCollector = inputCollector;
         }
         getInputs(dt) {
-            const input = {
-                entityId: this.playerEntityId,
-                input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
-            };
-            return [input];
+            const rawInput = this.inputCollector.getPaddleMoveInput(dt);
+            if (!compareDumbObjects(rawInput, NullPaddleInput)) {
+                const inputForPlayerEntity = {
+                    entityId: this.playerEntityId,
+                    input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
+                };
+                return [inputForPlayerEntity];
+            }
+            return [];
         }
         adaptInput(input) {
             return {
@@ -95803,6 +95848,7 @@
         constructor(game, buffer, syncRateHz) {
             super(buffer, syncRateHz);
             this.game = game;
+            this.eventEmitter = new TypedEventEmitter();
         }
         processMessage(message) {
             switch (message.kind) {
@@ -95815,7 +95861,13 @@
             }
         }
         processScoreMessage(message) {
-            this.game.score = message.score;
+            if (this.game.score.player1 !== message.score.player1 ||
+                this.game.score.player2 !== message.score.player2) {
+                const previousScore = cloneDumbObject(this.game.score);
+                const currentScore = cloneDumbObject(message.score);
+                Object.assign(this.game.score, message.score);
+                this.game.eventEmitter.emit("scoreChanged", previousScore, currentScore);
+            }
         }
         processServingMessage(message) {
             this.game.server = message.servingPlayer;
@@ -96084,6 +96136,7 @@
         }
         handleScore(scorer) {
             validatePlayerVal(scorer);
+            const previousScore = cloneDumbObject(this.score);
             this.timeUntilServeSec = this.config.pauseAfterScoreSec;
             if (scorer === Player.Player1) {
                 this.score.player1 += 1;
@@ -96094,6 +96147,8 @@
             const server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
             this.startServing(server);
             this.eventEmitter.emit("playerScored", scorer, this.score);
+            const currentScore = cloneDumbObject(this.score);
+            this.eventEmitter.emit("scoreChanged", previousScore, currentScore);
         }
         startServing(server) {
             this.ballIsInPlay = false;
@@ -96130,12 +96185,7 @@
             return input;
         }
         interpolate(state1, state2, timeRatio) {
-            return {
-                x: (state1.x - state2.x) * timeRatio,
-                y: (state1.y - state2.y) * timeRatio,
-                dx: (state1.dx - state2.dx) * timeRatio,
-                dy: (state1.dy - state1.dy) * timeRatio,
-            };
+            return interpolateStatesLinearly(state1, state2, timeRatio);
         }
     }
 
@@ -96151,10 +96201,11 @@
     }
 
     class PongServerEntitySynchronizer extends ServerEntitySynchronizer {
-        constructor(paddleMaxSpeedPerMs) {
+        constructor(paddleMaxSpeedPerMs, initialPaddleLocations) {
             super();
             this.movementInfoByPlayer = new Map();
             this.paddleMaxSpeedPerMs = paddleMaxSpeedPerMs;
+            this.initialPaddleLocations = initialPaddleLocations;
             this.ballEntity = new BallEntity$1(EntityId.Ball, {
                 dx: 0,
                 dy: 0,
@@ -96165,9 +96216,10 @@
         setPaddleState(player, state) {
             validatePlayerVal$1(player);
             const paddle = player === Player$1.Player1 ? this.player1 : this.player2;
-            if (paddle != null) {
-                paddle.state = state;
+            if (paddle == null) {
+                throw Error("Attempted to set state for paddle before player connected");
             }
+            paddle.state = state;
         }
         setBallState(state) {
             this.ballEntity.state = state;
@@ -96184,7 +96236,7 @@
         handleClientConnection(newClientId) {
             const initialState = {
                 x: 0,
-                y: 0,
+                y: newClientId === ClientId.P1 ? this.initialPaddleLocations.player1Y : this.initialPaddleLocations.player2Y,
                 velX: 0,
                 velY: 0,
                 zRot: 0,
@@ -96226,6 +96278,9 @@
                     entityId: player.id,
                     state: player.state,
                 };
+            }).concat({
+                entityId: EntityId.Ball,
+                state: this.ballEntity.state,
             });
         }
         validateInput(entity, input) {
@@ -96280,16 +96335,17 @@
      * (i.e. score, server).
      */
     class PongGameServer {
-        //private readonly gameObjectSyncer: GameObjectSynchronizer;
         constructor(config) {
             this.gameBroadcastBuffers = [];
             const { gameConfig, entityBroadcastRateHz: entitySyncRateHz, gameBroadcastRateHz: gameSyncRateHz } = config;
             this.game = new GameEngine$1(gameConfig);
-            this.entitySyncer = new PongServerEntitySynchronizer(gameConfig.paddles.baseMoveSpeedPerMs);
+            this.entitySyncer = new PongServerEntitySynchronizer(gameConfig.paddles.baseMoveSpeedPerMs, {
+                player1Y: this.game.player1Paddle.position.y, player2Y: this.game.player2Paddle.position.y
+            });
             this.entityBroadcastRateHz = entitySyncRateHz;
             this.gameStateBroadcaster = new IntervalRunner$1(() => this.broadcastGameState(), gameSyncRateHz);
             this.entitySyncer.eventEmitter.on("beforeSynchronization", () => this.syncGameAndEntitySyncer());
-            //   this.gameObjectSyncer = new GameObjectSynchronizer(this.game, this.entitySyncer);
+            this.gameObjectSyncer = new GameObjectSynchronizer(this.game, this.entitySyncer);
         }
         /**
          * Start the server, starting the internal game and the state synchronizers.
@@ -96298,13 +96354,13 @@
             this.game.start();
             this.gameStateBroadcaster.start();
             this.entitySyncer.start(this.entityBroadcastRateHz);
-            //    this.gameObjectSyncer.start();
+            this.gameObjectSyncer.start();
         }
         stop() {
             this.game.stop();
             this.gameStateBroadcaster.stop();
             this.entitySyncer.stop();
-            //   this.gameObjectSyncer.stop();
+            this.gameObjectSyncer.stop();
         }
         connectClient(router) {
             const entitySyncBuffer = router.getFilteredMessageBuffer("entity" /* Entity */);
@@ -96336,8 +96392,6 @@
             return messagesToSend;
         }
         syncGameAndEntitySyncer() {
-            this.syncPlayer(Player$1.Player1);
-            this.syncPlayer(Player$1.Player2);
             const ballState = {
                 x: this.game.ball.position.x,
                 y: this.game.ball.position.y,
@@ -96345,17 +96399,6 @@
                 dy: this.game.ball.velocity.y,
             };
             this.entitySyncer.setBallState(ballState);
-        }
-        syncPlayer(player) {
-            const gamePaddle = getPaddleByPlayer$1(this.game, player);
-            const state = {
-                x: gamePaddle.position.x,
-                y: gamePaddle.position.y,
-                velX: gamePaddle.velocity.x,
-                velY: gamePaddle.velocity.y,
-                zRot: gamePaddle.zRotationEulers,
-            };
-            this.entitySyncer.setPaddleState(player, state);
         }
     }
 
@@ -96389,6 +96432,7 @@
     const CLIENT_ENTITY_SYNC_RATE = 60;
     const CLIENT_GAME_SYNC_RATE = 15;
     const SERVER_GAME_BROADCAST_RATE = 15;
+    const CLIENT_LAG_MS = 75;
     const serverConfig = {
         entityBroadcastRateHz: SERVER_ENTITY_BROADCAST_RATE,
         gameConfig: basicConfig,
@@ -96398,9 +96442,9 @@
     const network = (() => {
         return new InMemoryClientServerNetwork();
     })();
-    network.eventEmitter.on('serverSentMessageSent', (message) => {
+    network.eventEmitter.on("serverSentMessageSent", (message) => {
     });
-    network.eventEmitter.on('clientSentMessageSent', (message) => {
+    network.eventEmitter.on("clientSentMessageSent", (message) => {
     });
     function createPongClient(game, player) {
         validatePlayerVal(player);
@@ -96414,12 +96458,13 @@
             keyMappings: player === Player.Player1 ? simpleP1KeyMappings : simpleP2KeyMappings,
             player,
             playerMoveSpeedPerMs: basicConfig.paddles.baseMoveSpeedPerMs,
+            disableGamepad: true,
         };
         const inputCollector = new BrowserInputCollector(inputCollectorContext);
         const serverInfo = {
             clientId: openClientConnectionOnServer(),
             entityUpdateRateHz: CLIENT_ENTITY_SYNC_RATE,
-            router: new SimpleMessageRouter(new ClientMessageCategorizer(), network.getNewConnectionToServer(0)),
+            router: new SimpleMessageRouter(new ClientMessageCategorizer(), network.getNewConnectionToServer(CLIENT_LAG_MS)),
             serverUpdateRateInHz: SERVER_ENTITY_BROADCAST_RATE,
             gameMessageProcessingRate: CLIENT_GAME_SYNC_RATE,
         };

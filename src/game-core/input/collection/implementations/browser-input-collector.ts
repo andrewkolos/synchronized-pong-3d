@@ -14,6 +14,7 @@ export interface BrowserInputCollectorContext {
   game: GameEngine;
   player: Player;
   playerMoveSpeedPerMs: number;
+  disableGamepad?: boolean;
 }
 
 const GAMEPAD_STICK_DEAD_ZONE_END = 0.1;
@@ -28,11 +29,14 @@ export class BrowserInputCollector implements PaddleInputCollector {
   private player: Player;
   private playerMoveSpeedPerMs: number;
 
+  private gamepadDisabled: boolean;
+
   constructor(context: BrowserInputCollectorContext) {
     this.mappings = context.keyMappings;
     this.game = context.game;
     this.player =  context.player;
     this.playerMoveSpeedPerMs = context.playerMoveSpeedPerMs;
+    this.gamepadDisabled = context.disableGamepad === false ? false : true;
 
     ResponsiveGamepad.enable();
   }
@@ -55,9 +59,14 @@ export class BrowserInputCollector implements PaddleInputCollector {
     // We prefer the keyboard, if the user is using it.
     if (this.isKeyboardActive()) {
       return this.getInputFromKeyboard(dt);
-    } else {
+    } else if (!this.gamepadDisabled) {
       return this.getInputFromGamepad(dt);
-
+    } else {
+      return {
+        dx: 0,
+        dy: 0,
+        dzRotation: 0,
+      };
     }
   }
 

@@ -7,17 +7,19 @@ import { BrowserInputCollector, BrowserInputCollectorContext } from "../../src/g
 import { ClientId } from "../../src/networking/client-id";
 import { makeSimpleThreeRendererConfig } from "../../src/renderers/three/basic-renderer-config";
 import { ThreeRenderer } from "../../src/renderers/three/renderer";
-import { PongGameClientSideSynchronizer, GameClientServerConnectionInfo } from 'networking/client/client-side-synchronizer';
-import { PaddleInputCollector } from 'game-core/input/collection/paddle-input-collector';
-import { simpleP1KeyMappings, simpleP2KeyMappings } from 'game-core/input/collection/key-mappings';
-import { PongGameServer, PongGameServerConfig } from 'networking/server/game-server';
-import { ClientMessageTypeMap, ServerMessageTypeMap } from 'networking/client-server-communication/pong-send-to-client-type-map';
-import { ClientMessageCategorizer, ServerMessageCategorizer } from 'networking/client-server-communication/connections/message-categorizers';
+import { PongGameClientSideSynchronizer, GameClientServerConnectionInfo } from "networking/client/client-side-synchronizer";
+import { PaddleInputCollector } from "game-core/input/collection/paddle-input-collector";
+import { simpleP1KeyMappings, simpleP2KeyMappings } from "game-core/input/collection/key-mappings";
+import { PongGameServer, PongGameServerConfig } from "networking/server/game-server";
+import { ClientMessageTypeMap, ServerMessageTypeMap } from "networking/client-server-communication/pong-send-to-client-type-map";
+import { ClientMessageCategorizer, ServerMessageCategorizer } from "networking/client-server-communication/connections/message-categorizers";
 
 const SERVER_ENTITY_BROADCAST_RATE = 60;
 const CLIENT_ENTITY_SYNC_RATE = 60;
 const CLIENT_GAME_SYNC_RATE = 15;
 const SERVER_GAME_BROADCAST_RATE = 15;
+
+const CLIENT_LAG_MS = 75;
 
 const serverConfig: PongGameServerConfig = {
   entityBroadcastRateHz: SERVER_ENTITY_BROADCAST_RATE,
@@ -33,11 +35,11 @@ const network = (() => {
   return new InMemoryClientServerNetwork<ClientSendType, ServerSendType>();
 })();
 
-network.eventEmitter.on('serverSentMessageSent', (message: any) => {
+network.eventEmitter.on("serverSentMessageSent", (message: any) => {
 
 });
 
-network.eventEmitter.on('clientSentMessageSent', (message: any) => {
+network.eventEmitter.on("clientSentMessageSent", (message: any) => {
 
 });
 
@@ -55,6 +57,7 @@ function createPongClient(game: GameEngine, player: Player): PongGameClientSideS
     keyMappings: player === Player.Player1 ? simpleP1KeyMappings : simpleP2KeyMappings,
     player,
     playerMoveSpeedPerMs: basicConfig.paddles.baseMoveSpeedPerMs,
+    disableGamepad: true,
   };
 
   const inputCollector: PaddleInputCollector = new BrowserInputCollector(inputCollectorContext);
@@ -62,7 +65,7 @@ function createPongClient(game: GameEngine, player: Player): PongGameClientSideS
   const serverInfo: GameClientServerConnectionInfo = {
     clientId: openClientConnectionOnServer(),
     entityUpdateRateHz: CLIENT_ENTITY_SYNC_RATE,
-    router: new SimpleMessageRouter<ClientMessageTypeMap>(new ClientMessageCategorizer(), network.getNewConnectionToServer(0)),
+    router: new SimpleMessageRouter<ClientMessageTypeMap>(new ClientMessageCategorizer(), network.getNewConnectionToServer(CLIENT_LAG_MS)),
     serverUpdateRateInHz: SERVER_ENTITY_BROADCAST_RATE,
     gameMessageProcessingRate: CLIENT_GAME_SYNC_RATE,
   };

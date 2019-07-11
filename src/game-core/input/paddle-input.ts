@@ -6,3 +6,9 @@ export interface PaddleInput {
   dy: number;
   dzRotation: number;
 }
+
+export const NullPaddleInput: PaddleInput = {
+  dx: 0,
+  dy: 0,
+  dzRotation: 0,
+};
