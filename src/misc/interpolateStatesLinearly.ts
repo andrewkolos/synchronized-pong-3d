@@ -4,7 +4,7 @@ export function interpolateStatesLinearly<T extends any>(state1: T, state2: T, t
 
   Object.keys(state1).forEach((key: string) => {
     if (typeof state1[key] === "number") {
-      newState[key] = state1[key] + (state2[key] - state1[key]) * timeRatio;
+      newState[key] = interpolateLinearly(state1[key], state2[key], timeRatio);
     } else if (typeof state1[key] === "object") {
       newState[key] = interpolateStatesLinearly(state1[key], state2[key], timeRatio);
     } else {
@@ -13,4 +13,8 @@ export function interpolateStatesLinearly<T extends any>(state1: T, state2: T, t
   });
 
   return newState;
+}
+
+export function interpolateLinearly<T>(state1: number, state2: number, timeRatio: number) {
+  return state1 + (state2 - state1) * timeRatio;
 }

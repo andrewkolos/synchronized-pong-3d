@@ -1,5 +1,5 @@
 import { SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
-import { interpolateStatesLinearly } from 'misc/interpolateStatesLinearly';
+import { interpolateLinearly } from "misc/interpolateStatesLinearly";
 
 export interface BallInput {
   x: number;
@@ -21,9 +21,11 @@ export class BallEntity extends SyncableEntity<BallInput, BallState> {
     return input;
   }
   public interpolate(state1: BallState, state2: BallState, timeRatio: number) {
-    const nextState =  interpolateStatesLinearly(state1, state2, timeRatio);
-    nextState.dx = state2.dx;
-    nextState.dy = state2.dy;
-    return nextState;
+    return {
+      x: interpolateLinearly(state1.x, state2.x, timeRatio),
+      y: interpolateLinearly(state1.y, state2.y, timeRatio),
+      dx: state2.dx,
+      dy: state2.dy,
+    };
   }
 }
