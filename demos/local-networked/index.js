@@ -133,16 +133,19 @@
              * sent by the server.
              */
             this.pendingInputs = [];
-            /**
-             * IDs of entities that are meant to be controlled by this client's player.
-             */
-            this.playerEntityIds = [];
+            this._playerEntityIds = [];
             this.entityStateBuffers = new Map();
             this.entities = new EntityCollection();
             this.server = context.serverConnection;
             this.entityFactory = context.entityFactory;
             this.serverUpdateRateInHz = context.serverUpdateRateInHz;
             this.inputCollectionStrategy = context.inputCollector;
+        }
+        /**
+         * IDs of entities that are meant to be controlled by this client's player.
+         */
+        get playerEntityIds() {
+            return this._playerEntityIds;
         }
         /**
          * Gets the number of inputs that this client has yet to receive an acknowledgement
@@ -156,7 +159,7 @@
          * @returns true if connected.
          */
         isConnected() {
-            return this.playerEntityIds.length > 0;
+            return this._playerEntityIds.length > 0;
         }
         start(updateRateHz) {
             this.stop();
@@ -200,10 +203,10 @@
                     this.entityStateBuffers.set(stateMessage.entityId, []);
                     const entityBelongsToThisClient = stateMessage.entityBelongsToRecipientClient;
                     if (entityBelongsToThisClient != null && entityBelongsToThisClient) {
-                        this.playerEntityIds.push(stateMessage.entityId);
+                        this._playerEntityIds.push(stateMessage.entityId);
                     }
                 }
-                if (this.playerEntityIds.includes(stateMessage.entityId)) {
+                if (this._playerEntityIds.includes(stateMessage.entityId)) {
                     const entity = this.entities.getEntityById(stateMessage.entityId);
                     if (entity == null)
                         throw Error('Unknown entity was not created.');
@@ -273,7 +276,7 @@
             const now = new Date().getTime();
             const renderTimestamp = now - (1000.0 / this.serverUpdateRateInHz);
             this.entities.asArray().forEach((entity) => {
-                if (this.playerEntityIds.includes(entity.id)) {
+                if (this._playerEntityIds.includes(entity.id)) {
                     // No point in interpolating an entity that belongs to this client.
                     return;
                 }
@@ -721,7 +724,6 @@
          * @param inputToValidate The input to validate.
          * @param playerPaddle The player that the input is attempting to manipulate.
          * @param game The current state of the game.
-      
          * @returns The result of the validation, indicating whether or not the input is
          * invalid and, if not, why not.
          */
@@ -826,6 +828,7 @@
             this.game = context.game;
             this.player = context.player;
             this.playerMoveSpeedPerMs = context.playerMoveSpeedPerMs;
+            this.playerRotateSpeedPerMs = context.playerRotateSpeedPerMs;
             this.gamepadDisabled = context.disableGamepad === false ? false : true;
             ResponsiveGamepad.enable();
         }
@@ -885,7 +888,7 @@
                 dzRotation: 0,
             };
             const moveSpeedPerMs = this.playerMoveSpeedPerMs;
-            const rotateSpeedPerMs = (Math.PI / 48 * 60) / 1000;
+            const rotateSpeedPerMs = this.playerRotateSpeedPerMs;
             if (this.isKeyDown(this.mappings.movePaddleBackward)) {
                 input.dy += -moveSpeedPerMs * dt;
             }
@@ -95074,6 +95077,7 @@
                 game.eventEmitter.on("tick", () => this.update(game));
                 game.eventEmitter.on("ballServed", () => {
                     this.scoreboard.showMeter(MeterType.Speed);
+                    this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
                     this.scoreboard.setServeProgress(0);
                 });
             }
@@ -95156,7 +95160,7 @@
                 obj.outerObj.position.x = game.ball.position.x;
                 obj.outerObj.position.y = game.ball.position.y;
                 const distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
-                const angle = distanceTraveled / game.ball.radius;
+                const angle = distanceTraveled / game.ball.radius / (game.config.game.tickRate / 60);
                 const axisOfRotation = new Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
                 const rotation = new Matrix4();
                 rotation.makeRotationAxis(axisOfRotation, angle);
@@ -95286,6 +95290,7 @@
                     game,
                     player,
                     playerMoveSpeedPerMs: game.config.paddles.baseMoveSpeedPerMs,
+                    playerRotateSpeedPerMs: game.config.paddles.baseRotateSpeedPerMs,
                 };
                 return new BrowserInputCollector(context);
             })();
@@ -95310,9 +95315,26 @@
         }
     }
 
+    // tslint:disable-next-line: interface-over-type-literal
+    function cloneDumbObject(source) {
+        if (!isDumbObject(source)) {
+            throw Error("Object cannot contain non-value types.");
+        }
+        return JSON.parse(JSON.stringify(source));
+    }
+    function isDumbObject(o) {
+        return Object.values(o).every((value) => {
+            const type = typeof value;
+            if (type === "object") {
+                return isDumbObject(value);
+            }
+            return type !== "function";
+        });
+    }
+
     const basicConfig = {
         game: {
-            tickRate: 60,
+            tickRate: 240,
         },
         playField: {
             width: 10,
@@ -95324,19 +95346,26 @@
             height: 0.125,
             depth: 1,
             baseMoveSpeedPerMs: 0.0075,
+            baseRotateSpeedPerMs: (Math.PI / 48 * 60) / 1000,
         },
         ball: {
             radius: 0.45,
             speedLimit: 1,
             speedIncreaseOnPaddleHitRatio: 0.45,
+            baseSpeedIncreaseOnPaddleHit: 0.01,
             initialSpeedOnServe: 0.12,
         },
         pauseAfterScoreSec: 2,
     };
+    const basicOnlineConfig = cloneDumbObject(basicConfig);
+    basicConfig.paddles.baseMoveSpeedPerMs /= 2;
+    basicConfig.paddles.baseRotateSpeedPerMs /= 2;
+    const basicOnlineClientConfig = cloneDumbObject(basicOnlineConfig);
+    const _basicOnlineServerConfig = cloneDumbObject(basicOnlineConfig);
+    _basicOnlineServerConfig.game.tickRate = 60;
     const basicConfigWithAiOpponent = Object.assign({}, basicConfig, { aiPlayer: {
             enabled: true,
             moveSpeed: 0.06 * 2.1,
-            speedIncreaseOnPaddleHit: 0.02,
         } });
 
     var CollisionType;
@@ -95354,6 +95383,7 @@
             this.position = new Vector2();
             this.collidingWithPaddle = false;
             this.collidingWithWall = false;
+            this.collisionEnabled = true;
         }
         /**
          * Moves ball using its current velocity and position/orientation of
@@ -95371,22 +95401,16 @@
                 }
             }
             else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
-                const aiEnabled = game.config.aiPlayer != null && game.config.aiPlayer.enabled;
                 const delta = new Vector2(this.velocity.x, this.velocity.y);
                 const paddle = getPaddleByPlayer(game, collisionInfo.player);
                 const rot = paddle.zRotationEulers;
                 if (collisionInfo.collisionType === CollisionType.Standard) {
-                    if (paddle === game.player1Paddle || !aiEnabled) {
-                        delta.x -= paddle.velocity.x * game.config.ball.speedIncreaseOnPaddleHitRatio;
-                        delta.y -= paddle.velocity.y * game.config.ball.speedIncreaseOnPaddleHitRatio;
-                        delta.rotateAround(new Vector2(0, 0), -rot);
-                        delta.y *= -1;
-                        delta.rotateAround(new Vector2(0, 0), rot);
-                    }
-                    else if (game.config.aiPlayer != null) {
-                        delta.y *= -1;
-                        delta.y -= game.config.aiPlayer.speedIncreaseOnPaddleHit;
-                    }
+                    delta.x -= paddle.velocity.x * game.config.ball.speedIncreaseOnPaddleHitRatio;
+                    delta.y -= paddle.velocity.y * game.config.ball.speedIncreaseOnPaddleHitRatio;
+                    delta.rotateAround(new Vector2(0, 0), -rot);
+                    delta.y *= -1;
+                    delta.rotateAround(new Vector2(0, 0), rot);
+                    delta.multiplyScalar((delta.length() + game.config.ball.baseSpeedIncreaseOnPaddleHit) / delta.length());
                 }
                 else {
                     delta.x = Math.hypot(delta.x, delta.y);
@@ -95395,13 +95419,13 @@
                     if (collisionInfo.collisionType === CollisionType.LeftEdge) {
                         delta.multiplyScalar(-1);
                     }
-                    // Prevent double-counted collision.
-                    this.position.add(new Vector2(paddle.velocity.x, paddle.velocity.y));
                 }
+                // Prevent double-counted collision from the paddle traveling into the ball.
+                this.position.add(new Vector2(paddle.velocity.x, paddle.velocity.y));
                 this.velocity.set(delta.x, delta.y);
                 this.position.add(this.velocity);
                 if (this.onPaddleBounce != null) {
-                    this.onPaddleBounce();
+                    this.onPaddleBounce(collisionInfo.player);
                 }
             }
         }
@@ -95432,29 +95456,10 @@
             this.velocity.x = speed * Math.cos(servingPaddleObj.zRotationEulers - Math.PI / 2);
             this.velocity.y = speed * Math.sin(servingPaddleObj.zRotationEulers - Math.PI / 2);
         }
-        getDelta() {
-            const correctionFactor = 60 / this.game.config.game.tickRate;
-            const speedLimit = this.game.config.ball.speedLimit * correctionFactor;
-            const positionDelta = this.game.ball.velocity.clone().multiplyScalar(correctionFactor);
-            let distanceTraveled = positionDelta.length();
-            if (distanceTraveled > speedLimit) {
-                positionDelta.normalize().multiplyScalar(speedLimit);
-                this.game.ball.velocity.x = positionDelta.x;
-                this.game.ball.velocity.y = positionDelta.y;
-                distanceTraveled = speedLimit;
-            }
-            return positionDelta;
-        }
         isCollidingWithWall() {
             const playFieldWidth = this.game.config.playField.width;
             return (this.position.x < -(playFieldWidth / 2) + this.radius ||
                 this.position.x > playFieldWidth / 2 - this.radius);
-        }
-        handleCollisionWithWall() {
-            const ballIsAlreadyTravelingAwayFromWall = Math.sign(this.velocity.x) !== Math.sign(this.position.x);
-            if (!ballIsAlreadyTravelingAwayFromWall) {
-                this.velocity.x *= -1;
-            }
         }
         isCollidingWithAnyPaddle() {
             let player;
@@ -95495,6 +95500,24 @@
             }
             else {
                 return CollisionType.None;
+            }
+        }
+        getDelta() {
+            const correctionFactor = 60 / this.game.config.game.tickRate;
+            const speedLimit = this.game.config.ball.speedLimit * correctionFactor;
+            const positionDelta = this.game.ball.velocity.clone().multiplyScalar(correctionFactor);
+            const distanceTraveled = positionDelta.length();
+            if (distanceTraveled > speedLimit) {
+                positionDelta.normalize().multiplyScalar(speedLimit / correctionFactor);
+                this.game.ball.velocity.x = positionDelta.x;
+                this.game.ball.velocity.y = positionDelta.y;
+            }
+            return positionDelta;
+        }
+        handleCollisionWithWall() {
+            const ballIsAlreadyTravelingAwayFromWall = Math.sign(this.velocity.x) !== Math.sign(this.position.x);
+            if (!ballIsAlreadyTravelingAwayFromWall) {
+                this.velocity.x *= -1;
             }
         }
         getRelativePosition(ball, paddle) {
@@ -95547,20 +95570,6 @@
         constructor() { }
     }
 
-    // tslint:disable-next-line: interface-over-type-literal
-    function cloneDumbObject(source) {
-        const isDumbObject = Object.values(source).every((value) => {
-            const type = typeof value;
-            return type !== "object" && type !== "function";
-        });
-        if (!isDumbObject) {
-            throw Error("Object cannot contain non-value types.");
-        }
-        const obj = {};
-        Object.assign(obj, source);
-        return obj;
-    }
-
     class GameEngine {
         /**
          * Creates an instance of a pong game.
@@ -95584,7 +95593,7 @@
             this.player1Paddle = paddles.player1Paddle;
             this.player2Paddle = paddles.player2Paddle;
             this.ball = new Ball(this, config.ball);
-            this.ball.onPaddleBounce = () => this.eventEmitter.emit("ballHitPaddle");
+            this.ball.onPaddleBounce = (player) => this.eventEmitter.emit("ballHitPaddle", player);
             this.ball.onWallBounce = () => this.eventEmitter.emit("ballHitWall");
             // Initialize game state.
             this.timeUntilServeSec = 3;
@@ -95703,6 +95712,12 @@
             if (typeof state1[key] === "number") {
                 newState[key] = state1[key] + (state2[key] - state1[key]) * timeRatio;
             }
+            else if (typeof state1[key] === "object") {
+                newState[key] = interpolateStatesLinearly(state1[key], state2[key], timeRatio);
+            }
+            else {
+                throw Error(`Cannot interpolate non-number / non-number object property '${key}'.`);
+            }
         });
         return newState;
     }
@@ -95713,7 +95728,10 @@
             return input;
         }
         interpolate(state1, state2, timeRatio) {
-            return interpolateStatesLinearly(state1, state2, timeRatio);
+            const nextState = interpolateStatesLinearly(state1, state2, timeRatio);
+            nextState.dx = state2.dx;
+            nextState.dy = state2.dy;
+            return nextState;
         }
     }
 
@@ -95756,38 +95774,17 @@
         }
     }
 
-    const NullPaddleInput = {
-        dx: 0,
-        dy: 0,
-        dzRotation: 0,
-    };
-
-    function compareDumbObjects(o1, o2) {
-        const isDumbObject = Object.values(o1).every((value) => {
-            const type = typeof value;
-            return type !== "object" && type !== "function";
-        });
-        if (!isDumbObject) {
-            throw Error("Object cannot contain non-value types.");
-        }
-        return JSON.stringify(o1) === JSON.stringify(o2);
-    }
-
     class PongInputCollectionStrategy {
         constructor(playerEntityId, inputCollector) {
             this.playerEntityId = playerEntityId;
             this.inputCollector = inputCollector;
         }
         getInputs(dt) {
-            const rawInput = this.inputCollector.getPaddleMoveInput(dt);
-            if (!compareDumbObjects(rawInput, NullPaddleInput)) {
-                const inputForPlayerEntity = {
-                    entityId: this.playerEntityId,
-                    input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
-                };
-                return [inputForPlayerEntity];
-            }
-            return [];
+            const inputForPlayerEntity = {
+                entityId: this.playerEntityId,
+                input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
+            };
+            return [inputForPlayerEntity];
         }
         adaptInput(input) {
             return {
@@ -95798,19 +95795,48 @@
         }
     }
 
+    function vec3FromVec2(from) {
+        return new Vector3(from.x, from.y);
+    }
+
+    const BALL_PREDICTION_DISABLE_LENGTH_MS = 100;
     class GameObjectSynchronizer {
-        constructor(gameToSync, entitySyncer) {
+        constructor(gameToSync, localPlayer, entitySyncer) {
             this.gameToSync = gameToSync;
+            this.localPlayer = localPlayer;
             this.entitySyncer = entitySyncer;
+            this.notPredictingLocalPlayerPaddleHit = true;
+            // tslint:disable-next-line: member-ordering
+            this.handlePaddleHit = (() => {
+                let timeoutActive = false;
+                return (player) => {
+                    if (this.localPlayer === player) {
+                        if (!timeoutActive) {
+                            this.notPredictingLocalPlayerPaddleHit = false;
+                            setTimeout(() => {
+                                this.notPredictingLocalPlayerPaddleHit = true;
+                                timeoutActive = false;
+                            }, BALL_PREDICTION_DISABLE_LENGTH_MS);
+                            timeoutActive = true;
+                        }
+                    }
+                };
+            })();
         }
         start() {
             this.onSyncCallback = () => this.sync();
+            this.onPaddleHitCallback = (player) => this.handlePaddleHit(player);
+            this.gameToSync.eventEmitter.on("ballHitPaddle", this.onPaddleHitCallback.bind(this));
             this.entitySyncer.eventEmitter.on("synchronized", this.onSyncCallback.bind(this));
         }
         stop() {
             if (this.onSyncCallback != null) {
                 this.entitySyncer.eventEmitter.off("synchronized", this.onSyncCallback);
                 this.onSyncCallback = undefined;
+            }
+            if (this.onPaddleHitCallback != null) {
+                this.gameToSync.eventEmitter.off("ballHitPaddle", this.onPaddleHitCallback);
+                this.onPaddleHitCallback = undefined;
             }
         }
         sync() {
@@ -95826,11 +95852,28 @@
                         this.applySyncPaddleStateToGame(player2, gameToSync.player2Paddle);
                         break;
                     case EntityId.Ball:
-                        const ball = value;
-                        gameToSync.ball.position.x = ball.state.x;
-                        gameToSync.ball.position.y = ball.state.y;
-                        gameToSync.ball.velocity.x = ball.state.dx;
-                        gameToSync.ball.velocity.y = ball.state.dy;
+                        const gameBall = gameToSync.ball;
+                        const entityBall = value;
+                        const entityState = ballEntityStateToXYPair(entityBall.state);
+                        const angleBetweenGameVelocityAndEntityVelocity = angleBetween(gameBall.velocity, new Vector2(entityState.velocity.x, entityState.velocity.y));
+                        const angleBetweenGameVelocityAndEntityVelocityIsNeglibible = angleBetweenGameVelocityAndEntityVelocity < 0.1;
+                        if (this.notPredictingLocalPlayerPaddleHit || !angleBetweenGameVelocityAndEntityVelocityIsNeglibible) {
+                            const differenceInBallLocs = distance(gameToSync.ball.position, entityBall.state);
+                            // Bend out large disparities in positions between the two all representations.
+                            if (differenceInBallLocs > 0.1 && differenceInBallLocs < 2 && gameBall.velocity.length() < differenceInBallLocs
+                                && angleBetweenGameVelocityAndEntityVelocityIsNeglibible) {
+                                const gameBallPosAndVel = { position: gameBall.position, velocity: gameBall.velocity };
+                                const newBallPosAndVel = interpolateStatesLinearly(gameBallPosAndVel, entityState, 1 / 16);
+                                Object.assign(gameBall.position, newBallPosAndVel.position);
+                                gameBall.velocity.normalize().multiplyScalar(new Vector2(entityState.velocity.x, entityState.velocity.y).length());
+                            }
+                            else {
+                                gameBall.position.x = entityBall.state.x;
+                                gameBall.position.y = entityBall.state.y;
+                                gameBall.velocity.x = entityBall.state.dx;
+                                gameBall.velocity.y = entityBall.state.dy;
+                            }
+                        }
                         break;
                 }
             });
@@ -95842,6 +95885,28 @@
             gamePaddle.velocity.x = syncPaddle.state.velX;
             gamePaddle.velocity.y = syncPaddle.state.velY;
         }
+    }
+    function ballEntityStateToXYPair(state) {
+        return {
+            position: {
+                x: state.x,
+                y: state.y,
+            },
+            velocity: {
+                x: state.dx,
+                y: state.dy,
+            },
+        };
+    }
+    function distance(p1, p2) {
+        return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    }
+    function angleBetween(v1, v2) {
+        return Math.abs(absVector(vec3FromVec2(v1)).angleTo(absVector(vec3FromVec2(v2))));
+    }
+    function absVector(v) {
+        const abs = Math.abs;
+        return new Vector3(abs(v.x), abs(v.y), abs(v.z));
     }
 
     class PongGameMessageSyncer extends MessageBufferProcessor {
@@ -95875,6 +95940,35 @@
         }
     }
 
+    var Player$1;
+    (function (Player) {
+        Player[Player["Player1"] = 0] = "Player1";
+        Player[Player["Player2"] = 1] = "Player2";
+    })(Player$1 || (Player$1 = {}));
+    function validatePlayerVal$1(player) {
+        if (player !== Player$1.Player1 && player !== Player$1.Player2) {
+            throw Error("Invalid Player value!");
+        }
+    }
+
+    var ClientId;
+    (function (ClientId) {
+        ClientId["P1"] = "p1";
+        ClientId["P2"] = "p2";
+    })(ClientId || (ClientId = {}));
+
+    function getPlayerFromClientId(clientId) {
+        if (clientId === ClientId.P1) {
+            return Player$1.Player1;
+        }
+        else if (clientId === ClientId.P2) {
+            return Player$1.Player2;
+        }
+        else {
+            throw Error(`Client ID '${clientId}' is not a valid client ID.`);
+        }
+    }
+
     class PongGameClientSideSynchronizer {
         constructor(game, inputCollector, serverInfo) {
             this.game = game;
@@ -95901,7 +95995,7 @@
         }
         connectToServer(connectionInfo) {
             const entitySyncer = this.createEntitySyncer(connectionInfo);
-            const gameObjectAndEntitySyncer = new GameObjectSynchronizer(this.game, entitySyncer);
+            const gameObjectAndEntitySyncer = new GameObjectSynchronizer(this.game, getPlayerFromClientId(connectionInfo.clientId), entitySyncer);
             const entityUpdateRateHz = connectionInfo.entityUpdateRateHz;
             const gameMessageBuffer = connectionInfo.router.getFilteredMessageBuffer("game" /* Game */);
             const gameMessageSyncer = new PongGameMessageSyncer(this.game, gameMessageBuffer, connectionInfo.gameMessageProcessingRate);
@@ -96060,7 +96154,7 @@
             this.player1Paddle = paddles.player1Paddle;
             this.player2Paddle = paddles.player2Paddle;
             this.ball = new Ball(this, config.ball);
-            this.ball.onPaddleBounce = () => this.eventEmitter.emit("ballHitPaddle");
+            this.ball.onPaddleBounce = (player) => this.eventEmitter.emit("ballHitPaddle", player);
             this.ball.onWallBounce = () => this.eventEmitter.emit("ballHitWall");
             // Initialize game state.
             this.timeUntilServeSec = 3;
@@ -96173,30 +96267,16 @@
         }
     }
 
-    var ClientId;
-    (function (ClientId) {
-        ClientId["P1"] = "p1";
-        ClientId["P2"] = "p2";
-    })(ClientId || (ClientId = {}));
-
     class BallEntity$1 extends SyncableEntity {
         // tslint:disable-next-line: variable-name
         calcNextStateFromInput(_currentState, input) {
             return input;
         }
         interpolate(state1, state2, timeRatio) {
-            return interpolateStatesLinearly(state1, state2, timeRatio);
-        }
-    }
-
-    var Player$1;
-    (function (Player) {
-        Player[Player["Player1"] = 0] = "Player1";
-        Player[Player["Player2"] = 1] = "Player2";
-    })(Player$1 || (Player$1 = {}));
-    function validatePlayerVal$1(player) {
-        if (player !== Player$1.Player1 && player !== Player$1.Player2) {
-            throw Error("Invalid Player value!");
+            const nextState = interpolateStatesLinearly(state1, state2, timeRatio);
+            nextState.dx = state2.dx;
+            nextState.dy = state2.dy;
+            return nextState;
         }
     }
 
@@ -96345,7 +96425,7 @@
             this.entityBroadcastRateHz = entitySyncRateHz;
             this.gameStateBroadcaster = new IntervalRunner$1(() => this.broadcastGameState(), gameSyncRateHz);
             this.entitySyncer.eventEmitter.on("beforeSynchronization", () => this.syncGameAndEntitySyncer());
-            this.gameObjectSyncer = new GameObjectSynchronizer(this.game, this.entitySyncer);
+            this.gameObjectSyncer = new GameObjectSynchronizer(this.game, "Observer", this.entitySyncer);
         }
         /**
          * Start the server, starting the internal game and the state synchronizers.
@@ -96432,10 +96512,13 @@
     const CLIENT_ENTITY_SYNC_RATE = 60;
     const CLIENT_GAME_SYNC_RATE = 15;
     const SERVER_GAME_BROADCAST_RATE = 15;
-    const CLIENT_LAG_MS = 75;
+    const CLIENT_LAG_MS = 35;
+    const serverGameConfig = {};
+    Object.assign(serverGameConfig, basicConfig);
+    serverGameConfig.ball.radius += 0.01;
     const serverConfig = {
         entityBroadcastRateHz: SERVER_ENTITY_BROADCAST_RATE,
-        gameConfig: basicConfig,
+        gameConfig: serverGameConfig,
         gameBroadcastRateHz: SERVER_GAME_BROADCAST_RATE,
     };
     const server = new PongGameServer(serverConfig);
@@ -96458,6 +96541,7 @@
             keyMappings: player === Player.Player1 ? simpleP1KeyMappings : simpleP2KeyMappings,
             player,
             playerMoveSpeedPerMs: basicConfig.paddles.baseMoveSpeedPerMs,
+            playerRotateSpeedPerMs: basicConfig.paddles.baseRotateSpeedPerMs,
             disableGamepad: true,
         };
         const inputCollector = new BrowserInputCollector(inputCollectorContext);

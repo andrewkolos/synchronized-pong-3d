@@ -3,7 +3,7 @@ import { ClientId } from "../client-id";
 import { PaddleEntity, PaddleEntityInput, PaddleEntityState } from "../entities/paddle";
 import { PongEntity } from "networking/entities/pong-entity";
 import { BallEntity, BallState } from "networking/entities/ball";
-import { EntityId } from "./entity-ids";
+import { EntityId } from "../entity-ids";
 import { Player, validatePlayerVal } from "game-core/enum/player";
 
 interface PlayerInfo {

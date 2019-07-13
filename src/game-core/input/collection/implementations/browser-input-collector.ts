@@ -14,6 +14,7 @@ export interface BrowserInputCollectorContext {
   game: GameEngine;
   player: Player;
   playerMoveSpeedPerMs: number;
+  playerRotateSpeedPerMs: number;
   disableGamepad?: boolean;
 }
 
@@ -28,6 +29,7 @@ export class BrowserInputCollector implements PaddleInputCollector {
   private game: GameEngine;
   private player: Player;
   private playerMoveSpeedPerMs: number;
+  private playerRotateSpeedPerMs: number;
 
   private gamepadDisabled: boolean;
 
@@ -36,6 +38,7 @@ export class BrowserInputCollector implements PaddleInputCollector {
     this.game = context.game;
     this.player =  context.player;
     this.playerMoveSpeedPerMs = context.playerMoveSpeedPerMs;
+    this.playerRotateSpeedPerMs = context.playerRotateSpeedPerMs;
     this.gamepadDisabled = context.disableGamepad === false ? false : true;
 
     ResponsiveGamepad.enable();
@@ -107,7 +110,7 @@ export class BrowserInputCollector implements PaddleInputCollector {
     };
 
     const moveSpeedPerMs = this.playerMoveSpeedPerMs;
-    const rotateSpeedPerMs = (Math.PI / 48 * 60) / 1000;
+    const rotateSpeedPerMs = this.playerRotateSpeedPerMs;
 
     if (this.isKeyDown(this.mappings.movePaddleBackward)) {
       input.dy += - moveSpeedPerMs * dt;

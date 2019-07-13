@@ -1,4 +1,3 @@
-import * as Three from "three";
 import { getPaddleByPlayer } from "../../common";
 import { Player } from "../../enum/player";
 import { GameEngine } from "../../game-engine";
@@ -28,7 +27,6 @@ export class PaddleInputValidator {
    * @param inputToValidate The input to validate.
    * @param playerPaddle The player that the input is attempting to manipulate.
    * @param game The current state of the game.
-
    * @returns The result of the validation, indicating whether or not the input is
    * invalid and, if not, why not.
    */

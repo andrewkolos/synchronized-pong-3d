@@ -10,6 +10,8 @@ import { PongClientEntitySynchronizerContext, PongClientEntitySynchronizer } fro
 import { MessageType } from "networking/client-server-communication/message-type";
 import { GameObjectSynchronizer } from "networking/entity-synchronization/game-object-synchronizer";
 import { PongGameMessageSyncer } from "networking/game-synchronization/context-message-syncer";
+import { getPlayerFromClientId } from 'networking/id-mapping';
+
 
 export interface GameClientServerConnectionInfo {
   router: PongRouterToServer;
@@ -66,7 +68,8 @@ export class PongGameClientSideSynchronizer {
 
   private connectToServer(connectionInfo: GameClientServerConnectionInfo) {
     const entitySyncer = this.createEntitySyncer(connectionInfo);
-    const gameObjectAndEntitySyncer = new GameObjectSynchronizer(this.game, entitySyncer);
+    const gameObjectAndEntitySyncer =
+      new GameObjectSynchronizer(this.game, getPlayerFromClientId(connectionInfo.clientId), entitySyncer);
     const entityUpdateRateHz = connectionInfo.entityUpdateRateHz;
     const gameMessageBuffer = connectionInfo.router.getFilteredMessageBuffer(MessageType.Game);
     const gameMessageSyncer = new PongGameMessageSyncer(this.game, gameMessageBuffer, connectionInfo.gameMessageProcessingRate);
@@ -94,5 +97,7 @@ export class PongGameClientSideSynchronizer {
     const syncer = new ClientEntitySynchronizer(syncerContext);
     return syncer;
   }
+
+  // tslint:disable-next-line: member-ordering
 
 }

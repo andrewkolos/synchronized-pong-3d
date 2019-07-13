@@ -13,17 +13,22 @@ import { simpleP1KeyMappings, simpleP2KeyMappings } from "game-core/input/collec
 import { PongGameServer, PongGameServerConfig } from "networking/server/game-server";
 import { ClientMessageTypeMap, ServerMessageTypeMap } from "networking/client-server-communication/pong-send-to-client-type-map";
 import { ClientMessageCategorizer, ServerMessageCategorizer } from "networking/client-server-communication/connections/message-categorizers";
+import { Config } from 'game-core/config/config';
 
 const SERVER_ENTITY_BROADCAST_RATE = 60;
 const CLIENT_ENTITY_SYNC_RATE = 60;
 const CLIENT_GAME_SYNC_RATE = 15;
 const SERVER_GAME_BROADCAST_RATE = 15;
 
-const CLIENT_LAG_MS = 75;
+const CLIENT_LAG_MS = 35;
+
+const serverGameConfig: Config = {} as any;
+Object.assign(serverGameConfig, basicConfig);
+serverGameConfig.ball.radius += 0.01;
 
 const serverConfig: PongGameServerConfig = {
   entityBroadcastRateHz: SERVER_ENTITY_BROADCAST_RATE,
-  gameConfig: basicConfig,
+  gameConfig: serverGameConfig,
   gameBroadcastRateHz: SERVER_GAME_BROADCAST_RATE,
 };
 
@@ -57,6 +62,7 @@ function createPongClient(game: GameEngine, player: Player): PongGameClientSideS
     keyMappings: player === Player.Player1 ? simpleP1KeyMappings : simpleP2KeyMappings,
     player,
     playerMoveSpeedPerMs: basicConfig.paddles.baseMoveSpeedPerMs,
+    playerRotateSpeedPerMs: basicConfig.paddles.baseRotateSpeedPerMs,
     disableGamepad: true,
   };
 

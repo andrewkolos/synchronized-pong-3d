@@ -50,7 +50,7 @@ export class PongGameServer {
 
     this.entitySyncer.eventEmitter.on("beforeSynchronization", () => this.syncGameAndEntitySyncer());
 
-    this.gameObjectSyncer = new GameObjectSynchronizer(this.game, this.entitySyncer);
+    this.gameObjectSyncer = new GameObjectSynchronizer(this.game, "Observer", this.entitySyncer);
   }
 
   /**

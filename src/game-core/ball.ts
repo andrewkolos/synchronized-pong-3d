@@ -18,12 +18,13 @@ export class Ball {
   public velocity: Three.Vector2;
   public readonly radius: number;
   public position: Three.Vector2;
-  public collidingWithPaddle: boolean;
-  public collidingWithWall: boolean;
-
   public onWallBounce?: () => void;
-  public onPaddleBounce?: () => void;
+  public onPaddleBounce?: (player: Player) => void;
 
+  public collisionEnabled: boolean;
+
+  private collidingWithWall: boolean;
+  private collidingWithPaddle: boolean;
   private game: GameEngine;
 
   public constructor(game: GameEngine, config: BallConfig) {
@@ -33,6 +34,7 @@ export class Ball {
     this.position = new Three.Vector2();
     this.collidingWithPaddle = false;
     this.collidingWithWall = false;
+    this.collisionEnabled = true;
   }
 
   /**
@@ -53,25 +55,21 @@ export class Ball {
       }
     } else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
 
-      const aiEnabled = game.config.aiPlayer != null && game.config.aiPlayer.enabled;
       const delta = new Three.Vector2(this.velocity.x, this.velocity.y);
       const paddle = getPaddleByPlayer(game, collisionInfo.player);
 
       const rot = paddle.zRotationEulers;
 
       if (collisionInfo.collisionType === CollisionType.Standard) {
-        if (paddle === game.player1Paddle || !aiEnabled) {
           delta.x -= paddle.velocity.x * game.config.ball.speedIncreaseOnPaddleHitRatio;
           delta.y -= paddle.velocity.y * game.config.ball.speedIncreaseOnPaddleHitRatio;
+
           delta.rotateAround(new Three.Vector2(0, 0), -rot);
 
           delta.y *= -1;
           delta.rotateAround(new Three.Vector2(0, 0), rot);
 
-        } else if (game.config.aiPlayer != null) {
-          delta.y *= -1;
-          delta.y -= game.config.aiPlayer.speedIncreaseOnPaddleHit;
-        }
+          delta.multiplyScalar((delta.length() + game.config.ball.baseSpeedIncreaseOnPaddleHit) / delta.length());
       } else {
         delta.x = Math.hypot(delta.x, delta.y);
         delta.y = 0;
@@ -80,16 +78,16 @@ export class Ball {
         if (collisionInfo.collisionType === CollisionType.LeftEdge) {
           delta.multiplyScalar(-1);
         }
-
-        // Prevent double-counted collision.
-        this.position.add(new Three.Vector2(paddle.velocity.x, paddle.velocity.y));
       }
+
+      // Prevent double-counted collision from the paddle traveling into the ball.
+      this.position.add(new Three.Vector2(paddle.velocity.x, paddle.velocity.y));
 
       this.velocity.set(delta.x, delta.y);
       this.position.add(this.velocity);
 
       if (this.onPaddleBounce != null) {
-        this.onPaddleBounce();
+        this.onPaddleBounce(collisionInfo.player);
       }
     }
   }
@@ -127,37 +125,13 @@ export class Ball {
     this.velocity.y = speed * Math.sin(servingPaddleObj.zRotationEulers - Math.PI / 2);
   }
 
-  private getDelta() {
-    const correctionFactor = 60 / this.game.config.game.tickRate;
-    const speedLimit = this.game.config.ball.speedLimit * correctionFactor;
-
-    const positionDelta = this.game.ball.velocity.clone().multiplyScalar(correctionFactor);
-    let distanceTraveled = positionDelta.length();
-    if (distanceTraveled > speedLimit) {
-      positionDelta.normalize().multiplyScalar(speedLimit);
-      this.game.ball.velocity.x = positionDelta.x;
-      this.game.ball.velocity.y = positionDelta.y;
-      distanceTraveled = speedLimit;
-    }
-
-    return positionDelta;
-  }
-
-  private isCollidingWithWall(): boolean {
+  public isCollidingWithWall(): boolean {
     const playFieldWidth = this.game.config.playField.width;
     return (this.position.x < -(playFieldWidth / 2) + this.radius ||
       this.position.x > playFieldWidth / 2 - this.radius);
   }
 
-  private handleCollisionWithWall() {
-    const ballIsAlreadyTravelingAwayFromWall =
-      Math.sign(this.velocity.x) !== Math.sign(this.position.x);
-    if (!ballIsAlreadyTravelingAwayFromWall) {
-      this.velocity.x *= -1;
-    }
-  }
-
-  private isCollidingWithAnyPaddle() {
+  public isCollidingWithAnyPaddle() {
     let player: Player | undefined;
     let collisionType: CollisionType = CollisionType.None;
 
@@ -176,7 +150,7 @@ export class Ball {
     };
   }
 
-  private isCollidingWithPaddle(paddle: Paddle) {
+  public isCollidingWithPaddle(paddle: Paddle) {
     const paddleWidth = this.game.config.paddles.width;
     const paddleHeight = this.game.config.paddles.height;
 
@@ -199,6 +173,29 @@ export class Ball {
       }
     } else {
       return CollisionType.None;
+    }
+  }
+
+  private getDelta() {
+    const correctionFactor = 60 / this.game.config.game.tickRate;
+    const speedLimit = this.game.config.ball.speedLimit * correctionFactor;
+
+    const positionDelta = this.game.ball.velocity.clone().multiplyScalar(correctionFactor);
+    const distanceTraveled = positionDelta.length();
+    if (distanceTraveled > speedLimit) {
+      positionDelta.normalize().multiplyScalar(speedLimit / correctionFactor);
+      this.game.ball.velocity.x = positionDelta.x;
+      this.game.ball.velocity.y = positionDelta.y;
+    }
+
+    return positionDelta;
+  }
+
+  private handleCollisionWithWall() {
+    const ballIsAlreadyTravelingAwayFromWall =
+      Math.sign(this.velocity.x) !== Math.sign(this.position.x);
+    if (!ballIsAlreadyTravelingAwayFromWall) {
+      this.velocity.x *= -1;
     }
   }
 

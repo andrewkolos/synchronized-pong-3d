@@ -77,6 +77,7 @@ export class BrowserClient {
         game,
         player,
         playerMoveSpeedPerMs: game.config.paddles.baseMoveSpeedPerMs,
+        playerRotateSpeedPerMs: game.config.paddles.baseRotateSpeedPerMs,
       };
 
       return new BrowserInputCollector(context);

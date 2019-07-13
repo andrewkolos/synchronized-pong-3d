@@ -1,12 +1,17 @@
 export interface BallConfig {
   /** The radius of the ball. */
   radius: number;
-  /** The maximum speed the ball is allowed to travel at. */
+  /** The maximum speed the ball is allowed to travel in 1/60 of a second. */
   speedLimit: number;
   /** How much the speed of the ball should increase upon coming in contact with a paddle,
    *  given as a ratio of the paddle's velocity (between 0 and 1).
    */
   speedIncreaseOnPaddleHitRatio: number;
+
+  /** How much the speed of the ball should increase upon coming in contact with a paddle
+   * in addition to the speed imparted by the paddle's velocity.
+   */
+  baseSpeedIncreaseOnPaddleHit: number;
   /** The speed given to the ball when it is served. */
   initialSpeedOnServe: number;
 }
@@ -33,10 +38,8 @@ export interface Config {
     height: number;
     /** The depth of both paddles. */
     depth: number;
-    /** The speed at which each paddle is allowed to move, given in
-     * distance per 1/60 of a second.
-     */
     baseMoveSpeedPerMs: number;
+    baseRotateSpeedPerMs: number;
   };
   ball: BallConfig;
   /** How many seconds until the ball is served after a player scores. */
@@ -44,6 +47,5 @@ export interface Config {
   aiPlayer?: {
     enabled: boolean;
     moveSpeed: number;
-    speedIncreaseOnPaddleHit: number;
   };
 }

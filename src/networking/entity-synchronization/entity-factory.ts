@@ -1,7 +1,7 @@
 import { EntityFactory, SyncableEntity } from "@akolos/ts-client-server-game-synchronization";
 import { BallEntity } from "../entities/ball";
 import { PaddleEntity } from "../entities/paddle";
-import { EntityId } from "./entity-ids";
+import { EntityId } from "../entity-ids";
 import { PongEntity } from 'networking/entities/pong-entity';
 
 export class PongEntityFactory implements EntityFactory<PongEntity> {

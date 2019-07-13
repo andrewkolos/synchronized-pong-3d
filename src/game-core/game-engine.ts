@@ -16,7 +16,7 @@ export interface GameEngineEvents {
   tick: () => void;
   startingServe: () => void;
   ballServed: () => void;
-  ballHitPaddle: () => void;
+  ballHitPaddle: (player: Player) => void;
   ballHitWall: () => void;
   playerScored: (scorer: Player, score: { player1: number, player2: number }) => void;
   scoreChanged(previousScore: Score, currentScore: Score): void;
@@ -69,7 +69,7 @@ export class GameEngine {
     this.player2Paddle = paddles.player2Paddle;
 
     this.ball = new Ball(this, config.ball);
-    this.ball.onPaddleBounce = () => this.eventEmitter.emit("ballHitPaddle");
+    this.ball.onPaddleBounce = (player: Player) => this.eventEmitter.emit("ballHitPaddle", player);
     this.ball.onWallBounce = () => this.eventEmitter.emit("ballHitWall");
 
     // Initialize game state.

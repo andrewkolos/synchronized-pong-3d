@@ -204,6 +204,7 @@ export class ThreeRenderer {
 
       game.eventEmitter.on("ballServed", () => {
         this.scoreboard.showMeter(MeterType.Speed);
+        this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
         this.scoreboard.setServeProgress(0);
       });
     }
@@ -306,7 +307,7 @@ export class ThreeRenderer {
 
       const distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
 
-      const angle = distanceTraveled / game.ball.radius;
+      const angle = distanceTraveled / game.ball.radius / (game.config.game.tickRate / 60);
       const axisOfRotation = new Three.Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
       const rotation = new Three.Matrix4();
       rotation.makeRotationAxis(axisOfRotation, angle);

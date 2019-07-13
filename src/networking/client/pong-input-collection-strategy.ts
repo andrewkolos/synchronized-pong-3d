@@ -11,21 +11,16 @@ export interface PongInputCollectionStrategyContext {
 
 export class PongInputCollectionStrategy implements InputCollectionStrategy<PongEntity> {
 
-  constructor(private playerEntityId: string, private inputCollector: PaddleInputCollector) {}
+  constructor(private playerEntityId: string, private inputCollector: PaddleInputCollector) { }
 
   public getInputs(dt: number): Array<InputForEntity<PongEntity>> {
-    const rawInput = this.inputCollector.getPaddleMoveInput(dt);
 
-    if (!compareDumbObjects(rawInput, NullPaddleInput)) {
-      const inputForPlayerEntity: InputForEntity<PongEntity> = {
-        entityId: this.playerEntityId,
-        input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
-      };
+    const inputForPlayerEntity: InputForEntity<PongEntity> = {
+      entityId: this.playerEntityId,
+      input: this.adaptInput(this.inputCollector.getPaddleMoveInput(dt)),
+    };
 
-      return [inputForPlayerEntity];
-    }
-
-    return [];
+    return [inputForPlayerEntity];
   }
 
   private adaptInput(input: PaddleInput): PickInput<PaddleEntity> {

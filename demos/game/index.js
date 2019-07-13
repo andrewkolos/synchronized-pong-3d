@@ -6,6 +6,11 @@
       Player[Player["Player1"] = 0] = "Player1";
       Player[Player["Player2"] = 1] = "Player2";
   })(Player || (Player = {}));
+  function validatePlayerVal(player) {
+      if (player !== Player.Player1 && player !== Player.Player2) {
+          throw Error("Invalid Player value!");
+      }
+  }
 
   function d(a){for(var b=1;b<arguments.length;b++){var c=null!=arguments[b]?arguments[b]:{},e=Object.keys(c);"function"===typeof Object.getOwnPropertySymbols&&(e=e.concat(Object.getOwnPropertySymbols(c).filter(function(a){return Object.getOwnPropertyDescriptor(c,a).enumerable})));e.forEach(function(b){var e=c[b];b in a?Object.defineProperty(a,b,{value:e,enumerable:!0,configurable:!0,writable:!0}):a[b]=e;});}return a}
   let g={DPAD_UP:"DPAD_UP",DPAD_RIGHT:"DPAD_RIGHT",DPAD_DOWN:"DPAD_DOWN",DPAD_LEFT:"DPAD_LEFT",LEFT_ANALOG_HORIZONTAL_AXIS:"LEFT_ANALOG_HORIZONTAL_AXIS",LEFT_ANALOG_VERTICAL_AXIS:"LEFT_ANALOG_VERTICAL_AXIS",LEFT_ANALOG_UP:"LEFT_ANALOG_UP",LEFT_ANALOG_RIGHT:"LEFT_ANALOG_RIGHT",LEFT_ANALOG_DOWN:"LEFT_ANALOG_DOWN",LEFT_ANALOG_LEFT:"LEFT_ANALOG_LEFT",LEFT_ANALOG_PRESS:"LEFT_ANALOG_PRESS",RIGHT_ANALOG_HORIZONTAL_AXIS:"RIGHT_ANALOG_HORIZONTAL_AXIS",RIGHT_ANALOG_VERTICAL_AXIS:"RIGHT_ANALOG_VERTICAL_AXIS",
@@ -46,6 +51,7 @@
   b.includes(a))&&this.inputChangeMap[c].callback(a);});this.inputChangeOldState=a;}}let A=new z;var ResponsiveGamepad=A;
 
   function getPaddleByPlayer(game, player) {
+      validatePlayerVal(player);
       return player === Player.Player1 ? game.player1Paddle : game.player2Paddle;
   }
   function getPlayerByPaddle(game, paddle) {
@@ -76,7 +82,6 @@
        * @param inputToValidate The input to validate.
        * @param playerPaddle The player that the input is attempting to manipulate.
        * @param game The current state of the game.
-    
        * @returns The result of the validation, indicating whether or not the input is
        * invalid and, if not, why not.
        */
@@ -115,7 +120,7 @@
       }
       isViolatingNeutralZone() {
           return this.nextY > -(this.neutralZoneHeight) / 2 - this.paddleWidth / 2 &&
-              this.nextY < this.playFieldHeight / 2 + this.paddleWidth / 2;
+              this.nextY < this.neutralZoneHeight / 2 + this.paddleWidth / 2;
       }
       isLeavingPlayField() {
           const southBound = -(this.playFieldHeight / 2) + (this.paddleHeight / 2);
@@ -181,6 +186,7 @@
           this.game = context.game;
           this.player = context.player;
           this.playerMoveSpeedPerMs = context.playerMoveSpeedPerMs;
+          this.gamepadDisabled = context.disableGamepad === false ? false : true;
           ResponsiveGamepad.enable();
       }
       /**
@@ -199,8 +205,15 @@
           if (this.isKeyboardActive()) {
               return this.getInputFromKeyboard(dt);
           }
-          else {
+          else if (!this.gamepadDisabled) {
               return this.getInputFromGamepad(dt);
+          }
+          else {
+              return {
+                  dx: 0,
+                  dy: 0,
+                  dzRotation: 0,
+              };
           }
       }
       isKeyboardActive() {
@@ -259,6 +272,7 @@
   }
 
   function getPaddleByPlayer$1(game, player) {
+      validatePlayerVal(player);
       return player === Player.Player1 ? game.player1Paddle : game.player2Paddle;
   }
 
@@ -48688,9 +48702,6 @@
       applyInput(input) {
           PaddleInputApplicator.applyInput(this.game, input);
       }
-      getPlayersPaddle(player) {
-          return player === Player.Player1 ? this.game.player1Paddle : this.game.player2Paddle;
-      }
   }
 
   const player1Color = 0x0D47A1;
@@ -94414,9 +94425,8 @@
               game.eventEmitter.on("ballHitPaddle", () => {
                   this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
               });
-              game.eventEmitter.on("playerScored", () => {
-                  this.scoreboard.setSpeed(0);
-                  this.scoreboard.setScore(game.score.player1, game.score.player2);
+              game.eventEmitter.on("scoreChanged", (_previousScore, currentScore) => {
+                  this.handleScoreChange(currentScore);
               });
               game.eventEmitter.on("startingServe", () => {
                   this.scoreboard.showMeter(MeterType.ServeProgress);
@@ -94506,7 +94516,7 @@
               obj.outerObj.position.x = game.ball.position.x;
               obj.outerObj.position.y = game.ball.position.y;
               const distanceTraveled = Math.hypot(game.ball.velocity.x, game.ball.velocity.y);
-              const angle = distanceTraveled / game.ball.radius;
+              const angle = distanceTraveled / game.ball.radius / (game.config.game.tickRate / 60);
               const axisOfRotation = new Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
               const rotation = new Matrix4();
               rotation.makeRotationAxis(axisOfRotation, angle);
@@ -94541,6 +94551,10 @@
           updatePaddleObj(this.gameObjects.player1Paddle, game.player1Paddle);
           updatePaddleObj(this.gameObjects.player2Paddle, game.player2Paddle);
           updateScreenShake();
+      }
+      handleScoreChange(currentScore) {
+          this.scoreboard.setSpeed(0);
+          this.scoreboard.setScore(currentScore.player1, currentScore.player2);
       }
   }
 
@@ -94658,7 +94672,7 @@
 
   const basicConfig = {
       game: {
-          tickRate: 60,
+          tickRate: 240,
       },
       playField: {
           width: 10,
@@ -94706,7 +94720,7 @@
       }
       dispatchEvent(type, ...args) {
           this.handlers.filter(handler => handler[0] === type).forEach(handler => {
-              handler[1](args);
+              handler[1](...args);
           });
       }
       clearEventListeners() {
@@ -94785,6 +94799,7 @@
           this.position = new Vector2();
           this.collidingWithPaddle = false;
           this.collidingWithWall = false;
+          this.collisionEnabled = true;
       }
       /**
        * Moves ball using its current velocity and position/orientation of
@@ -94826,13 +94841,13 @@
                   if (collisionInfo.collisionType === CollisionType.LeftEdge) {
                       delta.multiplyScalar(-1);
                   }
-                  // Prevent double-counted collision.
+                  // Prevent double-counted collision from the paddle traveling into the ball.
                   this.position.add(new Vector2(paddle.velocity.x, paddle.velocity.y));
               }
               this.velocity.set(delta.x, delta.y);
               this.position.add(this.velocity);
               if (this.onPaddleBounce != null) {
-                  this.onPaddleBounce();
+                  this.onPaddleBounce(collisionInfo.player);
               }
           }
       }
@@ -94841,6 +94856,7 @@
        * @param player The player that the ball should teleport to.
        */
       teleportToPlayer(player) {
+          validatePlayerVal(player);
           const ballRadius = this.radius;
           const paddle = getPaddleByPlayer(this.game, player);
           const paddleHeight = paddle.height;
@@ -94866,12 +94882,11 @@
           const correctionFactor = 60 / this.game.config.game.tickRate;
           const speedLimit = this.game.config.ball.speedLimit * correctionFactor;
           const positionDelta = this.game.ball.velocity.clone().multiplyScalar(correctionFactor);
-          let distanceTraveled = positionDelta.length();
+          const distanceTraveled = positionDelta.length();
           if (distanceTraveled > speedLimit) {
-              positionDelta.normalize().multiplyScalar(speedLimit);
+              positionDelta.normalize().multiplyScalar(speedLimit / correctionFactor);
               this.game.ball.velocity.x = positionDelta.x;
               this.game.ball.velocity.y = positionDelta.y;
-              distanceTraveled = speedLimit;
           }
           return positionDelta;
       }
@@ -94977,6 +94992,20 @@
       constructor() { }
   }
 
+  // tslint:disable-next-line: interface-over-type-literal
+  function cloneDumbObject(source) {
+      const isDumbObject = Object.values(source).every((value) => {
+          const type = typeof value;
+          return type !== "object" && type !== "function";
+      });
+      if (!isDumbObject) {
+          throw Error("Object cannot contain non-value types.");
+      }
+      const obj = {};
+      Object.assign(obj, source);
+      return obj;
+  }
+
   class GameEngine {
       /**
        * Creates an instance of a pong game.
@@ -95000,7 +95029,7 @@
           this.player1Paddle = paddles.player1Paddle;
           this.player2Paddle = paddles.player2Paddle;
           this.ball = new Ball(this, config.ball);
-          this.ball.onPaddleBounce = () => this.eventEmitter.emit("ballHitPaddle");
+          this.ball.onPaddleBounce = (player) => this.eventEmitter.emit("ballHitPaddle", player);
           this.ball.onWallBounce = () => this.eventEmitter.emit("ballHitWall");
           // Initialize game state.
           this.timeUntilServeSec = 3;
@@ -95023,6 +95052,12 @@
        */
       stop() {
           this.gameLoop.stop();
+      }
+      /**
+       * Determines if a player is holding a ball, and it is soon to be served.
+       */
+      isBallBeingHeldByServer() {
+          return this.timeUntilServeSec > 0;
       }
       tick() {
           this.moveBall();
@@ -95069,6 +95104,8 @@
           }
       }
       handleScore(scorer) {
+          validatePlayerVal(scorer);
+          const previousScore = cloneDumbObject(this.score);
           this.timeUntilServeSec = this.config.pauseAfterScoreSec;
           if (scorer === Player.Player1) {
               this.score.player1 += 1;
@@ -95079,6 +95116,8 @@
           const server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
           this.startServing(server);
           this.eventEmitter.emit("playerScored", scorer, this.score);
+          const currentScore = cloneDumbObject(this.score);
+          this.eventEmitter.emit("scoreChanged", previousScore, currentScore);
       }
       startServing(server) {
           this.ballIsInPlay = false;
@@ -95100,12 +95139,6 @@
       }
       isBallServingAtCurrentInstant() {
           return this.timeUntilServeSec <= 0;
-      }
-      /**
-       * Determines if a player is holding a ball, and it is soon to be served.
-       */
-      isBallBeingHeldByServer() {
-          return this.timeUntilServeSec > 0;
       }
   }
 
