@@ -7,9 +7,9 @@ import { EntityId } from "../entity-ids";
 import { PongClientEntitySynchronizer } from "./client-entity-synchronizer";
 import { PongServerEntitySynchronizer } from "./server-entity-synchronizer";
 import { Player } from "game-core/enum/player";
-import { interpolateStatesLinearly } from 'misc/interpolateStatesLinearly';
-import { Vector2, Vector3 } from 'three';
-import { vec3FromVec2 } from 'renderers/three/misc/common';
+import { interpolateStatesLinearly } from "misc/interpolateStatesLinearly";
+import { Vector2, Vector3 } from "three";
+import { vec3FromVec2 } from "renderers/three/misc/common";
 
 type EntitySynchronizer = PongClientEntitySynchronizer | PongServerEntitySynchronizer;
 

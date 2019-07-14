@@ -20,7 +20,7 @@ const CLIENT_ENTITY_SYNC_RATE = 60;
 const CLIENT_GAME_SYNC_RATE = 15;
 const SERVER_GAME_BROADCAST_RATE = 15;
 
-const CLIENT_LAG_MS = 75;
+const CLIENT_LAG_MS = 150;
 
 const serverGameConfig: Config = {} as any;
 Object.assign(serverGameConfig, basicConfig);

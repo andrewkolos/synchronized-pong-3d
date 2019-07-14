@@ -23,7 +23,6 @@ export class Ball {
 
   public collisionEnabled: boolean;
 
-  private collidingWithWall: boolean;
   private collidingWithPaddle: boolean;
   private game: GameEngine;
 
@@ -33,7 +32,6 @@ export class Ball {
     this.velocity = new Three.Vector2();
     this.position = new Three.Vector2();
     this.collidingWithPaddle = false;
-    this.collidingWithWall = false;
     this.collisionEnabled = true;
   }
 
