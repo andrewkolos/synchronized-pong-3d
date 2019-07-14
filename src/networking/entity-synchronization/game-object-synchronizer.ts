@@ -15,7 +15,7 @@ type EntitySynchronizer = PongClientEntitySynchronizer | PongServerEntitySynchro
 
 const Observer = "Observer";
 
-const BALL_PREDICTION_DISABLE_LENGTH_MS = 100;
+const BALL_PREDICTION_DISABLE_LENGTH_MS = 300;
 
 export class GameObjectSynchronizer {
 

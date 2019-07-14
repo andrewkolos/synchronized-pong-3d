@@ -49347,11 +49347,27 @@
         }
     }
 
+    var Player$1;
+    (function (Player) {
+        Player[Player["Player1"] = 0] = "Player1";
+        Player[Player["Player2"] = 1] = "Player2";
+    })(Player$1 || (Player$1 = {}));
+    function validatePlayerVal$1(player) {
+        if (player !== Player$1.Player1 && player !== Player$1.Player2) {
+            throw Error("Invalid Player value!");
+        }
+    }
+
     const player1Color = 0x0D47A1;
     const player2Color = 0xB71c1c;
     const scale = 1;
     const meterBackColor = 0x11111;
-    function makeSimpleThreeRendererConfig(width, height) {
+    function makeSimpleThreeRendererConfig(width, height, player) {
+        validatePlayerVal$1(player);
+        const p1CameraPosition = new Vector3(0, -20, 10);
+        const p1ScoreboardPosition = new Vector3(0, 26, 2);
+        const p1DirectionLightPos = new Vector3(-7, -5, 8);
+        const p2DirectionLightPos = p1DirectionLightPos.clone().multiply(new Vector3(-1, -1, 1));
         return {
             camera: {
                 fov: 45,
@@ -49359,7 +49375,7 @@
                     near: 0.1,
                     far: 1000,
                 },
-                position: new Vector3(0, -20, 10),
+                position: reverseSidesIfP2Pov(p1CameraPosition, player),
             },
             width,
             height,
@@ -49370,6 +49386,8 @@
             playField: {
                 color: 0x156289,
                 centerlineColor: 0xFFFFFF,
+                centerlineWidth: 0.5,
+                neutralZoneBoundaryWidth: 0.1,
                 depth: 0.2,
             },
             paddles: {
@@ -49377,7 +49395,7 @@
                 player2Color,
             },
             scoreboard: {
-                position: new Vector3(0, 26, 2),
+                position: reverseSidesIfP2Pov(p1ScoreboardPosition, player),
                 scale,
                 color: 0xFFFFFF,
                 player1TextColor: player1Color,
@@ -49395,7 +49413,7 @@
                     numberOfSegments: 7,
                     segmentColors: [0x777777, 0x888888, 0x999999, 0xaaaaaa, 0xbbbbbb, 0xdddddd, 0xffffff],
                     maxValue: 1,
-                }
+                },
             },
             screenShake: {
                 minSpeed: 0.55,
@@ -49404,7 +49422,7 @@
             },
             lighting: {
                 directionalLight: {
-                    position: new Vector3(-7, -5, 8),
+                    position: player === Player$1.Player1 ? p1DirectionLightPos : p2DirectionLightPos,
                     shadow: {
                         near: 4,
                         far: 20,
@@ -49416,7 +49434,7 @@
                     brightness: 1,
                 },
                 scoreLight: {
-                    position: new Vector3(0, 16, -18),
+                    position: reverseSidesIfP2Pov(p1ScoreboardPosition.clone(), player).sub(reverseSidesIfP2Pov(new Vector3(0, 10, 20), player)),
                     angle: 0.6,
                     distance: 28,
                     brightness: 2,
@@ -49432,6 +49450,15 @@
             wallColor: 0xFFFFFF,
             clearColor: 0x000000,
         };
+    }
+    function reverseSidesIfP2Pov(pos, pov) {
+        validatePlayerVal$1(pov);
+        if (pov === Player$1.Player2) {
+            return pos.clone().multiply(new Vector3(1, -1, 1));
+        }
+        else {
+            return pos;
+        }
     }
 
     var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -94949,6 +94976,7 @@
                 const camera = new PerspectiveCamera(fov, aspectRatio, near, far);
                 camera.position.copy(position);
                 camera.lookAt(new Vector3(0, 0, 0));
+                camera.up.set(0, 0, 1);
                 return camera;
             };
             const createRenderer = () => {
@@ -94968,8 +94996,12 @@
             // tslint:disable-next-line: no-unused-expression
             new OrbitControls_1(this.camera, this.renderer.domElement);
             const scoreboard = new ThreeScoreboard(config.scoreboard);
-            scoreboard.getObject().position.copy(config.scoreboard.position);
-            this.scene.add(scoreboard.getObject());
+            const scoreboardObj = scoreboard.getObject();
+            scoreboardObj.position.copy(config.scoreboard.position);
+            if (scoreboardObj.position.y < 0) {
+                scoreboardObj.rotateZ(Math.PI);
+            }
+            this.scene.add(scoreboardObj);
             this.scoreboard = scoreboard;
         }
         getRendererDomElement() {
@@ -95083,6 +95115,10 @@
             }
         }
         createPlayField(game) {
+            const { centerlineWidth } = this.config.playField;
+            const lineColor = this.config.playField.centerlineColor;
+            const playFieldColor = this.config.playField.color;
+            const { neutralZoneBoundaryWidth } = this.config.playField;
             const createPart = (color, length, yOffset) => {
                 const geometry = new BoxGeometry(game.config.playField.width, length, this.config.playField.depth, 32, 32);
                 const material = new MeshLambertMaterial({ color });
@@ -95092,13 +95128,25 @@
                 part.position.set(0, yOffset, -this.config.playField.depth / 2);
                 return part;
             };
-            const playPlaneLength = (game.config.playField.height / 2) - (game.config.playField.neutralZoneHeight) / 2;
-            const playPlanePos = (game.config.playField.neutralZoneHeight / 2) + playPlaneLength / 2;
-            const topHalf = createPart(this.config.playField.color, playPlaneLength, playPlanePos);
-            const bottomHalf = createPart(this.config.playField.color, playPlaneLength, -playPlanePos);
-            const centerline = createPart(0xFFFFFF, game.config.playField.neutralZoneHeight, 0);
+            const createHalf = () => {
+                const neutralZoneHeight = game.config.playField.neutralZoneHeight / 2 - centerlineWidth / 2 - neutralZoneBoundaryWidth;
+                const playerZoneHeight = game.config.playField.height / 2 - game.config.playField.neutralZoneHeight / 2;
+                const neutralZoneYPos = centerlineWidth / 2 + neutralZoneHeight / 2;
+                const playerZoneYPos = neutralZoneHeight + playerZoneHeight / 2 + neutralZoneBoundaryWidth + centerlineWidth / 2;
+                const neutralZoneBoundaryLineYPos = neutralZoneYPos + neutralZoneHeight / 2 + neutralZoneBoundaryWidth / 2;
+                const playerZone = createPart(playFieldColor, playerZoneHeight, playerZoneYPos);
+                const neutralZoneBoundaryLine = createPart(lineColor, neutralZoneBoundaryWidth, neutralZoneBoundaryLineYPos);
+                const neutralZone = createPart(playFieldColor, neutralZoneHeight, neutralZoneYPos);
+                const half = new Object3D();
+                half.add(playerZone, neutralZoneBoundaryLine, neutralZone);
+                return half;
+            };
+            const topHalf = createHalf();
+            const bottomHalf = createHalf();
+            bottomHalf.rotateZ(Math.PI);
+            const centerline = createPart(lineColor, centerlineWidth, 0);
             const obj = new Object3D();
-            obj.add(topHalf, bottomHalf, centerline);
+            obj.add(topHalf, centerline, bottomHalf);
             return obj;
         }
         addLighting() {
@@ -95125,6 +95173,7 @@
                 light.shadow.camera.far = slConfig.distance;
                 light.shadow.mapSize.width = 1024;
                 light.shadow.mapSize.height = 1024;
+                light.up.set(0, 0, 1);
                 light.target.updateMatrixWorld();
                 return light;
             };
@@ -95253,9 +95302,10 @@
     class BrowserClient {
         constructor(game, hostElement, options = {}) {
             this.running = false;
+            const pov = options.pov != null ? options.pov : Player.Player1;
             this.game = game;
             if (options.input != null) {
-                this.setupBrowserInput(options.input.player, options.input.keyMappings);
+                this.setupBrowserInput(options.input.playerToControl, options.input.keyMappings);
             }
             game.eventEmitter.on("ballHitPaddle", this.playBounceSound.bind(this));
             game.eventEmitter.on("ballHitWall", this.playBounceSound.bind(this));
@@ -95263,7 +95313,7 @@
             const renderer = (() => {
                 const rendererWidth = hostElement.clientWidth;
                 const rendererHeight = hostElement.clientHeight;
-                const config = Object.assign({}, makeSimpleThreeRendererConfig(rendererWidth, rendererHeight), options.rendererConfig);
+                const config = Object.assign({}, makeSimpleThreeRendererConfig(rendererWidth, rendererHeight, pov), options.rendererConfig);
                 return new ThreeRenderer(config);
             })();
             const domElement = renderer.getRendererDomElement();
@@ -95339,7 +95389,7 @@
         playField: {
             width: 10,
             height: 20,
-            neutralZoneHeight: 0.5,
+            neutralZoneHeight: 10,
         },
         paddles: {
             width: 2,
@@ -95710,7 +95760,7 @@
         const newState = {};
         Object.keys(state1).forEach((key) => {
             if (typeof state1[key] === "number") {
-                newState[key] = state1[key] + (state2[key] - state1[key]) * timeRatio;
+                newState[key] = interpolateLinearly(state1[key], state2[key], timeRatio);
             }
             else if (typeof state1[key] === "object") {
                 newState[key] = interpolateStatesLinearly(state1[key], state2[key], timeRatio);
@@ -95721,6 +95771,9 @@
         });
         return newState;
     }
+    function interpolateLinearly(state1, state2, timeRatio) {
+        return state1 + (state2 - state1) * timeRatio;
+    }
 
     class BallEntity extends SyncableEntity {
         // tslint:disable-next-line: variable-name
@@ -95728,10 +95781,12 @@
             return input;
         }
         interpolate(state1, state2, timeRatio) {
-            const nextState = interpolateStatesLinearly(state1, state2, timeRatio);
-            nextState.dx = state2.dx;
-            nextState.dy = state2.dy;
-            return nextState;
+            return {
+                x: interpolateLinearly(state1.x, state2.x, timeRatio),
+                y: interpolateLinearly(state1.y, state2.y, timeRatio),
+                dx: state2.dx,
+                dy: state2.dy,
+            };
         }
     }
 
@@ -95799,7 +95854,7 @@
         return new Vector3(from.x, from.y);
     }
 
-    const BALL_PREDICTION_DISABLE_LENGTH_MS = 100;
+    const BALL_PREDICTION_DISABLE_LENGTH_MS = 300;
     class GameObjectSynchronizer {
         constructor(gameToSync, localPlayer, entitySyncer) {
             this.gameToSync = gameToSync;
@@ -95937,17 +95992,6 @@
         processServingMessage(message) {
             this.game.server = message.servingPlayer;
             this.game.timeUntilServeSec = message.timeUntilServeSec;
-        }
-    }
-
-    var Player$1;
-    (function (Player) {
-        Player[Player["Player1"] = 0] = "Player1";
-        Player[Player["Player2"] = 1] = "Player2";
-    })(Player$1 || (Player$1 = {}));
-    function validatePlayerVal$1(player) {
-        if (player !== Player$1.Player1 && player !== Player$1.Player2) {
-            throw Error("Invalid Player value!");
         }
     }
 
@@ -96273,10 +96317,12 @@
             return input;
         }
         interpolate(state1, state2, timeRatio) {
-            const nextState = interpolateStatesLinearly(state1, state2, timeRatio);
-            nextState.dx = state2.dx;
-            nextState.dy = state2.dy;
-            return nextState;
+            return {
+                x: interpolateLinearly(state1.x, state2.x, timeRatio),
+                y: interpolateLinearly(state1.y, state2.y, timeRatio),
+                dx: state2.dx,
+                dy: state2.dy,
+            };
         }
     }
 
@@ -96512,7 +96558,7 @@
     const CLIENT_ENTITY_SYNC_RATE = 60;
     const CLIENT_GAME_SYNC_RATE = 15;
     const SERVER_GAME_BROADCAST_RATE = 15;
-    const CLIENT_LAG_MS = 35;
+    const CLIENT_LAG_MS = 75;
     const serverGameConfig = {};
     Object.assign(serverGameConfig, basicConfig);
     serverGameConfig.ball.radius += 0.01;
@@ -96558,7 +96604,7 @@
         const renderElement = document.getElementById(renderElementId);
         const game = new GameEngine(basicConfig);
         const syncer = createPongClient(game, player);
-        const browserClient = new BrowserClient(game, renderElement);
+        const browserClient = new BrowserClient(game, renderElement, { pov: player });
         return {
             game,
             renderElement,
@@ -96581,7 +96627,7 @@
     const topTwoRenderHeights = window.innerHeight * 0.5;
     const bottomRenderWidth = window.innerWidth;
     const bottomRenderHeight = window.innerHeight * 0.5;
-    const serverRenderer = new ThreeRenderer(Object.assign({}, makeSimpleThreeRendererConfig(bottomRenderWidth, bottomRenderHeight), { clearColor: 0x000022 }));
+    const serverRenderer = new ThreeRenderer(Object.assign({}, makeSimpleThreeRendererConfig(bottomRenderWidth, bottomRenderHeight, Player.Player1), { clearColor: 0x000022 }));
     const domElement = serverRenderer.getRendererDomElement();
     const serverRendererElement = document.getElementById("server");
     serverRendererElement.appendChild(domElement);

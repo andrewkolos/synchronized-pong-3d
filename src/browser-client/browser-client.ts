@@ -12,8 +12,9 @@ import { ThreeRendererConfig } from "../renderers/three/renderer-config";
 import { AudioManager } from "./audio/audio-manager";
 
 export interface BrowserClientOptions {
+  pov?: Player;
   input?: {
-    player: Player;
+    playerToControl: Player;
     keyMappings: KeyMappings;
   };
   rendererConfig?: Partial<ThreeRendererConfig>;
@@ -30,10 +31,12 @@ export class BrowserClient {
 
   public constructor(game: GameEngine, hostElement: HTMLElement, options: BrowserClientOptions = {}) {
 
+    const pov: Player = options.pov != null ? options.pov : Player.Player1;
+
     this.game = game;
 
     if (options.input != null) {
-      this.setupBrowserInput(options.input.player, options.input.keyMappings);
+      this.setupBrowserInput(options.input.playerToControl, options.input.keyMappings);
     }
 
     game.eventEmitter.on("ballHitPaddle", this.playBounceSound.bind(this));
@@ -43,7 +46,7 @@ export class BrowserClient {
     const renderer = (() => {
       const rendererWidth = hostElement.clientWidth;
       const rendererHeight = hostElement.clientHeight;
-      const config = { ...makeSimpleThreeRendererConfig(rendererWidth, rendererHeight), ...options.rendererConfig };
+      const config = { ...makeSimpleThreeRendererConfig(rendererWidth, rendererHeight, pov), ...options.rendererConfig };
       return new ThreeRenderer(config);
     })();
 

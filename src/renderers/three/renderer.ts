@@ -34,7 +34,9 @@ export class ThreeRenderer {
 
       const camera = new Three.PerspectiveCamera(fov, aspectRatio, near, far);
       camera.position.copy(position);
+
       camera.lookAt(new Three.Vector3(0, 0, 0));
+      camera.up.set(0, 0, 1);
 
       return camera;
     };
@@ -62,8 +64,12 @@ export class ThreeRenderer {
     new OrbitControls(this.camera, this.renderer.domElement);
 
     const scoreboard = new ThreeScoreboard(config.scoreboard);
-    scoreboard.getObject().position.copy(config.scoreboard.position);
-    this.scene.add(scoreboard.getObject());
+    const scoreboardObj = scoreboard.getObject();
+    scoreboardObj.position.copy(config.scoreboard.position);
+    if (scoreboardObj.position.y < 0) {
+      scoreboardObj.rotateZ(Math.PI);
+    }
+    this.scene.add(scoreboardObj);
     this.scoreboard = scoreboard;
   }
 
@@ -209,8 +215,14 @@ export class ThreeRenderer {
       });
     }
   }
-
+  
   private createPlayField(game: GameEngine) {
+
+    const { centerlineWidth } = this.config.playField;
+    const lineColor = this.config.playField.centerlineColor;
+    const playFieldColor = this.config.playField.color;
+    const { neutralZoneBoundaryWidth } = this.config.playField;
+
     const createPart = (color: number, length: number, yOffset: number) => {
       const geometry = new Three.BoxGeometry(game.config.playField.width, length, this.config.playField.depth, 32, 32);
       const material = new Three.MeshLambertMaterial({ color });
@@ -222,15 +234,30 @@ export class ThreeRenderer {
       return part;
     };
 
-    const playPlaneLength = (game.config.playField.height / 2) - (game.config.playField.neutralZoneHeight) / 2;
-    const playPlanePos = (game.config.playField.neutralZoneHeight / 2) + playPlaneLength / 2;
+    const createHalf = (): Three.Object3D => {
+      const neutralZoneHeight = game.config.playField.neutralZoneHeight / 2 - centerlineWidth / 2 - neutralZoneBoundaryWidth;
+      const playerZoneHeight = game.config.playField.height / 2 - game.config.playField.neutralZoneHeight / 2;
+      const neutralZoneYPos = centerlineWidth / 2 + neutralZoneHeight / 2;
+      const playerZoneYPos = neutralZoneHeight + playerZoneHeight / 2 + neutralZoneBoundaryWidth + centerlineWidth / 2 ;
+      const neutralZoneBoundaryLineYPos = neutralZoneYPos + neutralZoneHeight / 2 + neutralZoneBoundaryWidth / 2;
 
-    const topHalf = createPart(this.config.playField.color, playPlaneLength, playPlanePos);
-    const bottomHalf = createPart(this.config.playField.color, playPlaneLength, -playPlanePos);
-    const centerline = createPart(0xFFFFFF, game.config.playField.neutralZoneHeight, 0);
+      const playerZone = createPart(playFieldColor, playerZoneHeight, playerZoneYPos);
+      const neutralZoneBoundaryLine = createPart(lineColor, neutralZoneBoundaryWidth, neutralZoneBoundaryLineYPos);
+      const neutralZone = createPart(playFieldColor, neutralZoneHeight, neutralZoneYPos);
+
+      const half = new Three.Object3D();
+      half.add(playerZone, neutralZoneBoundaryLine, neutralZone);
+      return half;
+    };
+
+
+    const topHalf = createHalf();
+    const bottomHalf = createHalf();
+    bottomHalf.rotateZ(Math.PI);
+    const centerline = createPart(lineColor, centerlineWidth, 0);
 
     const obj = new Three.Object3D();
-    obj.add(topHalf, bottomHalf, centerline);
+    obj.add(topHalf, centerline, bottomHalf);
 
     return obj;
   }
@@ -262,6 +289,7 @@ export class ThreeRenderer {
       light.shadow.mapSize.width = 1024;
       light.shadow.mapSize.height = 1024;
 
+      light.up.set(0, 0, 1);
       light.target.updateMatrixWorld();
 
       return light;

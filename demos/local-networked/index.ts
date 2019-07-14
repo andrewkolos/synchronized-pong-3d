@@ -20,7 +20,7 @@ const CLIENT_ENTITY_SYNC_RATE = 60;
 const CLIENT_GAME_SYNC_RATE = 15;
 const SERVER_GAME_BROADCAST_RATE = 15;
 
-const CLIENT_LAG_MS = 35;
+const CLIENT_LAG_MS = 75;
 
 const serverGameConfig: Config = {} as any;
 Object.assign(serverGameConfig, basicConfig);
@@ -91,7 +91,7 @@ function createClient(renderElementId: string, player: Player): CompleteClient {
 
   const game = new GameEngine(basicConfig);
   const syncer = createPongClient(game, player);
-  const browserClient = new BrowserClient(game, renderElement);
+  const browserClient = new BrowserClient(game, renderElement, { pov: player });
 
   return {
     game,
@@ -122,7 +122,7 @@ const topTwoRenderHeights = window.innerHeight * 0.5;
 const bottomRenderWidth = window.innerWidth;
 const bottomRenderHeight = window.innerHeight * 0.5;
 
-const serverRenderer = new ThreeRenderer({...makeSimpleThreeRendererConfig(bottomRenderWidth, bottomRenderHeight), ...{clearColor: 0x000022}});
+const serverRenderer = new ThreeRenderer({ ...makeSimpleThreeRendererConfig(bottomRenderWidth, bottomRenderHeight, Player.Player1), ...{ clearColor: 0x000022 } });
 const domElement = serverRenderer.getRendererDomElement();
 const serverRendererElement = document.getElementById("server")!;
 serverRendererElement!.appendChild(domElement);
@@ -134,7 +134,7 @@ window.addEventListener("load", resizeRenderers);
 
 function resizeRenderers() {
 
-  function adjustTopRenderer(client: {renderElement: HTMLElement, browserClient: BrowserClient}) {
+  function adjustTopRenderer(client: { renderElement: HTMLElement, browserClient: BrowserClient }) {
     client.renderElement.style.height = `${topTwoRenderHeights}px`;
     client.renderElement.style.width = `${topTwoRenderWidths}px`;
     client.browserClient.setSize(topTwoRenderWidths, topTwoRenderHeights);

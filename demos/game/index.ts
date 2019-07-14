@@ -7,7 +7,7 @@ import { simpleP1KeyMappings } from 'game-core/input/collection/key-mappings';
 const rendererElement = document.getElementById("game")!;
 rendererElement!.style.height = `${window.innerHeight}px`;
 const game = new GameEngine(basicConfigWithAiOpponent);
-const client = new BrowserClient(game, rendererElement, {input: {player: Player.Player1, keyMappings: simpleP1KeyMappings}});
+const client = new BrowserClient(game, rendererElement, {input: {playerToControl: Player.Player1, keyMappings: simpleP1KeyMappings}});
 game.start();
 client.start();
 

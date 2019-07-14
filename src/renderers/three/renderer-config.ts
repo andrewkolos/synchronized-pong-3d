@@ -36,6 +36,8 @@ export interface ThreeRendererConfig {
   playField: {
     color: number;
     centerlineColor: number;
+    centerlineWidth: number;
+    neutralZoneBoundaryWidth: number;
     depth: number;
   };
   paddles: {

@@ -1,5 +1,5 @@
 import { Config } from "./config";
-import { cloneDumbObject } from 'misc/cloneDumbObject';
+import { cloneDumbObject } from "misc/cloneDumbObject";
 
 export const basicConfig: Config = {
   game: {
@@ -8,7 +8,7 @@ export const basicConfig: Config = {
   playField: {
     width: 10,
     height: 20,
-    neutralZoneHeight: 0.5,
+    neutralZoneHeight: 10,
   },
   paddles: {
     width: 2,
