@@ -24,3 +24,6 @@ build/
 demo/build*
 
 .rpt2_cache/
+
+demos/**/index.js
+demos/**/index.js.map
