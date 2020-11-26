@@ -14,8 +14,8 @@ export const basicConfig: Config = {
     width: 2,
     height: 0.125,
     depth: 1,
-    baseMoveSpeedPerMs: 0.0075,
-    baseRotateSpeedPerMs: (Math.PI / 48 * 60) / 1000,
+    baseMoveSpeedPerMs: 0.0075 / 2,
+    baseRotateSpeedPerMs: (Math.PI / 48 * 60) / 1000 / 2,
   },
   ball: {
     radius: 0.45,
@@ -28,8 +28,7 @@ export const basicConfig: Config = {
 };
 
 const basicOnlineConfig = cloneDumbObject(basicConfig);
-basicConfig.paddles.baseMoveSpeedPerMs /= 2;
-basicConfig.paddles.baseRotateSpeedPerMs /= 2;
+basicOnlineConfig.aiPlayer = undefined;
 
 export const basicOnlineClientConfig = cloneDumbObject(basicOnlineConfig);
 
@@ -42,6 +41,6 @@ export const basicConfigWithAiOpponent = {
   ...basicConfig,
   aiPlayer: {
     enabled: true,
-    moveSpeed: 0.06 * 2.1,
+    moveSpeed: 0.030,
   },
 };
