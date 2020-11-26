@@ -28,6 +28,7 @@
     "typescript": "^3.5.3"
   },
   "devDependencies": {
+    "http-server": "^0.12.3",
     "rollup": "^1.16.7",
     "rollup-plugin-commonjs": "^10.0.1",
     "rollup-plugin-json": "^4.0.0",

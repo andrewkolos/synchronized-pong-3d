@@ -53,7 +53,7 @@ export function makeSimpleThreeRendererConfig(width: number, height: number, pla
         backColor: meterBackColor,
         numberOfSegments: 7,
         segmentColors: [0x14a800, 0x49BB00, 0x7FCF00, 0xe9f500, 0xEDB800, 0xF07B00, 0xF43D00],
-        maxValue: 0.8,
+        maxValue: 0.5,
       },
       serveMeter: {
         scale,
