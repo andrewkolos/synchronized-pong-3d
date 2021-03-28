@@ -6,9 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c gamedemo.rollup.config.js",
-    "start": "cd demos/game && http-server",
+    "start": "cd demos/game && http-server -g",
     "build:network-demo": "rollup -c localnetworkdemo.rollup.config.js",
-    "start:network-demo": "cd demos/local-networked && http-server"
+    "start:network-demo": "cd demos/local-networked && http-server -g"
   },
   "author": "Andrew Kolos",
   "license": "MIT",
@@ -19,6 +19,7 @@
     "@types/three": "^0.103.2",
     "audio-buffer-from": "^1.1.1",
     "cannon": "^0.6.2",
+    "http-server": "^0.12.3",
     "keycodes": "^1.0.0",
     "responsive-gamepad": "^1.2.1",
     "rollup-plugin-typescript2": "^0.21.2",
@@ -30,7 +31,6 @@
     "typescript": "^3.5.3"
   },
   "devDependencies": {
-    "http-server": "^0.12.3",
     "rollup": "^1.16.7",
     "rollup-plugin-commonjs": "^10.0.1",
     "rollup-plugin-json": "^4.0.0",
