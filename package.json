@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "game-demo": "rollup -c gamedemo.rollup.config.js && cd demos/game && http-server",
-    "network-demo": "rollup -c localnetworkdemo.rollup.config.js && cd demos/local-networked && http-server"
+    "build:game-demo": "rollup -c gamedemo.rollup.config.js",
+    "start:game-demo": "npm run build:game-demo && cd demos/game && http-server",
+    "build:network-demo": "rollup -c localnetworkdemo.rollup.config.js" ,
+    "start:network-demo": "npm run build:network-demo && cd demos/local-networked && http-server"
   },
   "author": "Andrew Kolos",
   "license": "MIT",
