@@ -23,7 +23,7 @@
     "keycodes": "^1.0.0",
     "responsive-gamepad": "^1.2.1",
     "rollup-plugin-typescript2": "^0.21.2",
-    "three": "^0.106.2",
+    "three": "^0.125.0",
     "three-orbitcontrols-ts": "^0.1.2",
     "tone": "^13.4.9",
     "tslint": "^5.18.0",
