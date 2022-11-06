@@ -19,7 +19,7 @@
     "@types/three": "^0.103.2",
     "audio-buffer-from": "^1.1.1",
     "cannon": "^0.6.2",
-    "http-server": "^0.12.3",
+    "http-server": "^14.1.1",
     "keycodes": "^1.0.0",
     "responsive-gamepad": "^1.2.1",
     "rollup-plugin-typescript2": "^0.21.2",
