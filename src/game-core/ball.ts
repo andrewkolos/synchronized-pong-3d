@@ -66,7 +66,7 @@ export class Ball {
         delta.rotateAround(new Three.Vector2(0, 0), rot);
 
         delta.multiplyScalar((delta.length() + game.config.ball.baseSpeedIncreaseOnPaddleHit) / delta.length());
-      } else {
+      } else if (collisionInfo.player !== Player.Player2 || game.config.aiPlayer == null) {
         delta.x = Math.hypot(delta.x, delta.y);
         delta.y = 0;
         delta.rotateAround(new Three.Vector2(), collisionInfo.collisionType === CollisionType.RightEdge ? rot : rot);
@@ -77,7 +77,7 @@ export class Ball {
       }
 
       // Prevent double-counted collision from the paddle traveling into the ball.
-      this.position.add(new Three.Vector2(paddle.velocity.x, paddle.velocity.y));
+      //this.position.add(new Three.Vector2(paddle.velocity.x, paddle.velocity.y));
 
       this.velocity.set(delta.x, delta.y);
       this.position.add(this.velocity);

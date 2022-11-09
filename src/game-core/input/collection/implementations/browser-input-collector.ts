@@ -38,7 +38,7 @@ export class BrowserInputCollector implements PaddleInputCollector {
     this.player = context.player;
     this.playerMoveSpeedPerMs = context.playerMoveSpeedPerMs;
     this.playerRotateSpeedPerMs = context.playerRotateSpeedPerMs;
-    this.gamepadDisabled = context.disableGamepad !== false;
+    this.gamepadDisabled = context.disableGamepad === true;
 
     ResponsiveGamepad.enable();
   }
@@ -72,7 +72,7 @@ export class BrowserInputCollector implements PaddleInputCollector {
   }
 
   private isKeyboardActive(): boolean {
-    return Object.values(this.mappings).some((key: KeyCode) => this.isKeyDown(key));
+    return Object.values(this.mappings).some((keys: KeyCode[]) => this.isKeyDown(keys));
   }
 
   private getInputFromGamepad(dt: number): PaddleInput {
@@ -130,7 +130,7 @@ export class BrowserInputCollector implements PaddleInputCollector {
     return input;
   }
 
-  private isKeyDown(key: KeyCode) {
-    return this.keyboardManager.isKeyDown(key.keyCode);
+  private isKeyDown(keys: KeyCode[]) {
+    return keys.some((key: KeyCode) => this.keyboardManager.isKeyDown(key.keyCode));
   }
 }

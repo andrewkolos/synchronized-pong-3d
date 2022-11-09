@@ -1,10 +1,10 @@
 import { EventEmitter } from '@akolos/event-emitter';
-import { GameLoop } from '@akolos/ts-client-server-game-synchronization';
 import { cloneDumbObject } from 'misc/cloneDumbObject';
 import * as Three from 'three';
 import { Ball } from './ball';
 import { Config } from './config/config';
 import { Player, validatePlayerVal } from './enum/player';
+import { GameLoop } from './game-loop';
 import { Paddle } from './paddle';
 import { AiController } from './paddle-ai';
 

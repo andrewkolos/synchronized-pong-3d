@@ -4,7 +4,10 @@
   "parserOptions": {
     "project": "./tsconfig.json"
   },
-  "plugins": ["@typescript-eslint", "prettier"],
+  "plugins": [
+    "@typescript-eslint",
+    "prettier"
+  ],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
@@ -12,10 +15,17 @@
     "@akolos/eslint-config-typescript",
     "prettier"
   ],
-  "ignorePatterns": ["*.config.js"],
+  "ignorePatterns": [
+    "*.config.js"
+  ],
   "rules": {
-    "react/prop-types": ["off"],
-    "import/no-extraneous-dependencies": ["off"],
-    "no-console": "off"
+    "react/prop-types": [
+      "off"
+    ],
+    "import/no-extraneous-dependencies": [
+      "off"
+    ],
+    "no-console": "off",
+    "import/no-cycle": "off"
   }
 }

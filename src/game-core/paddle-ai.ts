@@ -14,12 +14,10 @@ export namespace AiController {
     const paddleWidth = game.config.paddles.width;
     const cpuMovespeed = game.config.aiPlayer.moveSpeed;
 
-    if (ball.position.x > paddle.position.x) {
-      if (paddle.position.x < playfieldWidth / 2 - paddleWidth / 2) {
-        paddle.position.x += cpuMovespeed;
-        if (ball.position.x < paddle.position.x) {
-          paddle.position.x = ball.position.x;
-        }
+    if (ball.position.x > paddle.position.x && paddle.position.x < playfieldWidth / 2 - paddleWidth / 2) {
+      paddle.position.x += cpuMovespeed;
+      if (ball.position.x < paddle.position.x) {
+        paddle.position.x = ball.position.x;
       }
     } else if (paddle.position.x > -(playfieldWidth / 2) + paddleWidth / 2) {
       paddle.position.x -= cpuMovespeed;

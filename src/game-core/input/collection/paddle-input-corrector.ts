@@ -27,6 +27,8 @@ export class PaddleInputCorrector {
         case InvalidMovementReason.CollisionWithWall:
           inputAfterCorrection.dx = 0;
           break;
+        default:
+          throw Error(`Unexpected InvalidMovementReason: ${reason}`);
       }
     });
 

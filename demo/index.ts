@@ -1,8 +1,8 @@
 import { Player } from 'game-core/enum/player';
 import { GameEngine } from 'game-core/game-engine';
 import { simpleP1KeyMappings } from 'game-core/input/collection/key-mappings';
-import { BrowserClient } from '../../src/browser-client/browser-client';
-import { basicConfigWithAiOpponent } from '../../src/game-core/config/basic-config';
+import { BrowserClient } from '../src/browser-client/browser-client';
+import { basicConfigWithAiOpponent } from '../src/game-core/config/basic-config';
 
 const rendererElementName = 'game';
 const rendererElement = document.getElementById(rendererElementName);
