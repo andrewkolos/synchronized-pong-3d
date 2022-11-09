@@ -1,9 +1,9 @@
-import * as Three from "three";
-import { segHeight, segWidth } from "./constants";
-import { Digit } from "./digit";
+/* eslint-disable no-plusplus */
+import * as Three from 'three';
+import { segHeight, segWidth } from './constants';
+import { Digit } from './digit';
 
 export class SevenSegmentDisplay {
-
   private object: Three.Object3D;
   private digitCount: number;
 
@@ -22,7 +22,6 @@ export class SevenSegmentDisplay {
     const fullWidth = segHeight + digitCount * (digitWidth + segHeight);
 
     for (let i = 0; i < digitCount; i++) {
-
       const digits = [0x00ff00, 0x222222].map((color: number) => {
         const digit = new Digit(size, color);
         digit.getObject().position.setX(-fullWidth / 2 + segHeight + digitWidth / 2 + i * (digitWidth + segHeight));
@@ -32,7 +31,7 @@ export class SevenSegmentDisplay {
       this.digits.push(digits[0]);
       this.invertedDigits.push(digits[1]);
 
-      digits.forEach(d => object.add(d.getObject()));
+      digits.forEach((d) => object.add(d.getObject()));
     }
 
     const backGeo = new Three.PlaneGeometry(fullWidth, fullHeight, 1, 1);
@@ -58,11 +57,11 @@ export class SevenSegmentDisplay {
   public setNumber(n: number) {
     [this.digits, this.invertedDigits].forEach((array: Digit[]) => {
       let ncopy = n;
-      let i = this.digitCount - 1; 
+      let i = this.digitCount - 1;
 
       do {
         array[i--].setNumber(ncopy % 10);
-        ncopy = (ncopy - ncopy % 10) / 10;
+        ncopy = (ncopy - (ncopy % 10)) / 10;
       } while (ncopy > 0 && i >= 0);
 
       while (i >= 0) {

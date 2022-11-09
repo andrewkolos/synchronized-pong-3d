@@ -1,13 +1,13 @@
-import { ResponsiveGamepad, ResponsiveGamepadState } from "responsive-gamepad";
-import { getPaddleByPlayer } from "../../../common";
-import { Player } from "../../../enum/player";
-import { GameEngine } from "../../../game-engine";
-import { PaddleInput } from "../../paddle-input";
-import { KeyCode } from "../key-code";
-import { KeyMappings } from "../key-mappings";
-import { PaddleInputCollector } from "../paddle-input-collector";
-import { PaddleInputCorrector } from "../paddle-input-corrector";
-import { KeyboardManager } from "../../keyboard";
+import { ResponsiveGamepad, ResponsiveGamepadState } from 'responsive-gamepad';
+import { getPaddleByPlayer } from '../../../common';
+import { Player } from '../../../enum/player';
+import { GameEngine } from '../../../game-engine';
+import { PaddleInput } from '../../paddle-input';
+import { KeyCode } from '../key-code';
+import { KeyMappings } from '../key-mappings';
+import { PaddleInputCollector } from '../paddle-input-collector';
+import { PaddleInputCorrector } from '../paddle-input-corrector';
+import { KeyboardManager } from '../../keyboard';
 
 export interface BrowserInputCollectorContext {
   keyMappings: KeyMappings;
@@ -23,7 +23,6 @@ const GAMEPAD_STICK_DEAD_ZONE_END = 0.1;
  * Collects inputs for a pong game using the browser.
  */
 export class BrowserInputCollector implements PaddleInputCollector {
-
   private mappings: KeyMappings;
   private keyboardManager = new KeyboardManager();
   private game: GameEngine;
@@ -36,10 +35,10 @@ export class BrowserInputCollector implements PaddleInputCollector {
   constructor(context: BrowserInputCollectorContext) {
     this.mappings = context.keyMappings;
     this.game = context.game;
-    this.player =  context.player;
+    this.player = context.player;
     this.playerMoveSpeedPerMs = context.playerMoveSpeedPerMs;
     this.playerRotateSpeedPerMs = context.playerRotateSpeedPerMs;
-    this.gamepadDisabled = context.disableGamepad === false ? false : true;
+    this.gamepadDisabled = context.disableGamepad !== false;
 
     ResponsiveGamepad.enable();
   }
@@ -58,25 +57,22 @@ export class BrowserInputCollector implements PaddleInputCollector {
   }
 
   private getInputFromControls(dt: number): PaddleInput {
-
     // We prefer the keyboard, if the user is using it.
     if (this.isKeyboardActive()) {
       return this.getInputFromKeyboard(dt);
-    } else if (!this.gamepadDisabled) {
-      return this.getInputFromGamepad(dt);
-    } else {
-      return {
-        dx: 0,
-        dy: 0,
-        dzRotation: 0,
-      };
     }
+    if (!this.gamepadDisabled) {
+      return this.getInputFromGamepad(dt);
+    }
+    return {
+      dx: 0,
+      dy: 0,
+      dzRotation: 0,
+    };
   }
 
   private isKeyboardActive(): boolean {
-    return Object.values(this.mappings).some((key: KeyCode) => {
-      return this.isKeyDown(key);
-    });
+    return Object.values(this.mappings).some((key: KeyCode) => this.isKeyDown(key));
   }
 
   private getInputFromGamepad(dt: number): PaddleInput {
@@ -96,10 +92,9 @@ export class BrowserInputCollector implements PaddleInputCollector {
 
     return {
       dx: Math.abs(positionHorizontalAxis) > deadZoneEnd ? positionHorizontalAxis * this.playerMoveSpeedPerMs * dt : 0,
-      dy: Math.abs(positionVerticalAxis) > deadZoneEnd ? - positionVerticalAxis * this.playerMoveSpeedPerMs * dt : 0,
+      dy: Math.abs(positionVerticalAxis) > deadZoneEnd ? -positionVerticalAxis * this.playerMoveSpeedPerMs * dt : 0,
       dzRotation: Math.abs(Math.hypot(rotationHorizontalAxis, -rotationVerticalAxis)) > deadZoneEnd ? dzRotation : 0,
     };
-
   }
 
   private getInputFromKeyboard(dt: number): PaddleInput {
@@ -113,7 +108,7 @@ export class BrowserInputCollector implements PaddleInputCollector {
     const rotateSpeedPerMs = this.playerRotateSpeedPerMs;
 
     if (this.isKeyDown(this.mappings.movePaddleBackward)) {
-      input.dy += - moveSpeedPerMs * dt;
+      input.dy += -moveSpeedPerMs * dt;
     }
     if (this.isKeyDown(this.mappings.movePaddleForward)) {
       input.dy += moveSpeedPerMs * dt;
@@ -122,14 +117,14 @@ export class BrowserInputCollector implements PaddleInputCollector {
       input.dx += moveSpeedPerMs * dt;
     }
     if (this.isKeyDown(this.mappings.movePaddleLeft)) {
-      input.dx += - moveSpeedPerMs * dt;
+      input.dx += -moveSpeedPerMs * dt;
     }
 
     if (this.isKeyDown(this.mappings.rotatePaddleLeft)) {
       input.dzRotation = rotateSpeedPerMs * dt;
     }
     if (this.isKeyDown(this.mappings.rotatePaddleRight)) {
-      input.dzRotation = - rotateSpeedPerMs * dt;
+      input.dzRotation = -rotateSpeedPerMs * dt;
     }
 
     return input;

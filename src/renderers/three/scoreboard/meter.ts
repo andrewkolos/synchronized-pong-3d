@@ -1,12 +1,11 @@
-import * as Three from "three";
-import { PlaneFactory } from "../misc/plane-factory";
-import { MeterConfig } from "../renderer-config";
+import * as Three from 'three';
+import { PlaneFactory } from '../misc/plane-factory';
+import { MeterConfig } from '../renderer-config';
 
 export const METER_WIDTH = 8;
 export const METER_HEIGHT = 1.5;
 
 export class Meter {
-
   private object: Three.Object3D = new Three.Object3D();
   private config: MeterConfig;
 
@@ -38,7 +37,7 @@ export class Meter {
   public setValue(value: number) {
     const valuePerPart = this.config.maxValue / this.config.numberOfSegments;
     this.meterParts.forEach((part: Three.Object3D, i: number) => {
-      part.visible = value > (valuePerPart * i);
+      part.visible = value > valuePerPart * i;
     });
   }
 
@@ -47,7 +46,6 @@ export class Meter {
   }
 
   private createProgressParts() {
-
     const parts: Three.Object3D[] = [];
 
     const scale = this.scale.bind(this);
@@ -61,8 +59,8 @@ export class Meter {
     const xPosOfFirstSegment = -(meterWidth / 2) + spaceBetweenSegments + meterPartWidth / 2;
     for (let i = 0; i < this.config.numberOfSegments; i++) {
       const part = this.planeFactory.createPlane(meterPartWidth, meterPartHeight, this.config.segmentColors[i]);
-      part.position.x = xPosOfFirstSegment + (i * (meterPartWidth + spaceBetweenSegments));
-      part.position.y = - 0.01;
+      part.position.x = xPosOfFirstSegment + i * (meterPartWidth + spaceBetweenSegments);
+      part.position.y = -0.01;
       parts.push(part);
 
       part.visible = false;

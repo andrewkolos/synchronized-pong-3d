@@ -1,17 +1,16 @@
-import * as Three from "three";
-import { getWidthOfObject as getWidthOfObj } from "../misc/common";
-import { ScoreboardConfig } from "../renderer-config";
-import { Meter, METER_HEIGHT } from "./meter";
-import { SevenSegmentDisplay } from "./seven segment display/seven-segment-display";
+import * as Three from 'three';
+import { getWidthOfObject as getWidthOfObj } from '../misc/common';
+import { ScoreboardConfig } from '../renderer-config';
+import { Meter, METER_HEIGHT } from './meter';
+import { SevenSegmentDisplay } from './seven segment display/seven-segment-display';
 
-import font from "./helvetiker_regular.typeface.json";
+import font from './helvetiker_regular.typeface.json';
 
 export enum MeterType {
   ServeProgress,
   Speed,
 }
 export class ThreeScoreboard {
-
   private object: Three.Object3D;
   private font: Three.Font;
   private config: ScoreboardConfig;
@@ -23,7 +22,6 @@ export class ThreeScoreboard {
   private player2ScoreDisplay: SevenSegmentDisplay;
 
   public constructor(config: ScoreboardConfig) {
-
     const scale = this.scale.bind(this);
 
     this.object = new Three.Object3D();
@@ -44,15 +42,15 @@ export class ThreeScoreboard {
     const loader = new Three.FontLoader();
     this.font = loader.parse(font);
 
-    const player1Mesh = this.generatePlayerTextMesh("P1", config.player1TextColor);
+    const player1Mesh = this.generatePlayerTextMesh('P1', config.player1TextColor);
     player1Mesh.position.x = scale(-4);
     player1Mesh.position.y = scale(-0.25);
-    player1Mesh.position.z = scale(0.80);
+    player1Mesh.position.z = scale(0.8);
 
-    const player2Mesh = this.generatePlayerTextMesh("P2", config.player2TextColor);
+    const player2Mesh = this.generatePlayerTextMesh('P2', config.player2TextColor);
     player2Mesh.position.x = scale(0.25);
     player2Mesh.position.y = scale(-0.25);
-    player2Mesh.position.z = scale(0.80);
+    player2Mesh.position.z = scale(0.8);
 
     this.object.add(player1Mesh);
     this.object.add(player2Mesh);
@@ -71,7 +69,7 @@ export class ThreeScoreboard {
     const player1ScoreDisplayObj = player1ScoreDisplay.getObject();
     player1ScoreDisplayObj.scale.x *= METER_HEIGHT;
     player1ScoreDisplayObj.scale.y *= METER_HEIGHT;
-    player1ScoreDisplayObj.position.x = - getWidthOfObj(player1ScoreDisplayObj) / 2 - scale(0.25);
+    player1ScoreDisplayObj.position.x = -getWidthOfObj(player1ScoreDisplayObj) / 2 - scale(0.25);
     player1ScoreDisplayObj.position.y = scale(-1);
     player1ScoreDisplayObj.position.z = scale(1.3);
     this.player1ScoreDisplay = player1ScoreDisplay;
@@ -131,7 +129,7 @@ export class ThreeScoreboard {
 
     const playerScoreMaterial = new Three.MeshPhongMaterial({ color });
     const playerScoreMesh = new Three.Mesh(playerTextGeometry, playerScoreMaterial);
-    playerScoreMesh.rotation.x = 90 * Math.PI / 180;
+    playerScoreMesh.rotation.x = (90 * Math.PI) / 180;
     playerScoreMesh.receiveShadow = true;
     playerScoreMesh.castShadow = true;
 

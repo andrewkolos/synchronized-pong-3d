@@ -4,24 +4,24 @@ import json from 'rollup-plugin-json';
 import commonJS from 'rollup-plugin-commonjs';
 
 export default {
-  input: 'demos/game/index.ts',
+  input: 'demo/index.ts',
   output: {
     name: 'index',
-    file: 'demos/game/index.js',
+    file: 'demo/index.js',
     format: 'iife',
-    sourcemap: true
+    sourcemap: true,
   },
   plugins: [
     json(),
     commonJS({
-      include: "node_modules/**",
+      include: 'node_modules/**',
     }),
     resolve({
-      extensions: ['.js', '.ts']
+      extensions: ['.js', '.ts'],
     }),
     typescript({
-      tsconfig: "tsconfig.json",
+      tsconfig: 'tsconfig.json',
       sourceMap: true,
     }),
-  ]
-}
+  ],
+};

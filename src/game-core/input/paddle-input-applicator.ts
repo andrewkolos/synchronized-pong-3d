@@ -1,12 +1,10 @@
-import { getPaddleByPlayer } from "game-core/common";
-import * as Three from "three";
-import { Player } from "../enum/player";
-import { GameEngine } from "../game-engine";
-import { PlayerBoundPaddleInput } from "./player-bound-paddle-input";
+import { getPaddleByPlayer } from 'game-core/common';
+import * as Three from 'three';
+import { GameEngine } from '../game-engine';
+import { PlayerBoundPaddleInput } from './player-bound-paddle-input';
 
 /* Applies (player) paddle input to a Pong 3d game. */
 export class PaddleInputApplicator {
-
   public static applyInput(game: GameEngine, input: PlayerBoundPaddleInput) {
     const paddle = getPaddleByPlayer(game, input.player);
 
@@ -24,5 +22,4 @@ export class PaddleInputApplicator {
   public applyInput(input: PlayerBoundPaddleInput) {
     PaddleInputApplicator.applyInput(this.game, input);
   }
-
 }

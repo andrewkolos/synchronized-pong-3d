@@ -1,6 +1,6 @@
-import { Player, validatePlayerVal } from "./enum/player";
-import { GameEngine } from "./game-engine";
-import { Paddle } from "./paddle";
+import { Player, validatePlayerVal } from './enum/player';
+import { GameEngine } from './game-engine';
+import { Paddle } from './paddle';
 
 export function getPaddleByPlayer(game: GameEngine, player: Player): Paddle {
   validatePlayerVal(player);
@@ -14,6 +14,6 @@ export function getPlayerByPaddle(game: GameEngine, paddle: Paddle): Player {
     case game.player2Paddle:
       return Player.Player2;
     default:
-      throw Error("Paddle does not belong to either player.");
+      throw Error('Paddle does not belong to either player.');
   }
 }

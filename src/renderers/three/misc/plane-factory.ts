@@ -1,7 +1,6 @@
-import * as Three from "three";
+import * as Three from 'three';
 
 export class PlaneFactory {
-
   private rotation: Three.Euler;
   public constructor(rotation: Three.Euler) {
     this.rotation = rotation;

@@ -1,6 +1,6 @@
-import * as Three from "three";
-import { segHeight, segWidth } from "./constants";
-import { Segment } from "./segment";
+import * as Three from 'three';
+import { segHeight, segWidth } from './constants';
+import { Segment } from './segment';
 
 const segmentStates = [
   [false, true, true, true, true, true, true],
@@ -19,7 +19,6 @@ export class Digit {
   private object: Three.Object3D;
   private segments: Three.Object3D[] = [];
   public constructor(size: number, color: number) {
-
     this.object = new Three.Object3D();
     for (let i = 0; i < 7; i++) {
       const segment = new Segment(size, color).getObject();

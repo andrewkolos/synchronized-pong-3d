@@ -1,15 +1,15 @@
-import { Player } from "../game-core/enum/player";
-import { GameEngine } from "../game-core/game-engine";
+import { Player } from '../game-core/enum/player';
+import { GameEngine } from '../game-core/game-engine';
 import {
   BrowserInputCollector,
   BrowserInputCollectorContext,
-} from "../game-core/input/collection/implementations/browser-input-collector";
-import { KeyMappings } from "../game-core/input/collection/key-mappings";
-import { PaddleInputApplicator } from "../game-core/input/paddle-input-applicator";
-import { makeSimpleThreeRendererConfig } from "../renderers/three/basic-renderer-config";
-import { ThreeRenderer } from "../renderers/three/renderer";
-import { ThreeRendererConfig } from "../renderers/three/renderer-config";
-import { AudioManager } from "./audio/audio-manager";
+} from '../game-core/input/collection/implementations/browser-input-collector';
+import { KeyMappings } from '../game-core/input/collection/key-mappings';
+import { PaddleInputApplicator } from '../game-core/input/paddle-input-applicator';
+import { makeSimpleThreeRendererConfig } from '../renderers/three/basic-renderer-config';
+import { ThreeRenderer } from '../renderers/three/renderer';
+import { ThreeRendererConfig } from '../renderers/three/renderer-config';
+import { AudioManager } from './audio/audio-manager';
 
 export interface BrowserClientOptions {
   pov?: Player;
@@ -21,16 +21,15 @@ export interface BrowserClientOptions {
 }
 
 export class BrowserClient {
-
   public readonly game: GameEngine;
+
   private renderer: ThreeRenderer;
 
   private audioManager: AudioManager;
 
-  private running: boolean = false;
+  private running = false;
 
   public constructor(game: GameEngine, hostElement: HTMLElement, options: BrowserClientOptions = {}) {
-
     const pov: Player = options.pov != null ? options.pov : Player.Player1;
 
     this.game = game;
@@ -39,14 +38,17 @@ export class BrowserClient {
       this.setupBrowserInput(options.input.playerToControl, options.input.keyMappings);
     }
 
-    game.eventEmitter.on("ballHitPaddle", this.playBounceSound.bind(this));
-    game.eventEmitter.on("ballHitWall", this.playBounceSound.bind(this));
-    game.eventEmitter.on("playerScored", this.playApplause.bind(this));
+    game.eventEmitter.on('ballHitPaddle', this.playBounceSound.bind(this));
+    game.eventEmitter.on('ballHitWall', this.playBounceSound.bind(this));
+    game.eventEmitter.on('playerScored', this.playApplause.bind(this));
 
     const renderer = (() => {
       const rendererWidth = hostElement.clientWidth;
       const rendererHeight = hostElement.clientHeight;
-      const config = { ...makeSimpleThreeRendererConfig(rendererWidth, rendererHeight, pov), ...options.rendererConfig };
+      const config = {
+        ...makeSimpleThreeRendererConfig(rendererWidth, rendererHeight, pov),
+        ...options.rendererConfig,
+      };
       return new ThreeRenderer(config);
     })();
 
@@ -72,9 +74,8 @@ export class BrowserClient {
   }
 
   private setupBrowserInput(player: Player, keyMappings: KeyMappings) {
-    const game = this.game;
+    const { game } = this;
     const inputCollector = (() => {
-
       const context: BrowserInputCollectorContext = {
         keyMappings,
         game,
@@ -89,7 +90,7 @@ export class BrowserClient {
     const inputApplicator = new PaddleInputApplicator(game);
 
     let lastTickTime = new Date().getTime();
-    game.eventEmitter.on("tick", () => {
+    game.eventEmitter.on('tick', () => {
       const currentTime = new Date().getTime();
       const dt = currentTime - lastTickTime;
       inputApplicator.applyInput({ player: Player.Player1, ...inputCollector.getPaddleMoveInput(dt) });
@@ -105,7 +106,7 @@ export class BrowserClient {
 
   private playApplause() {
     if (this.running) {
-    this.audioManager.playCheer();
+      this.audioManager.playCheer();
     }
   }
 }

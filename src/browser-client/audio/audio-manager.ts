@@ -1,10 +1,10 @@
-import bounceSoundData from "./bounce.base64";
-import bounceSoundDown10Data from "./bounce.down10.base64";
-import bounceSoundDown5Data from "./bounce.down5.base64";
-import bounceSoundUp10Data from "./bounce.up10.base64";
-import bounceSoundUp5Data from "./bounce.up5.base64";
-import cheerSound1Data from "./cheer1.base64";
-import cheerSound2Data from "./cheer2.base64";
+import bounceSoundData from './bounce.base64';
+import bounceSoundDown10Data from './bounce.down10.base64';
+import bounceSoundDown5Data from './bounce.down5.base64';
+import bounceSoundUp10Data from './bounce.up10.base64';
+import bounceSoundUp5Data from './bounce.up5.base64';
+import cheerSound1Data from './cheer1.base64';
+import cheerSound2Data from './cheer2.base64';
 
 const bounceSound = new Audio(bounceSoundData);
 const bounceUp5Sound = new Audio(bounceSoundUp5Data);
@@ -23,7 +23,6 @@ bounceArray.forEach((bounce: HTMLAudioElement) => {
 });
 
 export class AudioManager {
-
   constructor(private maxBallSpeed: number) {}
 
   public playCheer() {
@@ -35,7 +34,7 @@ export class AudioManager {
   }
 }
 
-function playRandomSound(audioArray: HTMLAudioElement[], volume: number = 1) {
+function playRandomSound(audioArray: HTMLAudioElement[], volume = 1) {
   const index = randInt(0, audioArray.length - 1);
   audioArray[index].volume = Math.min(volume, 1);
   audioArray[index].pause();

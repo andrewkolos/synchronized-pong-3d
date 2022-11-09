@@ -1,20 +1,19 @@
-import * as Three from "three";
-import { segHeight, segPad, segWidth } from "./constants";
+import * as Three from 'three';
+import { segHeight, segPad, segWidth } from './constants';
 
 export class Segment {
-
   private object: Three.Object3D;
   private material: Three.MeshBasicMaterial;
 
   public constructor(private size: number, color: number) {
-
     const scale = this.scale.bind(this);
 
     const segWidthPad = scale(segWidth - segPad);
     const segHeightPad = scale(segHeight - segPad);
 
     const geometry = new Three.Geometry();
-    geometry.vertices.push( // Vertices in clockwise order.
+    geometry.vertices.push(
+      // Vertices in clockwise order.
       new Three.Vector3(-segWidthPad / 2, segHeightPad / 2, 0), // Top left.
       new Three.Vector3(segWidthPad / 2, segHeightPad / 2, 0), // Top right.
       new Three.Vector3(segWidthPad / 2 + segHeightPad / 2, 0, 0), // Right point.

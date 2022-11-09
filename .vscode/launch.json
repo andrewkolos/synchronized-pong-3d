@@ -10,15 +10,7 @@
       "name": "Launch Chrome Targeting Game Demo",
       "url": "http://127.0.0.1:8080/index.html",
       "sourceMaps": true,
-      "webRoot": "${workspaceFolder}/demos/game"
+      "webRoot": "${workspaceFolder}/demo"
     },
-    {
-      "type": "chrome",
-      "request": "launch",
-      "name": "Launch Chrome Targeting Local Network Demo",
-      "url": "http://127.0.0.1:8080/index.html",
-      "sourceMaps": true,
-      "webRoot": "${workspaceFolder}/demos/local-networked"
-    }
   ]
 }

@@ -5,6 +5,6 @@ export enum Player {
 
 export function validatePlayerVal(player: Player) {
   if (player !== Player.Player1 && player !== Player.Player2) {
-    throw Error("Invalid Player value!");
+    throw Error('Invalid Player value!');
   }
 }

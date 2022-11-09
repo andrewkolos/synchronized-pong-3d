@@ -5,6 +5,7 @@ Fun 3d pong game with xinput support.
 ![Game](https://i.imgur.com/RWVrfvU.png)
 
 ## Play locally vs the CPU
+
 ```
 npm i
 npm run build

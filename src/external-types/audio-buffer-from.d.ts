@@ -1,6 +1,20 @@
-type Source = null | Number | Array<Array<unknown>> | AudioBuffer | HTMLAudioElement | 
-              Object | Array<Number> | Float32Array | Float64Array | Int8Array | Uint8Array |
-              ArrayBuffer | Buffer | string;
+/* eslint-disable @typescript-eslint/ban-types */
+
+type Source =
+  | null
+  | Number
+  | Array<Array<unknown>>
+  | AudioBuffer
+  | HTMLAudioElement
+  | Object
+  | Array<Number>
+  | Float32Array
+  | Float64Array
+  | Int8Array
+  | Uint8Array
+  | ArrayBuffer
+  | Buffer
+  | string;
 
 type Options = Partial<{
   length: number;
@@ -12,7 +26,7 @@ type Options = Partial<{
   format: unknown;
 }>;
 
-declare module "audio-buffer-from" {
+declare module 'audio-buffer-from' {
   function createBuffer(source: Source | number, options?: Options): AudioBuffer;
 
   export default createBuffer;

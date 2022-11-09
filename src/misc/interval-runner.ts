@@ -2,12 +2,11 @@
  * Repeatedly calls a function or executes a code snippet, with a fixed time delay between each call.
  */
 export class IntervalRunner {
-
   private intervalId: NodeJS.Timeout | number | undefined;
 
-  private running: boolean = false;
+  private running = false;
 
-  public constructor(private readonly operation: () => void, private readonly intervalTimeMs: number) { }
+  public constructor(private readonly operation: () => void, private readonly intervalTimeMs: number) {}
 
   /**
    * Determines if this runner is running.

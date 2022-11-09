@@ -1,11 +1,12 @@
-import { GameLoop, TypedEventEmitter } from "@akolos/ts-client-server-game-synchronization";
-import * as Three from "three";
-import { Ball } from "./ball";
-import { Config } from "./config/config";
-import { Player, validatePlayerVal } from "./enum/player";
-import { Paddle } from "./paddle";
-import { AiController } from "./paddle-ai";
+import { EventEmitter } from '@akolos/event-emitter';
+import { GameLoop } from '@akolos/ts-client-server-game-synchronization';
 import { cloneDumbObject } from 'misc/cloneDumbObject';
+import * as Three from 'three';
+import { Ball } from './ball';
+import { Config } from './config/config';
+import { Player, validatePlayerVal } from './enum/player';
+import { Paddle } from './paddle';
+import { AiController } from './paddle-ai';
 
 export interface Score {
   player1: number;
@@ -18,12 +19,11 @@ export interface GameEngineEvents {
   ballServed: () => void;
   ballHitPaddle: (player: Player) => void;
   ballHitWall: () => void;
-  playerScored: (scorer: Player, score: { player1: number, player2: number }) => void;
+  playerScored: (scorer: Player, score: { player1: number; player2: number }) => void;
   scoreChanged(previousScore: Score, currentScore: Score): void;
 }
 
 export class GameEngine {
-
   // Exposed game state info.
   public player1Paddle: Paddle;
   public player2Paddle: Paddle;
@@ -32,7 +32,7 @@ export class GameEngine {
   /** Game configuration info. */
   public config: Readonly<Config>;
 
-  public eventEmitter: TypedEventEmitter<GameEngineEvents> = new TypedEventEmitter();
+  public eventEmitter = new EventEmitter<GameEngineEvents>();
 
   public score: Score;
 
@@ -55,8 +55,8 @@ export class GameEngine {
       const paddleWidth = config.paddles.width;
       const paddleHeight = config.paddles.height;
       const playFieldHeight = config.playField.height;
-      const player1YPosOffset = - playFieldHeight / 2 + paddleHeight;
-      const player2YPosOffset = - player1YPosOffset;
+      const player1YPosOffset = -playFieldHeight / 2 + paddleHeight;
+      const player2YPosOffset = -player1YPosOffset;
 
       return {
         player1Paddle: new Paddle(paddleWidth, paddleHeight, new Three.Vector2(0, player1YPosOffset)),
@@ -69,8 +69,8 @@ export class GameEngine {
     this.player2Paddle = paddles.player2Paddle;
 
     this.ball = new Ball(this, config.ball);
-    this.ball.onPaddleBounce = (player: Player) => this.eventEmitter.emit("ballHitPaddle", player);
-    this.ball.onWallBounce = () => this.eventEmitter.emit("ballHitWall");
+    this.ball.onPaddleBounce = (player: Player) => this.eventEmitter.emit('ballHitPaddle', player);
+    this.ball.onWallBounce = () => this.eventEmitter.emit('ballHitWall');
 
     // Initialize game state.
     this.timeUntilServeSec = 3;
@@ -110,11 +110,10 @@ export class GameEngine {
     if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
       this.movePlayer2Paddle();
     }
-    this.eventEmitter.emit("tick");
+    this.eventEmitter.emit('tick');
   }
 
   private moveBall() {
-
     if (this.ballIsInPlay) {
       const scorer = this.isBallScoring();
       if (scorer != null) {
@@ -131,7 +130,6 @@ export class GameEngine {
     if (this.timeUntilServeSec > 0) {
       this.timeUntilServeSec -= 1 / this.config.game.tickRate;
     }
-
   }
 
   private moveBallInPlay() {
@@ -144,11 +142,11 @@ export class GameEngine {
     const ballDiameter = this.config.ball.radius * 2;
     if (ballYPosition > halfOfPlayFieldHeight + ballDiameter) {
       return Player.Player1;
-    } else if (ballYPosition < -halfOfPlayFieldHeight - ballDiameter) {
-      return Player.Player2;
-    } else {
-      return undefined;
     }
+    if (ballYPosition < -halfOfPlayFieldHeight - ballDiameter) {
+      return Player.Player2;
+    }
+    return undefined;
   }
 
   private handleScore(scorer: Player) {
@@ -166,9 +164,9 @@ export class GameEngine {
     const server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
     this.startServing(server);
 
-    this.eventEmitter.emit("playerScored", scorer, this.score);
+    this.eventEmitter.emit('playerScored', scorer, this.score);
     const currentScore = cloneDumbObject(this.score);
-    this.eventEmitter.emit("scoreChanged", previousScore, currentScore);
+    this.eventEmitter.emit('scoreChanged', previousScore, currentScore);
   }
 
   private startServing(server: Player) {
@@ -176,7 +174,7 @@ export class GameEngine {
     this.ball.velocity.set(0, 0);
     this.server = server;
     this.timeUntilServeSec = this.config.pauseAfterScoreSec;
-    this.eventEmitter.emit("startingServe");
+    this.eventEmitter.emit('startingServe');
   }
 
   private movePlayer2Paddle() {
@@ -190,11 +188,10 @@ export class GameEngine {
   private serveBall() {
     this.ball.sendTowardPlayer(this.server, this.config.ball.initialSpeedOnServe);
     this.ballIsInPlay = true;
-    this.eventEmitter.emit("ballServed");
+    this.eventEmitter.emit('ballServed');
   }
 
   private isBallServingAtCurrentInstant() {
     return this.timeUntilServeSec <= 0;
   }
-
 }

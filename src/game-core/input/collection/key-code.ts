@@ -1,11 +1,8 @@
-// tslint:disable-next-line: no-var-requires
-
 /**
  * Wraps a browser key code. Contains utility methods for translating between
  * characters and their respective key codes.
  */
 export class KeyCode {
-
   public static fromKeyCode(keyCode: number) {
     return new KeyCode(keyCode);
   }
@@ -18,66 +15,68 @@ export class KeyCode {
     return new KeyCode(code);
   }
 
-  private constructor(public readonly keyCode: number) { }
+  private constructor(public readonly keyCode: number) {}
 }
 
 const keys: Map<string, number> = new Map([
-  ["ctrl", 17],
-  ["control", 17],
-  ["alt", 18],
-  ["option", 18],
-  ["shift", 16],
-  ["windows", 91],
-  ["command", 91],
-  ["esc", 27],
-  ["escape", 27],
-  ["`", 192],
-  ["-", 189],
-  ["=", 187],
-  ["backspace", 8],
-  ["tab", 9],
-  ["\\", 220],
-  ["[", 219],
-  ["],", 221],
-  [";", 186],
+  ['ctrl', 17],
+  ['control', 17],
+  ['alt', 18],
+  ['option', 18],
+  ['shift', 16],
+  ['windows', 91],
+  ['command', 91],
+  ['esc', 27],
+  ['escape', 27],
+  ['`', 192],
+  ['-', 189],
+  ['=', 187],
+  ['backspace', 8],
+  ['tab', 9],
+  ['\\', 220],
+  ['[', 219],
+  ['],', 221],
+  [';', 186],
   ["'", 222],
-  ["enter", 13],
-  ["return", 13],
-  [",", 188],
-  [".", 190],
-  ["/", 191],
-  ["space", 32],
-  ["pause", 19],
-  ["break", 19],
-  ["insert", 45],
-  ["delete", 46],
-  ["home", 36],
-  ["end", 35],
-  ["pageup", 33],
-  ["pagedown", 34],
-  ["left", 37],
-  ["up", 38],
-  ["right", 39],
-  ["down", 40],
-  ["capslock", 20],
-  ["numlock", 144],
-  ["scrolllock", 145],
+  ['enter', 13],
+  ['return', 13],
+  [',', 188],
+  ['.', 190],
+  ['/', 191],
+  ['space', 32],
+  ['pause', 19],
+  ['break', 19],
+  ['insert', 45],
+  ['delete', 46],
+  ['home', 36],
+  ['end', 35],
+  ['pageup', 33],
+  ['pagedown', 34],
+  ['left', 37],
+  ['up', 38],
+  ['right', 39],
+  ['down', 40],
+  ['capslock', 20],
+  ['numlock', 144],
+  ['scrolllock', 145],
 ]);
 
 for (let f = 1; f < 20; f++) {
-  keys.set('f' + f, 111 + f);
+  keys.set(`f${f}`, 111 + f);
 }
 
 function keycodes(input: number): string;
 function keycodes(input: string): number;
 function keycodes(input: number | string) {
-  if (typeof input === "string") {
+  if (typeof input === 'string') {
     return getCode(input);
   }
 
-  if (typeof input === "number") {
+  if (typeof input === 'number') {
     return getKey(input);
   }
+
+  throw Error(`Unexpected input type received: ${input}`);
 }
 
 function getCode(input: string) {
@@ -86,20 +85,14 @@ function getCode(input: string) {
     return c;
   }
   if (input.length === 1) {
-    return input.toUpperCase().charCodeAt(0)
+    return input.toUpperCase().charCodeAt(0);
   }
 
   return undefined;
 }
 
 function getKey(input: number) {
-  for (const k in keys) {
-    if (keys.hasOwnProperty(k)) {
-      if (keys.get(k) === input) {
-        return k;
-      }
-    }
-  }
-
+  const keyCode = Object.keys(keys).find((key: string) => keys.get(key) === input);
+  if (keyCode != null) return keyCode;
   return String.fromCharCode(input).toLowerCase();
 }

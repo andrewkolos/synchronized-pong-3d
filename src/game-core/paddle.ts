@@ -1,4 +1,4 @@
-import * as Three from "three";
+import * as Three from 'three';
 
 export class Paddle {
   public position: Three.Vector2;

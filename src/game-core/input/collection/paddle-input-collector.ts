@@ -1,10 +1,9 @@
-import { PaddleInput } from "../paddle-input";
+import { PaddleInput } from '../paddle-input';
 
 /**
  * Generates inputs for a paddle in a pong game.
  */
 export interface PaddleInputCollector {
-
   /**
    * Gets input for a paddle given an amount of time the controls
    * have been held in their current state.

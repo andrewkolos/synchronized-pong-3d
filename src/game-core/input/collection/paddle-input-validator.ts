@@ -1,8 +1,8 @@
-import { getPaddleByPlayer } from "../../common";
-import { Player } from "../../enum/player";
-import { GameEngine } from "../../game-engine";
-import { Paddle } from "../../paddle";
-import { PaddleInput } from "../paddle-input";
+import { getPaddleByPlayer } from '../../common';
+import { Player } from '../../enum/player';
+import { GameEngine } from '../../game-engine';
+import { Paddle } from '../../paddle';
+import { PaddleInput } from '../paddle-input';
 
 export enum InvalidMovementReason {
   CollisionWithWall,
@@ -21,7 +21,6 @@ export interface MovementValidationResult {
  * in which the input is invalid.
  */
 export class PaddleInputValidator {
-
   /**
    * Validates a paddle input.
    * @param inputToValidate The input to validate.
@@ -31,7 +30,6 @@ export class PaddleInputValidator {
    * invalid and, if not, why not.
    */
   public static validate(inputToValidate: PaddleInput, player: Player, game: GameEngine): MovementValidationResult {
-
     const playerPaddle = getPaddleByPlayer(game, player);
     const validator = new PaddleInputValidator(inputToValidate, game, playerPaddle);
     const invalidReasons: InvalidMovementReason[] = [];
@@ -78,13 +76,15 @@ export class PaddleInputValidator {
   }
 
   private isViolatingNeutralZone(): boolean {
-    return this.nextY > -(this.neutralZoneHeight) / 2 - this.paddleWidth / 2 &&
-      this.nextY < this.neutralZoneHeight / 2 + this.paddleWidth / 2;
+    return (
+      this.nextY > -this.neutralZoneHeight / 2 - this.paddleWidth / 2 &&
+      this.nextY < this.neutralZoneHeight / 2 + this.paddleWidth / 2
+    );
   }
 
   private isLeavingPlayField(): boolean {
-    const southBound = -(this.playFieldHeight / 2) + (this.paddleHeight / 2);
-    const northBound = (this.playFieldHeight / 2) - (this.paddleHeight / 2);
+    const southBound = -(this.playFieldHeight / 2) + this.paddleHeight / 2;
+    const northBound = this.playFieldHeight / 2 - this.paddleHeight / 2;
 
     const isLeavingFieldThroughBottom = this.nextY <= southBound;
     const isLeavingFieldThroughTop = this.nextY >= northBound;

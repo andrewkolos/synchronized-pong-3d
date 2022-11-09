@@ -1,9 +1,9 @@
-import * as Three from "three";
-import { getPaddleByPlayer, getPlayerByPaddle } from "./common";
-import { BallConfig } from "./config/config";
-import { Player, validatePlayerVal } from "./enum/player";
-import { GameEngine } from "./game-engine";
-import { Paddle } from "./paddle";
+import * as Three from 'three';
+import { getPaddleByPlayer, getPlayerByPaddle } from './common';
+import { BallConfig } from './config/config';
+import { Player, validatePlayerVal } from './enum/player';
+import { GameEngine } from './game-engine';
+import { Paddle } from './paddle';
 
 enum CollisionType {
   None,
@@ -13,7 +13,6 @@ enum CollisionType {
 }
 
 export class Ball {
-
   /** The distanced traveled by the ball per game tick. */
   public velocity: Three.Vector2;
   public readonly radius: number;
@@ -40,7 +39,7 @@ export class Ball {
    * the game's paddles and walls.
    */
   public advance() {
-    const game = this.game;
+    const { game } = this;
 
     const positionDelta = this.getDelta();
     this.position.add(positionDelta);
@@ -52,22 +51,21 @@ export class Ball {
         this.onWallBounce();
       }
     } else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
-
       const delta = new Three.Vector2(this.velocity.x, this.velocity.y);
       const paddle = getPaddleByPlayer(game, collisionInfo.player);
 
       const rot = paddle.zRotationEulers;
 
       if (collisionInfo.collisionType === CollisionType.Standard) {
-          delta.x -= paddle.velocity.x * game.config.ball.speedIncreaseOnPaddleHitRatio;
-          delta.y -= paddle.velocity.y * game.config.ball.speedIncreaseOnPaddleHitRatio;
+        delta.x -= paddle.velocity.x * game.config.ball.speedIncreaseOnPaddleHitRatio;
+        delta.y -= paddle.velocity.y * game.config.ball.speedIncreaseOnPaddleHitRatio;
 
-          delta.rotateAround(new Three.Vector2(0, 0), -rot);
+        delta.rotateAround(new Three.Vector2(0, 0), -rot);
 
-          delta.y *= -1;
-          delta.rotateAround(new Three.Vector2(0, 0), rot);
+        delta.y *= -1;
+        delta.rotateAround(new Three.Vector2(0, 0), rot);
 
-          delta.multiplyScalar((delta.length() + game.config.ball.baseSpeedIncreaseOnPaddleHit) / delta.length());
+        delta.multiplyScalar((delta.length() + game.config.ball.baseSpeedIncreaseOnPaddleHit) / delta.length());
       } else {
         delta.x = Math.hypot(delta.x, delta.y);
         delta.y = 0;
@@ -101,15 +99,13 @@ export class Ball {
 
     const paddle = getPaddleByPlayer(this.game, player);
     const paddleHeight = paddle.height;
-    const ballYPosOffsetPlayer1 = (paddleHeight / 2 + ballRadius * 2); // Move the ball in front of the paddle.
+    const ballYPosOffsetPlayer1 = paddleHeight / 2 + ballRadius * 2; // Move the ball in front of the paddle.
     const ballYPosOffsetPlayer2 = -ballYPosOffsetPlayer1;
 
     const ballYPosOffset = player === Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
 
-    this.position.x = paddle.position.x + ballYPosOffset *
-      Math.cos(paddle.zRotationEulers + Math.PI / 2);
-    this.position.y = paddle.position.y + ballYPosOffset *
-      Math.sin(paddle.zRotationEulers + Math.PI / 2);
+    this.position.x = paddle.position.x + ballYPosOffset * Math.cos(paddle.zRotationEulers + Math.PI / 2);
+    this.position.y = paddle.position.y + ballYPosOffset * Math.sin(paddle.zRotationEulers + Math.PI / 2);
   }
 
   /**
@@ -125,8 +121,7 @@ export class Ball {
 
   public isCollidingWithWall(): boolean {
     const playFieldWidth = this.game.config.playField.width;
-    return (this.position.x < -(playFieldWidth / 2) + this.radius ||
-      this.position.x > playFieldWidth / 2 - this.radius);
+    return this.position.x < -(playFieldWidth / 2) + this.radius || this.position.x > playFieldWidth / 2 - this.radius;
   }
 
   public isCollidingWithAnyPaddle() {
@@ -160,18 +155,15 @@ export class Ball {
     const yDiff = Math.abs(ballRelPosDisregardingRotation.y) - this.radius;
 
     if (xDiff < paddleWidth / 2 && yDiff < paddleHeight && !this.collidingWithPaddle) {
-      if (Math.abs(xDiff) > (paddleWidth / 2 * 0.70) && Math.abs(yDiff) < this.radius) {
+      if (Math.abs(xDiff) > (paddleWidth / 2) * 0.7 && Math.abs(yDiff) < this.radius) {
         if (ballRelPos.x > 0) {
           return CollisionType.RightEdge;
-        } else {
-          return CollisionType.LeftEdge;
         }
-      } else {
-        return CollisionType.Standard;
+        return CollisionType.LeftEdge;
       }
-    } else {
-      return CollisionType.None;
+      return CollisionType.Standard;
     }
+    return CollisionType.None;
   }
 
   private getDelta() {
@@ -190,8 +182,7 @@ export class Ball {
   }
 
   private handleCollisionWithWall() {
-    const ballIsAlreadyTravelingAwayFromWall =
-      Math.sign(this.velocity.x) !== Math.sign(this.position.x);
+    const ballIsAlreadyTravelingAwayFromWall = Math.sign(this.velocity.x) !== Math.sign(this.position.x);
     if (!ballIsAlreadyTravelingAwayFromWall) {
       this.velocity.x *= -1;
     }

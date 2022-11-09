@@ -1,0 +1,21 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint", "prettier"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "@akolos/eslint-config-typescript",
+    "prettier"
+  ],
+  "ignorePatterns": ["*.config.js"],
+  "rules": {
+    "react/prop-types": ["off"],
+    "import/no-extraneous-dependencies": ["off"],
+    "no-console": "off"
+  }
+}

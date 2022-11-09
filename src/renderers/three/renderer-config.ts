@@ -1,4 +1,4 @@
-import Three, { Vector3 } from "three";
+import Three, { Vector3 } from 'three';
 
 export interface MeterConfig {
   scale: number;
@@ -24,7 +24,7 @@ export interface ThreeRendererConfig {
     clippingPlane: {
       near: number;
       far: number;
-    },
+    };
     position: Three.Vector3;
   };
   width: number;
@@ -60,7 +60,7 @@ export interface ThreeRendererConfig {
         right: number;
         top: number;
         bottom: number;
-      },
+      };
       brightness: number;
     };
     scoreLight: {

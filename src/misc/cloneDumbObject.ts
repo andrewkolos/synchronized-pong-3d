@@ -2,7 +2,7 @@
 
 export function cloneDumbObject<T>(source: T): T {
   if (!isDumbObject(source)) {
-    throw Error("Object cannot contain non-value types.");
+    throw Error('Object cannot contain non-value types.');
   }
 
   return JSON.parse(JSON.stringify(source));
@@ -11,9 +11,9 @@ export function cloneDumbObject<T>(source: T): T {
 function isDumbObject(o: any): boolean {
   return Object.values(o).every((value: any) => {
     const type = typeof value;
-    if (type === "object") {
+    if (type === 'object') {
       return isDumbObject(value);
     }
-    return type !== "function";
+    return type !== 'function';
   });
 }

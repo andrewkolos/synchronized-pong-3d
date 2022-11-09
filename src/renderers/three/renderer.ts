@@ -1,14 +1,14 @@
-import * as Three from "three";
-import { OrbitControls } from "three-orbitcontrols-ts";
-import { GameEngine, Score } from "../../game-core/game-engine";
-import { Paddle } from "../../game-core/paddle";
-import ballTexture from "./images/ball";
-import { ThreeRendererConfig } from "./renderer-config";
-import { MeterType, ThreeScoreboard } from "./scoreboard/scoreboard";
-import { makeTextureFromBase64Image } from "./misc/common";
+/* eslint-disable no-param-reassign */
+import * as Three from 'three';
+import { OrbitControls } from 'three-orbitcontrols-ts';
+import { GameEngine, Score } from '../../game-core/game-engine';
+import { Paddle } from '../../game-core/paddle';
+import ballTexture from './images/ball';
+import { ThreeRendererConfig } from './renderer-config';
+import { MeterType, ThreeScoreboard } from './scoreboard/scoreboard';
+import { makeTextureFromBase64Image } from './misc/common';
 
 export class ThreeRenderer {
-
   private scene: Three.Scene;
   private camera: Three.PerspectiveCamera;
   private cameraParent = new Three.Group();
@@ -17,7 +17,7 @@ export class ThreeRenderer {
   private scoreboard: ThreeScoreboard;
 
   private gameObjects?: {
-    ball: { outerObj: Three.Group, innerObj: Three.Mesh };
+    ball: { outerObj: Three.Group; innerObj: Three.Mesh };
     player1Paddle: Three.Mesh;
     player2Paddle: Three.Mesh;
   };
@@ -60,7 +60,7 @@ export class ThreeRenderer {
 
     this.scene.add(this.cameraParent);
 
-    // tslint:disable-next-line: no-unused-expression
+    // eslint-disable-next-line no-new
     new OrbitControls(this.camera, this.renderer.domElement);
 
     const scoreboard = new ThreeScoreboard(config.scoreboard);
@@ -89,7 +89,7 @@ export class ThreeRenderer {
   public setSize(width: number, height: number): void {
     this.renderer.setSize(width, height);
 
-    const domElement = this.renderer.domElement;
+    const { domElement } = this.renderer;
     this.camera.aspect = domElement.clientWidth / domElement.clientHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(domElement.clientWidth, domElement.clientHeight);
@@ -107,7 +107,6 @@ export class ThreeRenderer {
   }
 
   private performInitialSetup(game: GameEngine) {
-
     const enableShadows = (obj: Three.Object3D) => {
       obj.castShadow = true;
       obj.receiveShadow = true;
@@ -130,8 +129,8 @@ export class ThreeRenderer {
       };
 
       const eastWall = createWall();
-      eastWall.position.x = -playFieldWidth / 2 - wallWidth / 2,
-        eastWall.position.z = wallHeight / 2 - playFieldDepth;
+      eastWall.position.x = -playFieldWidth / 2 - wallWidth / 2;
+      eastWall.position.z = wallHeight / 2 - playFieldDepth;
 
       const westWall = createWall();
       westWall.position.x = playFieldWidth / 2 + wallWidth / 2;
@@ -172,7 +171,6 @@ export class ThreeRenderer {
     };
 
     if (this.gameObjects == null) {
-
       const { eastWall, westWall } = createWalls();
       this.scene.add(eastWall);
       this.scene.add(westWall);
@@ -194,30 +192,29 @@ export class ThreeRenderer {
         player2Paddle,
       };
 
-      game.eventEmitter.on("ballHitPaddle", () => {
+      game.eventEmitter.on('ballHitPaddle', () => {
         this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
       });
 
-      game.eventEmitter.on("scoreChanged", (_previousScore: Score, currentScore: Score) => {
+      game.eventEmitter.on('scoreChanged', (_previousScore: Score, currentScore: Score) => {
         this.handleScoreChange(currentScore);
       });
 
-      game.eventEmitter.on("startingServe", () => {
+      game.eventEmitter.on('startingServe', () => {
         this.scoreboard.showMeter(MeterType.ServeProgress);
       });
 
-      game.eventEmitter.on("tick", () => this.update(game));
+      game.eventEmitter.on('tick', () => this.update(game));
 
-      game.eventEmitter.on("ballServed", () => {
+      game.eventEmitter.on('ballServed', () => {
         this.scoreboard.showMeter(MeterType.Speed);
         this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
         this.scoreboard.setServeProgress(0);
       });
     }
   }
-  
-  private createPlayField(game: GameEngine) {
 
+  private createPlayField(game: GameEngine) {
     const { centerlineWidth } = this.config.playField;
     const lineColor = this.config.playField.centerlineColor;
     const playFieldColor = this.config.playField.color;
@@ -235,10 +232,11 @@ export class ThreeRenderer {
     };
 
     const createHalf = (): Three.Object3D => {
-      const neutralZoneHeight = game.config.playField.neutralZoneHeight / 2 - centerlineWidth / 2 - neutralZoneBoundaryWidth;
+      const neutralZoneHeight =
+        game.config.playField.neutralZoneHeight / 2 - centerlineWidth / 2 - neutralZoneBoundaryWidth;
       const playerZoneHeight = game.config.playField.height / 2 - game.config.playField.neutralZoneHeight / 2;
       const neutralZoneYPos = centerlineWidth / 2 + neutralZoneHeight / 2;
-      const playerZoneYPos = neutralZoneHeight + playerZoneHeight / 2 + neutralZoneBoundaryWidth + centerlineWidth / 2 ;
+      const playerZoneYPos = neutralZoneHeight + playerZoneHeight / 2 + neutralZoneBoundaryWidth + centerlineWidth / 2;
       const neutralZoneBoundaryLineYPos = neutralZoneYPos + neutralZoneHeight / 2 + neutralZoneBoundaryWidth / 2;
 
       const playerZone = createPart(playFieldColor, playerZoneHeight, playerZoneYPos);
@@ -249,7 +247,6 @@ export class ThreeRenderer {
       half.add(playerZone, neutralZoneBoundaryLine, neutralZone);
       return half;
     };
-
 
     const topHalf = createHalf();
     const bottomHalf = createHalf();
@@ -329,7 +326,7 @@ export class ThreeRenderer {
       obj.rotation.z = paddle.zRotationEulers;
     };
 
-    const updateBall = (obj: { outerObj: Three.Group, innerObj: Three.Mesh }) => {
+    const updateBall = (obj: { outerObj: Three.Group; innerObj: Three.Mesh }) => {
       obj.outerObj.position.x = game.ball.position.x;
       obj.outerObj.position.y = game.ball.position.y;
 
@@ -343,7 +340,8 @@ export class ThreeRenderer {
     };
 
     const updateScreenShake = () => {
-      const shakeFactor = (game.ball.velocity.length() - this.config.screenShake.minSpeed) /
+      const shakeFactor =
+        (game.ball.velocity.length() - this.config.screenShake.minSpeed) /
         (this.config.screenShake.maxSpeed / this.config.screenShake.minSpeed);
 
       if (shakeFactor > 0) {
@@ -362,7 +360,7 @@ export class ThreeRenderer {
     };
 
     if (this.gameObjects == null) {
-      throw Error("Cannot render before render has been initialized.");
+      throw Error('Cannot render before render has been initialized.');
     }
 
     if (game.timeUntilServeSec > 0) {
@@ -383,5 +381,4 @@ export class ThreeRenderer {
     this.scoreboard.setSpeed(0);
     this.scoreboard.setScore(currentScore.player1, currentScore.player2);
   }
-
 }
