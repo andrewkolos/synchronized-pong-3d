@@ -11,25 +11,34 @@ export class Segment {
     const segWidthPad = scale(segWidth - segPad);
     const segHeightPad = scale(segHeight - segPad);
 
-    const geometry = new Three.Geometry();
-    geometry.vertices.push(
-      // Vertices in clockwise order.
-      new Three.Vector3(-segWidthPad / 2, segHeightPad / 2, 0), // Top left.
-      new Three.Vector3(segWidthPad / 2, segHeightPad / 2, 0), // Top right.
-      new Three.Vector3(segWidthPad / 2 + segHeightPad / 2, 0, 0), // Right point.
-      new Three.Vector3(segWidthPad / 2, -segHeightPad / 2, 0), // Bottom right.
-      new Three.Vector3(-segWidthPad / 2, -segHeightPad / 2, 0), // Bottom left.
-      new Three.Vector3(-segWidthPad / 2 - segHeightPad / 2, 0, 0), // Left point.
-    );
-    geometry.faces.push(
-      new Three.Face3(0, 1, 3),
-      new Three.Face3(3, 4, 0),
-      new Three.Face3(1, 2, 3),
-      new Three.Face3(4, 5, 0),
-    );
-    geometry.computeFaceNormals();
-    geometry.computeVertexNormals();
+    // Vertices in the segment shape, with the shape laying on its side and centered at the origin.
+    // To understand the shape, set pads to 2 and draw these on graph paper.
+    const topLeft = new Three.Vector3(-segWidthPad / 2, segHeightPad / 2, 0);
+    const topRight = new Three.Vector3(segWidthPad / 2, segHeightPad / 2, 0);
+    const right = new Three.Vector3(segWidthPad / 2 + segHeightPad / 2, 0, 0);
+    const bottomRight = new Three.Vector3(segWidthPad / 2, -segHeightPad / 2, 0);
+    const bottomLeft = new Three.Vector3(-segWidthPad / 2, -segHeightPad / 2, 0);
+    const left = new Three.Vector3(-segWidthPad / 2 - segHeightPad / 2, 0, 0);
 
+    const points: Three.Vector3[] = [
+      left,
+      topLeft,
+      bottomLeft,
+
+      topLeft,
+      bottomLeft,
+      topRight,
+
+      bottomLeft,
+      topRight,
+      bottomRight,
+
+      topRight,
+      right,
+      bottomRight,
+    ];
+
+    const geometry = new Three.BufferGeometry().setFromPoints(points);
     this.material = new Three.MeshBasicMaterial({ color });
     this.material.side = Three.DoubleSide;
     const segMesh = new Three.Mesh(geometry, this.material);

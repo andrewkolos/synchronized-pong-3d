@@ -1,4 +1,4 @@
-import { EventEmitter } from '@akolos/event-emitter';
+import { InheritableEventEmitter } from '@akolos/event-emitter';
 import { cloneDumbObject } from 'misc/cloneDumbObject';
 import * as Three from 'three';
 import { Ball } from './ball';
@@ -23,7 +23,7 @@ export interface GameEngineEvents {
   scoreChanged(previousScore: Score, currentScore: Score): void;
 }
 
-export class GameEngine {
+export class GameEngine extends InheritableEventEmitter<GameEngineEvents> {
   // Exposed game state info.
   public player1Paddle: Paddle;
   public player2Paddle: Paddle;
@@ -31,8 +31,6 @@ export class GameEngine {
 
   /** Game configuration info. */
   public config: Readonly<Config>;
-
-  public eventEmitter = new EventEmitter<GameEngineEvents>();
 
   public score: Score;
 
@@ -51,6 +49,8 @@ export class GameEngine {
    * @param config The configuration describing properties of the game.
    */
   public constructor(config: Config) {
+    super();
+
     const createPaddles = () => {
       const paddleWidth = config.paddles.width;
       const paddleHeight = config.paddles.height;
@@ -69,8 +69,8 @@ export class GameEngine {
     this.player2Paddle = paddles.player2Paddle;
 
     this.ball = new Ball(this, config.ball);
-    this.ball.onPaddleBounce = (player: Player) => this.eventEmitter.emit('ballHitPaddle', player);
-    this.ball.onWallBounce = () => this.eventEmitter.emit('ballHitWall');
+    this.ball.onPaddleBounce = (player: Player) => this.emit('ballHitPaddle', player);
+    this.ball.onWallBounce = () => this.emit('ballHitWall');
 
     // Initialize game state.
     this.timeUntilServeSec = 3;
@@ -110,7 +110,7 @@ export class GameEngine {
     if (this.config.aiPlayer != null && this.config.aiPlayer.enabled) {
       this.movePlayer2Paddle();
     }
-    this.eventEmitter.emit('tick');
+    this.emit('tick');
   }
 
   private moveBall() {
@@ -164,9 +164,9 @@ export class GameEngine {
     const server = scorer === Player.Player1 ? Player.Player2 : Player.Player1;
     this.startServing(server);
 
-    this.eventEmitter.emit('playerScored', scorer, this.score);
+    this.emit('playerScored', scorer, this.score);
     const currentScore = cloneDumbObject(this.score);
-    this.eventEmitter.emit('scoreChanged', previousScore, currentScore);
+    this.emit('scoreChanged', previousScore, currentScore);
   }
 
   private startServing(server: Player) {
@@ -174,7 +174,7 @@ export class GameEngine {
     this.ball.velocity.set(0, 0);
     this.server = server;
     this.timeUntilServeSec = this.config.pauseAfterScoreSec;
-    this.eventEmitter.emit('startingServe');
+    this.emit('startingServe');
   }
 
   private movePlayer2Paddle() {
@@ -188,7 +188,7 @@ export class GameEngine {
   private serveBall() {
     this.ball.sendTowardPlayer(this.server, this.config.ball.initialSpeedOnServe);
     this.ballIsInPlay = true;
-    this.eventEmitter.emit('ballServed');
+    this.emit('ballServed');
   }
 
   private isBallServingAtCurrentInstant() {

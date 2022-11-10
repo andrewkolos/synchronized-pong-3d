@@ -192,21 +192,21 @@ export class ThreeRenderer {
         player2Paddle,
       };
 
-      game.eventEmitter.on('ballHitPaddle', () => {
+      game.on('ballHitPaddle', () => {
         this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
       });
 
-      game.eventEmitter.on('scoreChanged', (_previousScore: Score, currentScore: Score) => {
+      game.on('scoreChanged', (_previousScore: Score, currentScore: Score) => {
         this.handleScoreChange(currentScore);
       });
 
-      game.eventEmitter.on('startingServe', () => {
+      game.on('startingServe', () => {
         this.scoreboard.showMeter(MeterType.ServeProgress);
       });
 
-      game.eventEmitter.on('tick', () => this.update(game));
+      game.on('tick', () => this.update(game));
 
-      game.eventEmitter.on('ballServed', () => {
+      game.on('ballServed', () => {
         this.scoreboard.showMeter(MeterType.Speed);
         this.scoreboard.setSpeed(Math.hypot(game.ball.velocity.x, game.ball.velocity.y));
         this.scoreboard.setServeProgress(0);
@@ -336,7 +336,7 @@ export class ThreeRenderer {
       const axisOfRotation = new Three.Vector3(-game.ball.velocity.y, game.ball.velocity.x, 0).normalize();
       const rotation = new Three.Matrix4();
       rotation.makeRotationAxis(axisOfRotation, angle);
-      obj.innerObj.applyMatrix(rotation);
+      obj.innerObj.applyMatrix4(rotation);
     };
 
     const updateScreenShake = () => {

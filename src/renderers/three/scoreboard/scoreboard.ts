@@ -1,4 +1,6 @@
 import * as Three from 'three';
+import { Font, FontLoader } from 'three/examples/jsm/loaders/FontLoader';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
 import { getWidthOfObject as getWidthOfObj } from '../misc/common';
 import { ScoreboardConfig } from '../renderer-config';
 import { Meter, METER_HEIGHT } from './meter';
@@ -12,7 +14,7 @@ export enum MeterType {
 }
 export class ThreeScoreboard {
   private object: Three.Object3D;
-  private font: Three.Font;
+  private font: Font;
   private config: ScoreboardConfig;
 
   private speedometer: Meter;
@@ -39,7 +41,7 @@ export class ThreeScoreboard {
 
     this.object.add(scoreboardBase);
 
-    const loader = new Three.FontLoader();
+    const loader = new FontLoader();
     this.font = loader.parse(font);
 
     const player1Mesh = this.generatePlayerTextMesh('P1', config.player1TextColor);
@@ -116,7 +118,7 @@ export class ThreeScoreboard {
   }
 
   private generatePlayerTextMesh(text: string, color: number) {
-    const playerTextGeometry = new Three.TextGeometry(text, {
+    const playerTextGeometry = new TextGeometry(text, {
       font: this.font,
       size: this.config.scale,
       height: 0.25,

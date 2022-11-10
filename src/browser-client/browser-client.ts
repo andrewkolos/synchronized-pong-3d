@@ -38,9 +38,9 @@ export class BrowserClient {
       this.setupBrowserInput(options.input.playerToControl, options.input.keyMappings);
     }
 
-    game.eventEmitter.on('ballHitPaddle', this.playBounceSound.bind(this));
-    game.eventEmitter.on('ballHitWall', this.playBounceSound.bind(this));
-    game.eventEmitter.on('playerScored', this.playApplause.bind(this));
+    game.on('ballHitPaddle', this.playBounceSound.bind(this));
+    game.on('ballHitWall', this.playBounceSound.bind(this));
+    game.on('playerScored', this.playApplause.bind(this));
 
     const renderer = (() => {
       const rendererWidth = hostElement.clientWidth;
@@ -90,7 +90,7 @@ export class BrowserClient {
     const inputApplicator = new PaddleInputApplicator(game);
 
     let lastTickTime = new Date().getTime();
-    game.eventEmitter.on('tick', () => {
+    game.on('tick', () => {
       const currentTime = new Date().getTime();
       const dt = currentTime - lastTickTime;
       inputApplicator.applyInput({ player: Player.Player1, ...inputCollector.getPaddleMoveInput(dt) });
