@@ -35,9 +35,9 @@ export class Meter {
   }
 
   public setValue(value: number) {
-    const valuePerPart = this.config.maxValue / this.config.numberOfSegments;
+    const valuePerPart = (this.config.maxValue - this.config.minValue) / this.config.numberOfSegments;
     this.meterParts.forEach((part: Three.Object3D, i: number) => {
-      part.visible = value > valuePerPart * i;
+      part.visible = value - this.config.minValue > valuePerPart * i;
     });
   }
 

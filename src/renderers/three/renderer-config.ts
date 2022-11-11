@@ -5,6 +5,7 @@ export interface MeterConfig {
   backColor: number;
   numberOfSegments: number;
   segmentColors: number[];
+  minValue: number;
   maxValue: number;
 }
 

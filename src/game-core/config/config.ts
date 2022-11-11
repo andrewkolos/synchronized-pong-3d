@@ -16,7 +16,9 @@ export interface BallConfig {
   initialSpeedOnServe: number;
 }
 
-export interface Config {
+export type Config = ConfigWithoutAi | ConfigWithAi;
+
+interface BaseConfig {
   game: {
     /** How often, in Hz, the game updates its state. */
     tickRate: number;
@@ -44,8 +46,18 @@ export interface Config {
   ball: BallConfig;
   /** How many seconds until the ball is served after a player scores. */
   pauseAfterScoreSec: number;
-  aiPlayer?: {
-    enabled: boolean;
+}
+
+export interface ConfigWithoutAi extends BaseConfig {
+  aiPlayer: {
+    enabled: false;
+  };
+}
+
+export interface ConfigWithAi extends BaseConfig {
+  aiPlayer: {
+    enabled: true;
     moveSpeed: number;
+    speedIncreaseOnPaddleHit: number;
   };
 }

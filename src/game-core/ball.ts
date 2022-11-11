@@ -45,18 +45,21 @@ export class Ball {
     this.position.add(positionDelta);
 
     const collisionInfo = this.isCollidingWithAnyPaddle();
+    const { collisionType, player } = collisionInfo;
     if (this.isCollidingWithWall()) {
       this.handleCollisionWithWall();
       if (this.onWallBounce != null) {
         this.onWallBounce();
       }
-    } else if (collisionInfo.player != null && collisionInfo.collisionType !== CollisionType.None) {
+    } else if (player != null && collisionType !== CollisionType.None) {
       const delta = new Three.Vector2(this.velocity.x, this.velocity.y);
-      const paddle = getPaddleByPlayer(game, collisionInfo.player);
+      const paddle = getPaddleByPlayer(game, player);
 
       const rot = paddle.zRotationEulers;
 
-      if (collisionInfo.collisionType === CollisionType.Standard) {
+      const collidingWithAiPaddle = player === Player.Player2 && game.config.aiPlayer.enabled;
+
+      if (collisionType === CollisionType.Standard || collidingWithAiPaddle) {
         delta.x -= paddle.velocity.x * game.config.ball.speedIncreaseOnPaddleHitRatio;
         delta.y -= paddle.velocity.y * game.config.ball.speedIncreaseOnPaddleHitRatio;
 
@@ -66,24 +69,28 @@ export class Ball {
         delta.rotateAround(new Three.Vector2(0, 0), rot);
 
         delta.multiplyScalar((delta.length() + game.config.ball.baseSpeedIncreaseOnPaddleHit) / delta.length());
-      } else if (collisionInfo.player !== Player.Player2 || game.config.aiPlayer == null) {
+      } else if (!collidingWithAiPaddle) {
         delta.x = Math.hypot(delta.x, delta.y);
         delta.y = 0;
-        delta.rotateAround(new Three.Vector2(), collisionInfo.collisionType === CollisionType.RightEdge ? rot : rot);
+        delta.rotateAround(new Three.Vector2(), collisionType === CollisionType.RightEdge ? rot : rot);
 
-        if (collisionInfo.collisionType === CollisionType.LeftEdge) {
+        if (collisionType === CollisionType.LeftEdge) {
           delta.multiplyScalar(-1);
         }
       }
 
-      // Prevent double-counted collision from the paddle traveling into the ball.
-      //this.position.add(new Three.Vector2(paddle.velocity.x, paddle.velocity.y));
-
       this.velocity.set(delta.x, delta.y);
       this.position.add(this.velocity);
 
+      if (
+        collidingWithAiPaddle &&
+        (collisionType === CollisionType.LeftEdge || collisionType === CollisionType.RightEdge)
+      ) {
+        this.moveInFrontOfPaddle(player);
+      }
+
       if (this.onPaddleBounce != null) {
-        this.onPaddleBounce(collisionInfo.player);
+        this.onPaddleBounce(player);
       }
     }
   }
@@ -105,6 +112,20 @@ export class Ball {
     const ballYPosOffset = player === Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
 
     this.position.x = paddle.position.x + ballYPosOffset * Math.cos(paddle.zRotationEulers + Math.PI / 2);
+    this.position.y = paddle.position.y + ballYPosOffset * Math.sin(paddle.zRotationEulers + Math.PI / 2);
+  }
+
+  private moveInFrontOfPaddle(player: Player) {
+    validatePlayerVal(player);
+    const ballRadius = this.radius;
+
+    const paddle = getPaddleByPlayer(this.game, player);
+    const paddleHeight = paddle.height;
+    const ballYPosOffsetPlayer1 = paddleHeight / 2 + ballRadius * 2; // Move the ball in front of the paddle.
+    const ballYPosOffsetPlayer2 = -ballYPosOffsetPlayer1;
+
+    const ballYPosOffset = player === Player.Player1 ? ballYPosOffsetPlayer1 : ballYPosOffsetPlayer2;
+
     this.position.y = paddle.position.y + ballYPosOffset * Math.sin(paddle.zRotationEulers + Math.PI / 2);
   }
 

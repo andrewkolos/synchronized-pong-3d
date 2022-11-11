@@ -1,7 +1,7 @@
 import { cloneDumbObject } from 'misc/cloneDumbObject';
-import { Config } from './config';
+import { ConfigWithAi } from './config';
 
-export const basicConfig: Config = {
+export const basicConfig = {
   game: {
     tickRate: 240,
   },
@@ -28,7 +28,6 @@ export const basicConfig: Config = {
 };
 
 const basicOnlineConfig = cloneDumbObject(basicConfig);
-basicOnlineConfig.aiPlayer = undefined;
 
 export const basicOnlineClientConfig = cloneDumbObject(basicOnlineConfig);
 
@@ -38,10 +37,11 @@ _basicOnlineServerConfig.game.tickRate = 60;
 
 export const basicOnlineServerConfig = _basicOnlineServerConfig;
 
-export const basicConfigWithAiOpponent = {
+export const basicConfigWithAiOpponent: ConfigWithAi = {
   ...basicConfig,
   aiPlayer: {
     enabled: true,
     moveSpeed: 0.03,
+    speedIncreaseOnPaddleHit: 0.03,
   },
 };
